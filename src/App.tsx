@@ -1,368 +1,227 @@
 import React, { useState, useEffect } from 'react';
-import { PawPrint, CalendarDays, TrendingUp, TreeDeciduous, Baby, Milk, Save, Edit2, Trash2, Plus, History, Search, Menu, X, DollarSign, PlusCircle, LogOut, Lock, UserPlus } from 'lucide-react';
+import { initializeApp } from 'firebase/app';
+import { getFirestore, collection, addDoc, query, where, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
+import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { 
+  LayoutDashboard, dynamicIconImports, 
+  Baby, Milk, Network, Wallet, ListChecks, Package, 
+  Plus, Trash2, ChevronRight, LogOut, UserPlus, Search
+} from 'lucide-react';
 
-// --- CONFIGURAZIONE CLOUD, AUTH E FIRESTORE ---
-import { initializeApp } from "firebase/app";
-import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, query, where, orderBy } from "firebase/firestore";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, User } from "firebase/auth";
-
+// --- CONFIGURAZIONE FIREBASE ---
 const firebaseConfig = {
-  apiKey: "AIzaSyD6ZxCO6BvGLKfsF235GSsLh-7GQm84Vdk",
-  authDomain: "agrimanager-pro-e3cf7.firebaseapp.com",
-  projectId: "agrimanager-pro-e3cf7",
-  storageBucket: "agrimanager-pro-e3cf7.firebasestorage.app",
-  messagingSenderId: "415553695665",
-  appId: "1:415553695665:web:6e9ddd9f5241424afad790"
+  apiKey: "IL_TUO_API_KEY",
+  authDomain: "IL_TUO_PROGETTO.firebaseapp.com",
+  projectId: "IL_TUO_PROGETTO",
+  storageBucket: "IL_TUO_PROGETTO.firebasestorage.app",
+  messagingSenderId: "IL_TUO_SENDER_ID",
+  appId: "IL_TUO_APP_ID"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// --- TIPI ---
-type Species = 'Maiali' | 'Cavalli' | 'Mucche' | 'Galline' | 'Oche';
-interface Animal { id: string; name: string; species: Species; notes: string; sire?: string; dam?: string; birthDate?: string; quantity?: number; ownerId: string; }
-interface BirthRecord { id: string; animalName: string; species: Species; date: string; offspringCount: number; birthDate: string; ownerId: string; }
-interface Production { id: string; item: string; quantity: number; date: string; species: Species; ownerId: string; }
-interface Transaction { id: string; type: 'Entrata' | 'Uscita'; amount: number; desc: string; species: Species; date: string; ownerId: string; }
-interface Task { id: string; text: string; done: boolean; date: string; ownerId: string; }
+// --- COMPONENTE RICORSIVO DINASTIA ---
+const DynastyBranch = ({ animal, allAnimals, level = 0 }: any) => {
+  const children = allAnimals.filter((a: any) => a.fatherId === animal.id || a.motherId === animal.id);
+  return (
+    <div className={`${level > 0 ? 'ml-6 border-l-2 border-emerald-100' : ''} mt-2`}>
+      <div className={`flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm border ${level === 0 ? 'border-l-4 border-emerald-600' : 'border-gray-100'}`}>
+        <div>
+          <p className="font-bold text-gray-800">{animal.name}</p>
+          <p className="text-[10px] text-emerald-600 font-bold uppercase">Gen. {level} • {animal.species}</p>
+        </div>
+      </div>
+      {children.map((child: any) => (
+        <DynastyBranch key={child.id} animal={child} allAnimals={allAnimals} level={level + 1} />
+      ))}
+    </div>
+  );
+};
 
-export default function App() {
-  // Stati Autenticazione
-  const [user, setUser] = useState<User | null>(null);
+function App() {
+  const [user, setUser] = useState<any>(null);
+  const [view, setView] = useState('inventory'); // Vista di default
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [authError, setAuthError] = useState('');
-  const [loading, setLoading] = useState(true);
 
-  // Stati Applicazione
-  const [activeTab, setActiveTab] = useState('inventory');
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [animals, setAnimals] = useState<Animal[]>([]);
-  const [births, setBirths] = useState<BirthRecord[]>([]);
-  const [production, setProduction] = useState<Production[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  
+  // Stati Dati
+  const [animals, setAnimals] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [speciesFilter, setSpeciesFilter] = useState('');
+
   // Stati Form
-  const [newTask, setNewTask] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [newAnimal, setNewAnimal] = useState({ name: '', species: 'Maiali' as Species, birthDate: '' });
-  const [newBirth, setNewBirth] = useState({ idCode: '', species: 'Maiali' as Species, count: 1, birthDate: '' });
-  const [newProd, setNewProd] = useState({ item: '', quantity: 1, species: 'Maiali' as Species });
-  const [newTrans, setNewTrans] = useState({ desc: '', amount: 0, type: 'Entrata' as 'Entrata' | 'Uscita', species: 'Maiali' as Species });
-  
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editData, setEditData] = useState({ name: '', notes: '' });
-  const [editParents, setEditParents] = useState({ sire: '', dam: '' });
+  const [newAnimal, setNewAnimal] = useState({ name: '', species: '', fatherId: '', motherId: '' });
+  const [newProduct, setNewProduct] = useState({ name: '', qty: '', unit: 'kg' });
 
-  const speciesList: Species[] = ['Maiali', 'Cavalli', 'Mucche', 'Galline', 'Oche'];
-
-  // 1. Gestione Accesso
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-      setLoading(false);
+      if (currentUser) {
+        onSnapshot(query(collection(db, 'animals'), where('ownerId', '==', currentUser.uid)), (s) => 
+          setAnimals(s.docs.map(d => ({ id: d.id, ...d.data() }))));
+        onSnapshot(query(collection(db, 'products'), where('ownerId', '==', currentUser.uid)), (s) => 
+          setProducts(s.docs.map(d => ({ id: d.id, ...d.data() }))));
+        onSnapshot(query(collection(db, 'transactions'), where('ownerId', '==', currentUser.uid)), (s) => 
+          setTransactions(s.docs.map(d => ({ id: d.id, ...d.data() }))));
+      }
     });
-    return () => unsubscribe();
+    return unsubscribe;
   }, []);
 
-  // 2. Sincronizzazione Dati Protetti (Filtro per ownerId)
-  useEffect(() => {
-    if (!user) {
-        setAnimals([]); setBirths([]); setProduction([]); setTransactions([]); setTasks([]);
-        return;
-    }
-
-    const qAnimals = query(collection(db, 'animals'), where("ownerId", "==", user.uid));
-    const qBirths = query(collection(db, 'births'), where("ownerId", "==", user.uid));
-    const qProd = query(collection(db, 'production'), where("ownerId", "==", user.uid));
-    const qTrans = query(collection(db, 'transactions'), where("ownerId", "==", user.uid));
-    const qTasks = query(collection(db, 'tasks'), where("ownerId", "==", user.uid));
-
-    const unsubAnimals = onSnapshot(qAnimals, snap => setAnimals(snap.docs.map(d => ({id: d.id, ...d.data()})) as Animal[]));
-    const unsubBirths = onSnapshot(qBirths, snap => setBirths(snap.docs.map(d => ({id: d.id, ...d.data()})) as BirthRecord[]));
-    const unsubProd = onSnapshot(qProd, snap => setProduction(snap.docs.map(d => ({id: d.id, ...d.data()})) as Production[]));
-    const unsubTrans = onSnapshot(qTrans, snap => setTransactions(snap.docs.map(d => ({id: d.id, ...d.data()})) as Transaction[]));
-    const unsubTasks = onSnapshot(qTasks, snap => setTasks(snap.docs.map(d => ({id: d.id, ...d.data()})) as Task[]));
-
-    return () => { unsubAnimals(); unsubBirths(); unsubProd(); unsubTrans(); unsubTasks(); };
-  }, [user]);
-
-  // Azioni Auth
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthError('');
-    try {
-      if (isRegistering) {
-        await createUserWithEmailAndPassword(auth, email, password);
-      } else {
-        await signInWithEmailAndPassword(auth, email, password);
-      }
-    } catch (error: any) {
-      setAuthError("Errore: controllare email e password (min. 6 caratteri)");
-    }
+  const handleAddAnimal = async () => {
+    if (!newAnimal.name || !newAnimal.species) return;
+    await addDoc(collection(db, 'animals'), { ...newAnimal, ownerId: user.uid });
+    setNewAnimal({ name: '', species: '', fatherId: '', motherId: '' });
   };
 
-  const handleLogout = () => signOut(auth);
+  const handleAddProduct = async () => {
+    if (!newProduct.name || !newProduct.qty) return;
+    await addDoc(collection(db, 'products'), { ...newProduct, ownerId: user.uid });
+    setNewProduct({ name: '', qty: '', unit: 'kg' });
+  };
 
-  // Azioni Database (Sempre con ownerId)
-  const deleteFromCloud = async (coll: string, id: string) => await deleteDoc(doc(db, coll, id));
-  const toggleTaskCloud = async (task: Task) => await updateDoc(doc(db, 'tasks', task.id), { done: !task.done, date: new Date().toLocaleDateString() });
-  const saveAnimalEdit = async (id: string) => { await updateDoc(doc(db, 'animals', id), { name: editData.name, notes: editData.notes }); setEditingId(null); };
-  
-  const getBalance = (species: Species) => transactions.filter(t => t.species === species).reduce((acc, t) => acc + (t.type === 'Entrata' ? t.amount : -t.amount), 0);
-  const getCount = (species: Species) => animals.filter(a => a.species === species).reduce((acc, a) => acc + (a.quantity || 1), 0);
-  const formatCurrency = (amount: number) => new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(amount);
-
-  const groupedTasks = tasks.filter(t => t.done && t.text.toLowerCase().includes(searchQuery.toLowerCase())).reduce((acc, task) => {
-    acc[task.date] = acc[task.date] || []; acc[task.date].push(task); return acc;
-  }, {} as Record<string, Task[]>);
-
-  const navItems = [
-    { id: 'inventory', label: 'Inventario Capi', icon: PawPrint },
-    { id: 'births', label: 'Registro Parti', icon: Baby },
-    { id: 'production', label: 'Produzione', icon: Milk },
-    { id: 'genealogy', label: 'Genealogia', icon: TreeDeciduous },
-    { id: 'finance', label: 'Economia', icon: TrendingUp },
-    { id: 'tasks', label: 'Attività', icon: CalendarDays }
-  ];
-
-  if (loading) return <div className="min-h-screen bg-stone-100 flex items-center justify-center font-bold text-emerald-800">Caricamento AgriManage...</div>;
-
-  // SCHERMATA LOGIN/REGISTRAZIONE
   if (!user) {
     return (
-      <div className="min-h-screen bg-emerald-900 flex items-center justify-center p-4">
-        <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md border border-emerald-100">
-          <div className="text-center mb-8">
-            <div className="bg-emerald-600 w-20 h-20 rounded-2xl flex items-center justify-center text-white mx-auto mb-4 shadow-xl">
-              {isRegistering ? <UserPlus size={40} /> : <Lock size={40} />}
-            </div>
-            <h1 className="text-3xl font-black text-stone-900 tracking-tighter">AgriManage <span className="text-emerald-600">Pro</span></h1>
-            <p className="text-stone-500 mt-2 font-medium">{isRegistering ? 'Crea il tuo spazio aziendale' : 'Accedi alla tua azienda'}</p>
-          </div>
-          <form onSubmit={handleAuth} className="space-y-4">
-            <input type="email" required className="ui-input" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email aziendale" />
-            <input type="password" required className="ui-input" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" />
-            {authError && <p className="text-red-500 text-sm font-bold bg-red-50 p-3 rounded-lg border border-red-100">{authError}</p>}
-            <button type="submit" className="ui-button-primary w-full py-4 text-lg shadow-emerald-200">
-              {isRegistering ? 'Registrati e Inizia' : 'Entra in Stalla'}
-            </button>
-          </form>
-          <button onClick={() => {setIsRegistering(!isRegistering); setAuthError('');}} className="mt-6 text-emerald-700 text-sm w-full text-center font-bold hover:underline">
-            {isRegistering ? 'Hai già un account? Accedi qui' : 'Non hai un account? Registrati ora'}
-          </button>
+      <div className="min-h-screen bg-emerald-50 flex items-center justify-center p-6">
+        <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md border border-emerald-100">
+          <h1 className="text-3xl font-black text-emerald-800 mb-6 text-center">AgriManage Pro</h1>
+          <input type="email" placeholder="Email" className="w-full p-4 mb-3 border rounded-2xl" onChange={e => setEmail(e.target.value)} />
+          <input type="password" placeholder="Password" className="w-full p-4 mb-6 border rounded-2xl" onChange={e => setPassword(e.target.value)} />
+          <button onClick={() => signInWithEmailAndPassword(auth, email, password)} className="w-full bg-emerald-600 text-white p-4 rounded-2xl font-bold mb-3">Accedi</button>
+          <button onClick={() => createUserWithEmailAndPassword(auth, email, password)} className="w-full text-emerald-600 font-bold">Crea account</button>
         </div>
       </div>
     );
   }
 
-  // INTERFACCIA APP COMPLETA (DOPO LOGIN)
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-stone-100/50 text-stone-900 overflow-hidden antialiased">
-      
-      {/* MOBILE HEADER */}
-      <div className="md:hidden bg-white border-b border-stone-200 p-4 flex justify-between items-center z-20 sticky top-0">
-        <div className="flex items-center gap-2">
-            <div className="bg-emerald-600 p-2 rounded-lg text-white"><DollarSign size={18}/></div>
-            <h1 className="text-lg font-bold text-emerald-950 tracking-tight">AgriManage Pro</h1>
+    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
+      {/* SIDEBAR (Come nello screenshot) */}
+      <aside className="w-full md:w-72 bg-white border-r border-gray-200 p-6 flex flex-col">
+        <div className="flex items-center gap-3 mb-10">
+          <div className="bg-emerald-600 p-2 rounded-xl text-white"><Package size={24}/></div>
+          <h2 className="text-xl font-black text-emerald-900 tracking-tighter">AgriManagePro</h2>
         </div>
-        <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 rounded-lg bg-stone-100 text-stone-700"><Menu size={24} /></button>
-      </div>
 
-      {isMobileMenuOpen && ( <div className="fixed inset-0 bg-emerald-950/40 z-30 md:hidden backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} /> )}
-
-      {/* SIDEBAR */}
-      <aside className={`fixed md:static inset-y-0 left-0 z-40 w-72 bg-white md:border-r border-stone-200 p-6 flex flex-col transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
-        <div className="flex justify-between items-center mb-10 pb-4 border-b border-stone-100">
-          <div className="flex items-center gap-3">
-            <div className="bg-emerald-600 p-3 rounded-2xl text-white shadow-lg shadow-emerald-200"><DollarSign size={24} /></div>
-            <h1 className="text-2xl font-extrabold tracking-tighter text-emerald-950">AgriManage<span className="text-emerald-600">Pro</span></h1>
-          </div>
-          <button className="md:hidden p-2 text-stone-500" onClick={() => setIsMobileMenuOpen(false)}><X size={20} /></button>
-        </div>
-        
-        <nav className="space-y-2 flex-1 overflow-y-auto">
-          {navItems.map(item => (
-            <button key={item.id} onClick={() => { setActiveTab(item.id); setIsMobileMenuOpen(false); }} className={`flex items-center gap-3.5 w-full p-3.5 rounded-xl font-medium transition-all ${activeTab === item.id ? 'bg-emerald-50 text-emerald-700 shadow-inner' : 'text-stone-700 hover:bg-stone-100 hover:text-emerald-800'}`}>
-              <item.icon size={22} className={activeTab === item.id ? 'text-emerald-600' : 'text-stone-400'} />
-              <span>{item.label}</span>
+        <nav className="flex-1 space-y-2">
+          {[
+            { id: 'inventory', label: 'Inventario Capi', icon: <LayoutDashboard size={20}/> },
+            { id: 'births', label: 'Registro Parti', icon: <Baby size={20}/> },
+            { id: 'production', label: 'Produzione', icon: <Milk size={20}/> },
+            { id: 'dinastia', label: 'Dinastia', icon: <Network size={20}/> },
+            { id: 'products', label: 'Inventario Prodotti', icon: <Package size={20}/> },
+            { id: 'economy', label: 'Economia', icon: <Wallet size={20}/> },
+            { id: 'activities', label: 'Attività', icon: <ListChecks size={20}/> },
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setView(item.id)}
+              className={`w-full flex items-center gap-3 p-4 rounded-2xl font-bold transition-all ${view === item.id ? 'bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-100' : 'text-gray-500 hover:bg-gray-50'}`}
+            >
+              {item.icon} {item.label}
             </button>
           ))}
         </nav>
 
-        <div className="mt-auto pt-6 border-t border-stone-100">
-            <div className="bg-stone-50 p-3 rounded-xl mb-4 border border-stone-100">
-                <p className="text-[10px] uppercase tracking-widest text-stone-400 font-bold mb-1">Account Attivo</p>
-                <p className="text-xs font-bold text-stone-700 truncate">{user.email}</p>
-            </div>
-            <button onClick={handleLogout} className="flex items-center gap-3 w-full p-3 text-red-600 font-bold hover:bg-red-50 rounded-xl transition-all">
-                <LogOut size={20} /> Esci dall'app
-            </button>
-        </div>
+        <button onClick={() => signOut(auth)} className="mt-10 flex items-center gap-3 p-4 text-red-500 font-bold hover:bg-red-50 rounded-2xl transition">
+          <LogOut size={20}/> Esci
+        </button>
       </aside>
 
-      {/* CONTENUTO DINAMICO */}
-      <main className="flex-1 p-4 md:p-10 h-[calc(100vh-69px)] md:h-screen overflow-y-auto scrollbar-thin scrollbar-thumb-stone-200">
-        
-        <div className="mb-8 pb-4 border-b border-stone-200">
-          <p className="text-sm font-bold text-emerald-600 uppercase tracking-wider">Gestione Azienda</p>
-          <h2 className="text-4xl font-black tracking-tighter text-emerald-950">{navItems.find(i=>i.id===activeTab)?.label}</h2>
-        </div>
+      {/* MAIN CONTENT */}
+      <main className="flex-1 p-6 md:p-12 overflow-y-auto">
+        <header className="mb-10">
+          <h1 className="text-4xl font-black text-gray-900 capitalize">{view.replace('_', ' ')}</h1>
+          <p className="text-gray-500 font-medium italic">Gestione Azienda Agricola 4.0</p>
+        </header>
 
-        {/* --- TAB INVENTARIO --- */}
-        {activeTab === 'inventory' && (
-          <div className="space-y-10">
-            <div className="bg-white p-6 md:p-8 rounded-3xl border border-stone-100 shadow-sm">
-              <div className="flex items-center gap-3 mb-6"><PlusCircle className="text-emerald-500" size={24}/><h3 className="text-xl font-bold text-emerald-950">Aggiungi Capo</h3></div>
-              <div className="flex flex-col md:flex-row gap-4">
-                <input placeholder="Codice Capo" className="ui-input flex-1" value={newAnimal.name} onChange={e => setNewAnimal({...newAnimal, name: e.target.value})} />
-                <input type="date" className="ui-input md:w-48" value={newAnimal.birthDate} onChange={e => setNewAnimal({...newAnimal, birthDate: e.target.value})} />
-                <select className="ui-input md:w-48" value={newAnimal.species} onChange={e => setNewAnimal({...newAnimal, species: e.target.value as Species})}>{speciesList.map(s => <option key={s}>{s}</option>)}</select>
-                <button onClick={async () => { if(!newAnimal.name) return; await addDoc(collection(db, 'animals'), { ...newAnimal, notes: '', quantity: 1, sire: '', dam: '', ownerId: user.uid }); setNewAnimal({name: '', species: 'Maiali', birthDate: ''}); }} className="ui-button-primary">Registra</button>
-              </div>
-            </div>
-            {speciesList.map(species => (
-              <div key={species}>
-                <div className="flex justify-between items-center mb-5 pb-2 border-b border-stone-200/70"><h3 className="text-2xl font-black text-emerald-950 tracking-tight">{species}</h3><span className="px-4 py-1.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-sm">{getCount(species)} capi</span></div>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                  {animals.filter(a => a.species === species).map(a => (
-                    <div key={a.id} className="bg-white p-6 rounded-2xl border border-stone-100 shadow-sm hover:border-emerald-200 hover:shadow-lg transition-all group relative">
-                      {editingId === a.id ? (
-                        <div className="space-y-3">
-                          <input className="ui-input w-full" value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} />
-                          <textarea className="ui-input w-full text-sm h-20" value={editData.notes} onChange={e => setEditData({...editData, notes: e.target.value})} placeholder="Note..." />
-                          <button onClick={() => saveAnimalEdit(a.id)} className="ui-button-primary w-full py-2">Salva</button>
-                        </div>
-                      ) : (
-                        <div>
-                          <h4 className="text-xl font-bold text-emerald-950 mb-1">{a.name}</h4>
-                          <p className="text-sm text-stone-500 mb-4 flex items-center gap-1.5"><CalendarDays size={14}/> Nato il: {a.birthDate || 'N/D'}</p>
-                          {a.notes && <p className="text-xs italic bg-stone-50 p-3 rounded-xl border border-stone-100 text-stone-600">{a.notes}</p>}
-                          <div className="absolute top-4 right-4 flex gap-1 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => { setEditingId(a.id); setEditData({name: a.name, notes: a.notes}); }} className="p-1.5 rounded-lg bg-stone-100 text-stone-500 hover:bg-emerald-100"><Edit2 size={16}/></button>
-                            <button onClick={() => deleteFromCloud('animals', a.id)} className="p-1.5 rounded-lg bg-red-50 text-red-400 hover:bg-red-100"><Trash2 size={16}/></button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* --- TAB PARTI --- */}
-        {activeTab === 'births' && (
+        {/* VIEW: INVENTARIO CAPI */}
+        {view === 'inventory' && (
           <div className="space-y-8">
-            <div className="bg-white p-6 md:p-8 rounded-3xl border border-stone-100 shadow-sm">
-              <div className="flex items-center gap-3 mb-6"><PlusCircle className="text-emerald-500" size={24}/><h3 className="text-xl font-bold text-emerald-950">Nuovo Parto</h3></div>
-              <div className="flex flex-col md:flex-row gap-4">
-                <input placeholder="Codice Madre" className="ui-input flex-1" value={newBirth.idCode} onChange={e => setNewBirth({...newBirth, idCode: e.target.value})} />
-                <input type="number" className="ui-input w-24" value={newBirth.count} onChange={e => setNewBirth({...newBirth, count: parseInt(e.target.value)})} />
-                <input type="date" className="ui-input md:w-44" value={newBirth.birthDate} onChange={e => setNewBirth({...newBirth, birthDate: e.target.value})} />
-                <select className="ui-input md:w-44" value={newBirth.species} onChange={e => setNewBirth({...newBirth, species: e.target.value as Species})}>{speciesList.map(s => <option key={s}>{s}</option>)}</select>
-                <button onClick={async () => { if(!newBirth.idCode) return; await addDoc(collection(db, 'births'), { animalName: newBirth.idCode, species: newBirth.species, date: new Date().toLocaleDateString(), offspringCount: newBirth.count, birthDate: newBirth.birthDate, ownerId: user.uid }); await addDoc(collection(db, 'animals'), { name: `Cuccioli di ${newBirth.idCode}`, species: newBirth.species, notes: 'Nati in azienda', birthDate: newBirth.birthDate, quantity: newBirth.count, sire:'', dam:'', ownerId: user.uid }); setNewBirth({ idCode: '', species: 'Maiali', count: 1, birthDate: '' }); }} className="ui-button-primary">Salva</button>
-              </div>
+            <div className="bg-white p-8 rounded-3xl border shadow-sm grid grid-cols-1 md:grid-cols-4 gap-4">
+              <input placeholder="Nome Capo" className="p-4 border rounded-2xl" value={newAnimal.name} onChange={e => setNewAnimal({...newAnimal, name: e.target.value})} />
+              <input placeholder="Specie" className="p-4 border rounded-2xl" value={newAnimal.species} onChange={e => setNewAnimal({...newAnimal, species: e.target.value})} />
+              <select className="p-4 border rounded-2xl text-sm" value={newAnimal.fatherId} onChange={e => setNewAnimal({...newAnimal, fatherId: e.target.value})}>
+                <option value="">Padre (Ignoto)</option>
+                {animals.filter(a => a.species === newAnimal.species).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+              <button onClick={handleAddAnimal} className="bg-emerald-600 text-white p-4 rounded-2xl font-bold hover:shadow-lg transition">Aggiungi Capo</button>
             </div>
-            <div className="bg-white rounded-2xl border border-stone-100 shadow-sm divide-y divide-stone-100">
-              {births.map(b => <div key={b.id} className="p-5 flex justify-between items-center group">
-                <div><p className="font-bold text-emerald-950 text-lg">{b.animalName} <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-500 ml-2">{b.species}</span></p><p className="text-sm text-stone-500 flex items-center gap-1.5 mt-1"><Baby size={16} className="text-emerald-500"/> {b.offspringCount} nati il {b.birthDate}</p></div>
-                <button onClick={() => deleteFromCloud('births', b.id)} className="p-2 rounded-lg bg-red-50 text-red-400 md:opacity-0 group-hover:opacity-100"><Trash2 size={18}/></button>
-              </div>)}
-            </div>
-          </div>
-        )}
-
-        {/* --- TAB PRODUZIONE --- */}
-        {activeTab === 'production' && (
-          <div className="space-y-8">
-            <div className="bg-white p-6 md:p-8 rounded-3xl border border-stone-100 shadow-sm">
-              <div className="flex items-center gap-3 mb-6"><PlusCircle className="text-emerald-500" size={24}/><h3 className="text-xl font-bold text-emerald-950">Produzione Giornaliera</h3></div>
-              <div className="flex flex-col md:flex-row gap-4">
-                <input placeholder="Prodotto (Latte, Uova...)" className="ui-input flex-1" value={newProd.item} onChange={e => setNewProd({...newProd, item: e.target.value})} />
-                <input type="number" className="ui-input w-28" value={newProd.quantity} onChange={e => setNewProd({...newProd, quantity: parseInt(e.target.value)})} />
-                <select className="ui-input md:w-44" value={newProd.species} onChange={e => setNewProd({...newProd, species: e.target.value as Species})}>{speciesList.map(s => <option key={s}>{s}</option>)}</select>
-                <button onClick={async () => { if(!newProd.item) return; await addDoc(collection(db, 'production'), { ...newProd, date: new Date().toLocaleDateString(), ownerId: user.uid }); setNewProd({ item: '', quantity: 1, species: 'Maiali' }); }} className="ui-button-primary">Registra</button>
-              </div>
-            </div>
-            <div className="bg-white rounded-2xl border border-stone-100 shadow-sm divide-y divide-stone-100">
-              {production.map(p => <div key={p.id} className="p-5 flex justify-between items-center group">
-                <div><p className="font-bold text-emerald-950 text-lg">{p.item} <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-500 ml-2">{p.species}</span></p><p className="text-sm text-stone-500 flex items-center gap-1.5 mt-1"><Milk size={16} className="text-emerald-500"/> {p.quantity} unità il {p.date}</p></div>
-                <button onClick={() => deleteFromCloud('production', p.id)} className="p-2 rounded-lg bg-red-50 text-red-400 md:opacity-0 group-hover:opacity-100"><Trash2 size={18}/></button>
-              </div>)}
-            </div>
-          </div>
-        )}
-
-        {/* --- TAB ECONOMIA --- */}
-        {activeTab === 'finance' && (
-          <div className="space-y-10">
-            <div className="bg-white p-6 md:p-8 rounded-3xl border border-stone-100 shadow-sm">
-              <div className="flex items-center gap-3 mb-6"><PlusCircle className="text-emerald-500" size={24}/><h3 className="text-xl font-bold text-emerald-950">Transazione Finanziaria</h3></div>
-              <div className="flex flex-col md:flex-row gap-4">
-                <input placeholder="Descrizione Spesa/Ricavo" className="ui-input flex-1" value={newTrans.desc} onChange={e => setNewTrans({...newTrans, desc: e.target.value})} />
-                <input type="number" className="ui-input w-32" value={newTrans.amount} onChange={e => setNewTrans({...newTrans, amount: parseInt(e.target.value)})} />
-                <select className="ui-input md:w-36" value={newTrans.type} onChange={e => setNewTrans({...newTrans, type: e.target.value as 'Entrata' | 'Uscita'})}><option>Entrata</option><option>Uscita</option></select>
-                <select className="ui-input md:w-44" value={newTrans.species} onChange={e => setNewTrans({...newTrans, species: e.target.value as Species})}>{speciesList.map(s => <option key={s}>{s}</option>)}</select>
-                <button onClick={async () => { if(!newTrans.desc) return; await addDoc(collection(db, 'transactions'), { ...newTrans, date: new Date().toLocaleDateString(), ownerId: user.uid }); setNewTrans({ desc: '', amount: 0, type: 'Entrata', species: 'Maiali' }); }} className="ui-button-primary">Salva</button>
-              </div>
-            </div>
-            {speciesList.map(species => (
-              <div key={species}>
-                <div className="flex justify-between items-center mb-5 pb-2 border-b border-stone-200/70"><h3 className="text-2xl font-black text-emerald-950">{species}</h3><div className="text-right"><p className="text-[10px] text-stone-400 font-bold uppercase tracking-tighter">Bilancio Specie</p><span className={`font-black text-xl ${getBalance(species) >= 0 ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(getBalance(species))}</span></div></div>
-                <div className="bg-white rounded-2xl border border-stone-100 shadow-sm divide-y divide-stone-100">
-                  {transactions.filter(t => t.species === species).map(t => <div key={t.id} className="p-5 flex justify-between items-center group">
-                    <div><p className="font-bold text-stone-800">{t.desc}</p><p className="text-xs text-stone-400 mt-1">{t.date}</p></div>
-                    <div className="flex items-center gap-4"><span className={`font-black ${t.type === 'Entrata' ? 'text-green-600' : 'text-red-600'}`}>{t.type === 'Entrata' ? '+' : '-'}{formatCurrency(t.amount)}</span><button onClick={() => deleteFromCloud('transactions', t.id)} className="p-2 rounded-lg bg-red-50 text-red-400 md:opacity-0 group-hover:opacity-100"><Trash2 size={16}/></button></div>
-                  </div>)}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {animals.map(a => (
+                <div key={a.id} className="bg-white p-6 rounded-2xl border flex justify-between items-center hover:border-emerald-200 transition">
+                  <div><p className="font-black text-gray-800 text-lg">{a.name}</p><p className="text-xs font-bold text-emerald-600 uppercase tracking-widest">{a.species}</p></div>
+                  <button onClick={() => deleteDoc(doc(db, 'animals', a.id))} className="text-gray-300 hover:text-red-500"><Trash2 size={20}/></button>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
 
-        {/* --- TAB ATTIVITÀ --- */}
-        {activeTab === 'tasks' && (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
-            <div className="bg-white p-6 md:p-8 rounded-3xl border border-stone-100 shadow-sm">
-              <h3 className="text-2xl font-black text-emerald-950 mb-6 flex items-center gap-2.5"><CalendarDays className="text-emerald-600"/> Da fare</h3>
-              <div className="flex gap-3 mb-6 pb-6 border-b border-stone-100">
-                <input className="ui-input flex-1" value={newTask} onChange={e => setNewTask(e.target.value)} placeholder="Aggiungi impegno..." />
-                <button onClick={async () => { if(newTask) { await addDoc(collection(db, 'tasks'), { text: newTask, done: false, date: '', ownerId: user.uid }); setNewTask(''); } }} className="ui-button-primary px-4"><PlusCircle size={24}/></button>
-              </div>
-              <div className="space-y-1">
-                {tasks.filter(t => !t.done).map(t => (
-                  <div key={t.id} className="flex items-center justify-between p-4 rounded-xl hover:bg-emerald-50 transition group">
-                    <div className="flex items-center gap-4"><input type="checkbox" className="w-5 h-5 accent-emerald-600" checked={t.done} onChange={() => toggleTaskCloud(t)} /><span className="font-bold text-stone-800">{t.text}</span></div>
-                    <button onClick={() => deleteFromCloud('tasks', t.id)} className="p-2 rounded-lg bg-red-50 text-red-400 md:opacity-0 group-hover:opacity-100"><Trash2 size={18}/></button>
+        {/* VIEW: DINASTIA (Ex Genealogia) */}
+        {view === 'dinastia' && (
+          <div className="space-y-8">
+            <div className="bg-white p-6 rounded-3xl border flex items-center gap-4 shadow-sm">
+              <Search className="text-gray-400" />
+              <input 
+                placeholder="Filtra Dinastia per Specie (es. Oca, Mucca...)" 
+                className="flex-1 outline-none font-bold text-gray-700"
+                value={speciesFilter}
+                onChange={e => setSpeciesFilter(e.target.value)}
+              />
+            </div>
+            <div className="space-y-6">
+              {animals
+                .filter(a => (!speciesFilter || a.species.toLowerCase().includes(speciesFilter.toLowerCase())) && !a.fatherId && !a.motherId)
+                .map(founder => (
+                  <div key={founder.id} className="bg-white/50 p-6 rounded-3xl border border-dashed border-emerald-200">
+                    <h3 className="bg-emerald-800 text-white px-4 py-1 rounded-full text-xs font-black inline-block mb-4 uppercase">Linea Capostipite: {founder.species}</h3>
+                    <DynastyBranch animal={founder} allAnimals={animals} />
                   </div>
                 ))}
-              </div>
-            </div>
-            <div className="bg-white p-6 md:p-8 rounded-3xl border border-stone-100 shadow-sm">
-              <div className="flex justify-between items-center mb-6 pb-2 border-b border-stone-100"><h3 className="text-xl font-bold text-stone-700 flex items-center gap-2"><History size={20}/> Storico</h3><div className="relative"><Search className="absolute left-3 top-2.5 text-stone-300" size={16}/><input className="ui-input pl-9 py-2 text-xs w-40" placeholder="Cerca..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} /></div></div>
-              <div className="space-y-6 max-h-[500px] overflow-y-auto pr-2">
-                {Object.entries(groupedTasks).map(([date, dailyTasks]) => (
-                  <div key={date}>
-                    <h4 className="font-black text-emerald-900 bg-emerald-50/50 px-3 py-1 rounded-lg text-xs mb-3">{date}</h4>
-                    {dailyTasks.map(t => (
-                        <div key={t.id} className="flex items-center justify-between group/hist py-1">
-                            <p className="text-sm text-stone-500 flex items-center gap-2">• <span className="line-through">{t.text}</span></p>
-                            <button onClick={() => deleteFromCloud('tasks', t.id)} className="p-1.5 rounded-lg text-red-300 hover:text-red-600 opacity-0 group-hover/hist:opacity-100 transition"><Trash2 size={14}/></button>
-                        </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
         )}
 
+        {/* VIEW: INVENTARIO PRODOTTI (Nuova Sezione) */}
+        {view === 'products' && (
+          <div className="space-y-8">
+            <div className="bg-white p-8 rounded-3xl border shadow-sm grid grid-cols-1 md:grid-cols-3 gap-4">
+              <input placeholder="Nome Prodotto (es. Mangime)" className="p-4 border rounded-2xl" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
+              <div className="flex gap-2">
+                <input placeholder="Q.tà" type="number" className="p-4 border rounded-2xl w-full" value={newProduct.qty} onChange={e => setNewProduct({...newProduct, qty: e.target.value})} />
+                <select className="p-4 border rounded-2xl" value={newProduct.unit} onChange={e => setNewProduct({...newProduct, unit: e.target.value})}>
+                  <option value="kg">kg</option><option value="l">litri</option><option value="unità">unità</option>
+                </select>
+              </div>
+              <button onClick={handleAddProduct} className="bg-emerald-600 text-white p-4 rounded-2xl font-bold">Aggiorna Scorte</button>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {products.map(p => (
+                <div key={p.id} className="bg-white p-6 rounded-3xl border text-center shadow-sm">
+                  <Package className="mx-auto text-emerald-200 mb-2" size={32}/>
+                  <p className="font-black text-gray-800">{p.name}</p>
+                  <p className="text-2xl font-black text-emerald-600 mt-1">{p.qty} <span className="text-xs uppercase">{p.unit}</span></p>
+                  <button onClick={() => deleteDoc(doc(db, 'products', p.id))} className="mt-4 text-gray-300 hover:text-red-400"><Trash2 size={16}/></button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* PLACEHOLDER PER LE ALTRE SEZIONI */}
+        {['births', 'production', 'economy', 'activities'].includes(view) && (
+          <div className="h-96 border-4 border-dashed border-gray-100 rounded-3xl flex flex-col items-center justify-center text-gray-300">
+            <Plus size={48} className="mb-4 opacity-20"/>
+            <p className="font-bold uppercase tracking-widest text-sm">Sezione {view} in fase di sincronizzazione</p>
+          </div>
+        )}
       </main>
     </div>
   );
 }
+
+export default App;
