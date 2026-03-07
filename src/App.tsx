@@ -189,25 +189,35 @@ export default function App() {
     }, 2500);
   };
 
-  // --- LA MAGIA DELLA BUROCRAZIA: FUNZIONE ESPORTA PDF ASL ---
+ // --- LA MAGIA DELLA BUROCRAZIA: FUNZIONE ESPORTA PDF ASL ---
   const exportASLReport = () => {
     if (validAnimals.length === 0) return alert("Non ci sono capi nell'inventario da esportare!");
     
+    // 1. CHIEDE IL NOME DELL'AZIENDA ALL'UTENTE
+    const nomeAzienda = window.prompt("Inserisci il nome della tua Azienda Agricola da stampare sul PDF:", "Azienda Agricola ") || "Azienda Agricola Anonima";
+
     const doc = new jsPDF();
     
-    // Intestazione
-    doc.setFontSize(18);
+    // 2. INTESTAZIONE CON NOME AZIENDA
+    doc.setFontSize(22);
     doc.setTextColor(5, 150, 105); // Verde smeraldo
-    doc.text('Registro Aziendale Capi', 14, 22);
+    doc.text(nomeAzienda, 14, 22); // Nome dell'azienda bello grande
     
+    doc.setFontSize(14);
+    doc.setTextColor(50, 50, 50);
+    doc.text('Registro Ufficiale Capi', 14, 32);
+
     doc.setFontSize(10);
     doc.setTextColor(100, 100, 100);
-    doc.text(`Generato il: ${new Date().toLocaleDateString('it-IT')}`, 14, 30);
-    doc.text(`Totale Capi Effettivi: ${validAnimals.length}`, 14, 35);
+    doc.text(`Generato il: ${new Date().toLocaleDateString('it-IT')}`, 14, 40);
+    doc.text(`Totale Capi Effettivi: ${validAnimals.length}`, 14, 45);
+
+    // 3. ORDINA I CAPI PER SPECIE IN ORDINE ALFABETICO
+    const capiOrdinati = [...validAnimals].sort((a, b) => a.species.localeCompare(b.species));
 
     // Preparazione Dati Tabella
     const tableColumn = ["ID / Codice", "Specie", "Data Nascita", "Madre", "Padre", "Note/Trattamenti"];
-    const tableRows = validAnimals.map(animal => {
+    const tableRows = capiOrdinati.map(animal => {
       const madre = animal.dam ? validAnimals.find(a => a.id === animal.dam)?.name || 'Ignota' : 'Ignota';
       const padre = animal.sire ? validAnimals.find(a => a.id === animal.sire)?.name || 'Ignoto' : 'Ignoto';
       
@@ -221,19 +231,20 @@ export default function App() {
       ];
     });
 
-    // Disegna la Tabella
+    // Disegna la Tabella (Spostata un po' più in giù per fare spazio all'intestazione)
     autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
-      startY: 45,
+      startY: 55, 
       theme: 'grid',
       styles: { fontSize: 8, cellPadding: 3 },
       headStyles: { fillColor: [5, 150, 105], textColor: [255, 255, 255], fontStyle: 'bold' },
       alternateRowStyles: { fillColor: [248, 249, 250] }
     });
 
-    // Salva il PDF nel telefono/PC
-    doc.save(`Registro_ASL_${new Date().toISOString().split('T')[0]}.pdf`);
+    // 4. SALVA IL PDF USANDO IL NOME DELL'AZIENDA NEL NOME DEL FILE
+    const nomeFileSafe = nomeAzienda.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    doc.save(`Registro_${nomeFileSafe}_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center font-black text-emerald-800 bg-stone-50 italic animate-pulse">Caricamento in corso...</div>;
