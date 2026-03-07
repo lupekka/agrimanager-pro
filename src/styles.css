@@ -3,17 +3,16 @@
 @tailwind utilities;
 
 :root {
-  --soft-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+  --soft-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+  --float-shadow: 0 10px 30px -5px rgba(5, 150, 105, 0.15);
 }
 
 body {
   margin: 0;
-  background-color: #F8F9FA;
+  background-color: #F4F5F7; /* Grigio ancora più morbido e professionale */
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
-  overscroll-behavior-y: none; 
-  /* Aggiunge spazio extra in fondo per non far coprire l'ultimo elemento dalla barra */
-  padding-bottom: calc(85px + env(safe-area-inset-bottom));
+  overscroll-behavior-y: none; /* Blocca il rimbalzo elastico su iOS */
 }
 
 h1, h2, h3, h4, .font-black {
@@ -27,26 +26,52 @@ h1, h2, h3, h4, .font-black {
   background: transparent;
 }
 
+/* ANIMAZIONI FLUIDE */
 main {
-  animation: fadeSlideUp 0.3s ease-out forwards;
+  animation: fadeSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes fadeSlideUp {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(15px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-.bg-white {
-  box-shadow: var(--soft-shadow);
-  border: 1px solid rgba(230, 230, 230, 0.8);
+/* INPUT PREMIUM STILE SAAS */
+.ui-input {
+  background: #F9FAFB;
+  padding: 1rem 1.25rem;
+  border-radius: 1rem;
+  width: 100%;
+  border: 1.5px solid #E5E7EB;
+  outline: none;
+  transition: all 0.2s ease-in-out;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1F2937;
 }
 
+.ui-input:focus {
+  background: #FFFFFF;
+  border-color: #10B981;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+}
+
+/* BOTTONI CON FEEDBACK FISICO */
 button:active {
-  transform: scale(0.95);
+  transform: scale(0.96);
   transition: transform 0.1s;
 }
 
-/* Incolla la barra esattamente sul bordo inferiore del telefono (anche su iPhone con la "tacca" giù) */
+/* --- CLASSI MAGICHE PER LE SAFE AREA DEI TELEFONI --- */
+/* Spinge l'header sotto l'orario */
+.pt-safe {
+  padding-top: max(env(safe-area-inset-top), 16px);
+}
+/* Spinge il main sotto l'header tenendo conto della Safe Area */
+.pt-main-safe {
+  padding-top: calc(75px + env(safe-area-inset-top));
+}
+/* Alza la navigation bar sopra la linea home degli iPhone */
 .pb-safe {
-  padding-bottom: env(safe-area-inset-bottom, 12px);
+  padding-bottom: max(env(safe-area-inset-bottom), 16px);
 }
