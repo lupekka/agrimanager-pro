@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import {
   PawPrint, CalendarDays, TrendingUp, Network, Baby, Trash2,
-  PlusCircle, LogOut, Lock, Menu, X, Search,
+  PlusCircle, LogOut, Lock, Menu, X, Search, LayoutDashboard,
   History, Package, Edit2, CheckCircle2,
   MinusCircle, Activity, ListChecks, Wallet,
-  ArrowUpRight, ArrowDownLeft, Ghost, UserPlus
+  ArrowUpRight, ArrowDownLeft, Ghost, UserPlus, Stethoscope, UploadCloud, AlertTriangle
 } from 'lucide-react';
 
 // Firebase
@@ -29,7 +29,7 @@ type Species = 'Maiali' | 'Cavalli' | 'Mucche' | 'Galline' | 'Oche';
 interface Animal { id: string; name: string; species: Species; notes: string; sire?: string; dam?: string; birthDate?: string; ownerId: string; }
 interface BirthRecord { id: string; animalName: string; species: Species; date: string; offspringCount: number; birthDate: string; ownerId: string; }
 interface Transaction { id: string; type: 'Entrata' | 'Uscita'; amount: number; desc: string; species: Species; date: string; ownerId: string; }
-interface Task { id: string; text: string; done: boolean; dateCompleted?: string; ownerId: string; }
+interface Task { id: string; text: string; done: boolean; dateCompleted?: string; dueDate?: string; ownerId: string; }
 interface Product { id: string; name: string; quantity: number; unit: string; ownerId: string; }
 
 const DynastyBranch = ({ animal, allAnimals, level = 0 }: { animal: Animal, allAnimals: Animal[], level?: number }) => {
@@ -51,7 +51,7 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isRegistering, setIsRegistering] = useState(false);
-  const [activeTab, setActiveTab] = useState('inventory');
+  const [activeTab, setActiveTab] = useState('dashboard');
   
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [births, setBirths] = useState<BirthRecord[]>([]);
@@ -66,8 +66,16 @@ export default function App() {
   const [newTrans, setNewTrans] = useState({ desc: '', amount: 0, type: 'Entrata' as 'Entrata' | 'Uscita', species: 'Maiali' as Species });
   const [newProduct, setNewProduct] = useState({ name: '', quantity: 0, unit: 'kg' });
   const [newTask, setNewTask] = useState('');
+  const [newTaskDate, setNewTaskDate] = useState(new Date().toISOString().split('T')[0]);
+  
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState({ name: '', notes: '' });
+
+  // STATI PER IL VETERINARIO INTELLIGENTE
+  const [vetSymptom, setVetSymptom] = useState('');
+  const [vetImage, setVetImage] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [vetResult, setVetResult] = useState<{title: string, desc: string, action: string} | null>(null);
 
   const speciesList: Species[] = ['Maiali', 'Cavalli', 'Mucche', 'Galline', 'Oche'];
   const validAnimals = animals.filter(a => a.name && a.name.trim().length > 0);
@@ -146,9 +154,35 @@ export default function App() {
   const handleAddTask = async () => {
     if (!newTask.trim()) return alert("Scrivi il lavoro da fare prima di aggiungere!");
     try {
-      await addDoc(collection(db, 'tasks'), { text: newTask, done: false, ownerId: user!.uid });
+      await addDoc(collection(db, 'tasks'), { text: newTask, done: false, dueDate: newTaskDate, ownerId: user!.uid });
       setNewTask('');
     } catch (err) { alert("Errore di rete. Riprova."); }
+  };
+
+  // GESTIONE SIMULATA VETERINARIO IA
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => setVetImage(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const analyzeWithAI = () => {
+    if (!vetImage && !vetSymptom) return alert("Inserisci una foto o descrivi il sintomo prima di analizzare.");
+    setIsAnalyzing(true);
+    setVetResult(null);
+    
+    // Simulazione di chiamata API
+    setTimeout(() => {
+      setIsAnalyzing(false);
+      setVetResult({
+        title: "Possibile Dermatite o Lieve Infezione Cutanea",
+        desc: "L'intelligenza artificiale ha rilevato arrossamenti e possibile desquamazione compatibili con una dermatite o un lieve trauma infetto. L'animale necessita di controllo visivo.",
+        action: "Pulisci l'area con soluzione fisiologica o disinfettante a base di iodio. Se il rossore persiste o l'animale presenta febbre/inappetenza entro 24h, contatta immediatamente il veterinario di zona."
+      });
+    }, 2500);
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center font-black text-emerald-800 bg-stone-50 italic animate-pulse">Caricamento in corso...</div>;
@@ -173,16 +207,26 @@ export default function App() {
     );
   }
 
+  const tabTitles: Record<string, string> = {
+    'dashboard': 'Panoramica',
+    'inventory': 'Anagrafica Capi',
+    'finance': 'Bilancio Aziendale',
+    'births': 'Registro Parti',
+    'products': 'Scorte Magazzino',
+    'tasks': 'Agenda Lavori',
+    'dinastia': 'Albero Genealogico',
+    'vet': 'Veterinario IA'
+  };
+
   return (
     <div className="min-h-screen flex text-stone-900 bg-[#F4F5F7]">
       
-      {/* 1. HEADER MOBILE CON SAFE AREA FIX */}
+      {/* HEADER MOBILE */}
       <header className="md:hidden fixed top-0 w-full bg-white/80 backdrop-blur-xl z-40 border-b border-stone-200/50 px-5 pb-4 pt-safe flex justify-between items-center shadow-sm">
         <div className="flex items-center gap-2">
           <div className="bg-emerald-600 p-1.5 rounded-lg text-white"><TrendingUp size={20} strokeWidth={3} /></div>
           <h1 className="text-xl font-black italic text-emerald-950">AgriManage</h1>
         </div>
-        {/* Tasto Logout più grande e accessibile */}
         <button onClick={() => signOut(auth)} className="bg-red-50 text-red-500 p-2 rounded-full hover:bg-red-100 transition-colors"><LogOut size={18} strokeWidth={2.5}/></button>
       </header>
 
@@ -192,54 +236,90 @@ export default function App() {
           <div className="bg-emerald-600 p-3 rounded-2xl text-white shadow-lg"><TrendingUp size={24} strokeWidth={3} /></div>
           <h1 className="text-2xl font-black italic text-emerald-950">AgriManage</h1>
         </div>
-        <nav className="space-y-2 flex-1">
-          {[ { id: 'inventory', label: 'Anagrafica Capi', icon: PawPrint }, { id: 'births', label: 'Registro Parti', icon: Baby }, { id: 'finance', label: 'Bilancio', icon: Wallet }, { id: 'products', label: 'Magazzino', icon: Package }, { id: 'tasks', label: 'Agenda Lavori', icon: ListChecks }, { id: 'dinastia', label: 'Albero Genealogico', icon: Network } ].map(item => (
+        <nav className="space-y-2 flex-1 overflow-y-auto pr-2 custom-scrollbar">
+          {[ 
+            { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+            { id: 'inventory', label: 'Anagrafica Capi', icon: PawPrint }, 
+            { id: 'births', label: 'Registro Parti', icon: Baby }, 
+            { id: 'finance', label: 'Bilancio', icon: Wallet }, 
+            { id: 'products', label: 'Magazzino', icon: Package }, 
+            { id: 'tasks', label: 'Agenda Lavori', icon: ListChecks }, 
+            { id: 'dinastia', label: 'Albero Genealogico', icon: Network },
+            { id: 'vet', label: 'Veterinario IA', icon: Stethoscope } 
+          ].map(item => (
             <button key={item.id} onClick={() => setActiveTab(item.id)} className={`flex items-center gap-4 w-full p-4 rounded-2xl font-bold text-sm transition-all ${activeTab === item.id ? 'bg-emerald-50 text-emerald-700' : 'text-stone-500 hover:bg-stone-50'}`}>
-              <item.icon size={22} strokeWidth={activeTab === item.id ? 2.5 : 2} /> {item.label}
+              <item.icon size={22} strokeWidth={activeTab === item.id ? 2.5 : 2} className={item.id === 'vet' && activeTab !== 'vet' ? 'text-blue-400' : ''}/> 
+              <span className={item.id === 'vet' && activeTab !== 'vet' ? 'text-blue-500' : ''}>{item.label}</span>
             </button>
           ))}
         </nav>
-        <button onClick={() => signOut(auth)} className="mt-auto flex items-center gap-3 text-red-500 font-bold p-4 hover:bg-red-50 rounded-2xl transition-colors"><LogOut size={20} /> Disconnetti</button>
+        <button onClick={() => signOut(auth)} className="mt-4 flex items-center gap-3 text-red-500 font-bold p-4 hover:bg-red-50 rounded-2xl transition-colors"><LogOut size={20} /> Disconnetti</button>
       </aside>
 
-      {/* CONTENUTO PRINCIPALE (con margine top dinamico per via del nuovo header) */}
+      {/* CONTENUTO PRINCIPALE */}
       <main className="flex-1 w-full md:ml-72 px-4 pb-28 pt-main-safe md:pt-10 md:p-10 max-w-6xl mx-auto">
         
-        {/* KPI DASHBOARD: Look più pulito */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-          <div className="bg-white p-5 rounded-[1.5rem] shadow-sm border border-stone-100 flex flex-col justify-center">
-            <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">Capi</p>
-            <h4 className="text-3xl font-black text-emerald-600 italic">{validAnimals.length}</h4>
-          </div>
-          <div className="bg-white p-5 rounded-[1.5rem] shadow-sm border border-stone-100 flex flex-col justify-center">
-            <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">Netto</p>
-            <h4 className="text-3xl font-black text-stone-800 italic">€{transactions.reduce((acc, t) => acc + (t.type === 'Entrata' ? t.amount : -t.amount), 0).toFixed(0)}</h4>
-          </div>
-          <div className="bg-white p-5 rounded-[1.5rem] shadow-sm border border-stone-100 flex flex-col justify-center">
-            <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">Task</p>
-            <h4 className="text-3xl font-black text-amber-500 italic">{tasks.filter(t=>!t.done).length}</h4>
-          </div>
-          <div className="bg-white p-5 rounded-[1.5rem] shadow-sm border border-stone-100 flex flex-col justify-center">
-            <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">Scorte</p>
-            <h4 className="text-3xl font-black text-blue-500 italic">{products.length}</h4>
-          </div>
-        </div>
+        <h2 className="text-3xl md:text-4xl font-black text-emerald-950 capitalize tracking-tighter italic mb-6 ml-1 flex items-center gap-3">
+          {tabTitles[activeTab]}
+          {activeTab === 'vet' && <span className="bg-blue-100 text-blue-600 text-[10px] font-black uppercase px-3 py-1.5 rounded-full tracking-widest not-italic">Beta</span>}
+        </h2>
 
-        {ghostCount > 0 && (
-          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-between text-sm shadow-sm">
-            <div className="flex items-center gap-2 text-amber-700 font-bold"><Ghost size={18} /><span>Dati obsoleti rilevati.</span></div>
-            <button onClick={cleanFantasmi} className="bg-amber-600 text-white px-4 py-2 rounded-xl font-bold uppercase text-[10px] shadow-sm">Pulisci</button>
+        {/* --- DASHBOARD --- */}
+        {activeTab === 'dashboard' && (
+          <div className="space-y-8 animate-fade-in">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div onClick={() => setActiveTab('inventory')} className="bg-white p-5 rounded-[1.5rem] shadow-sm border border-stone-100 flex flex-col justify-center cursor-pointer hover:border-emerald-300 transition-colors">
+                <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1 flex items-center gap-1"><PawPrint size={12}/> Capi</p>
+                <h4 className="text-3xl font-black text-emerald-600 italic">{validAnimals.length}</h4>
+              </div>
+              <div onClick={() => setActiveTab('finance')} className="bg-white p-5 rounded-[1.5rem] shadow-sm border border-stone-100 flex flex-col justify-center cursor-pointer hover:border-emerald-300 transition-colors">
+                <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1 flex items-center gap-1"><Wallet size={12}/> Netto</p>
+                <h4 className="text-3xl font-black text-stone-800 italic">€{transactions.reduce((acc, t) => acc + (t.type === 'Entrata' ? t.amount : -t.amount), 0).toFixed(0)}</h4>
+              </div>
+              <div onClick={() => setActiveTab('tasks')} className="bg-white p-5 rounded-[1.5rem] shadow-sm border border-stone-100 flex flex-col justify-center cursor-pointer hover:border-emerald-300 transition-colors">
+                <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1 flex items-center gap-1"><ListChecks size={12}/> Task</p>
+                <h4 className="text-3xl font-black text-amber-500 italic">{tasks.filter(t=>!t.done).length}</h4>
+              </div>
+              <div onClick={() => setActiveTab('vet')} className="bg-gradient-to-br from-blue-500 to-blue-700 p-5 rounded-[1.5rem] shadow-md border border-blue-400 flex flex-col justify-center cursor-pointer hover:scale-[1.02] transition-transform">
+                <p className="text-[10px] font-black text-blue-100 uppercase tracking-widest mb-1 flex items-center gap-1"><Stethoscope size={12}/> Triage</p>
+                <h4 className="text-xl font-black text-white italic">Vet. IA</h4>
+              </div>
+            </div>
+
+            {ghostCount > 0 && (
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-between text-sm shadow-sm">
+                <div className="flex items-center gap-2 text-amber-700 font-bold"><Ghost size={18} /><span>Dati obsoleti rilevati.</span></div>
+                <button onClick={cleanFantasmi} className="bg-amber-600 text-white px-4 py-2 rounded-xl font-bold uppercase text-[10px] shadow-sm">Pulisci</button>
+              </div>
+            )}
+
+            {/* Widget: Lavori in Sospeso */}
+            <div className="bg-white p-6 rounded-[2rem] border border-stone-100 shadow-sm">
+              <div className="flex justify-between items-center mb-5">
+                <h3 className="text-lg font-black text-stone-800 flex items-center gap-2"><ListChecks className="text-emerald-500" size={20}/> Attività in Sospeso</h3>
+                <button onClick={() => setActiveTab('tasks')} className="text-xs font-bold text-emerald-600 hover:underline">Vedi tutte</button>
+              </div>
+              <div className="space-y-3">
+                {tasks.filter(t => !t.done).sort((a,b) => (a.dueDate || '').localeCompare(b.dueDate || '')).slice(0, 4).map(t => (
+                  <div key={t.id} className="flex items-center justify-between p-3 bg-[#F9FAFB] rounded-xl border border-stone-100">
+                    <div className="flex flex-col">
+                      <span className="font-bold text-sm text-stone-700">{t.text}</span>
+                      <span className="text-[9px] font-black text-emerald-600 uppercase mt-0.5">📅 {t.dueDate ? new Date(t.dueDate).toLocaleDateString('it-IT') : 'N/D'}</span>
+                    </div>
+                    <button onClick={async () => await updateDoc(doc(db, 'tasks', t.id), { done: true, dateCompleted: new Date().toLocaleDateString('it-IT') })} className="text-stone-300 hover:text-emerald-500 transition-colors"><CheckCircle2 size={24}/></button>
+                  </div>
+                ))}
+                {tasks.filter(t => !t.done).length === 0 && (
+                  <p className="text-stone-400 text-sm italic py-4 text-center">Nessun lavoro in sospeso. Ottimo lavoro!</p>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
-        {/* TITOLO TAB */}
-        <h2 className="text-3xl md:text-4xl font-black text-emerald-950 capitalize tracking-tighter italic mb-6 ml-1">
-          {activeTab === 'inventory' ? 'Anagrafica Capi' : activeTab === 'finance' ? 'Bilancio' : activeTab === 'births' ? 'Parti' : activeTab === 'products' ? 'Magazzino' : activeTab === 'tasks' ? 'Agenda Lavori' : 'Albero Genealogico'}
-        </h2>
-
         {/* --- INVENTARIO CAPI --- */}
         {activeTab === 'inventory' && (
-          <div className="space-y-8">
+          <div className="space-y-8 animate-fade-in">
             <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-stone-100 shadow-sm">
               <h3 className="text-xs font-black mb-6 text-emerald-900 uppercase flex items-center gap-2"><PlusCircle size={18} className="text-emerald-500"/> Nuovo Capo</h3>
               <div className="space-y-4 mb-6">
@@ -322,7 +402,7 @@ export default function App() {
 
         {/* --- BILANCIO FINANZIARIO --- */}
         {activeTab === 'finance' && (
-          <div className="space-y-8">
+          <div className="space-y-8 animate-fade-in">
             <div className="bg-emerald-950 p-10 rounded-[2rem] text-white shadow-lg relative overflow-hidden">
                 <p className="text-emerald-400 text-[10px] font-black uppercase tracking-widest mb-2 opacity-80">Bilancio Netto Totale</p>
                 <h2 className="text-6xl font-black italic tracking-tighter">€ {transactions.reduce((acc, t) => acc + (t.type === 'Entrata' ? t.amount : -t.amount), 0).toFixed(2)}</h2>
@@ -382,7 +462,7 @@ export default function App() {
 
         {/* --- REGISTRO PARTI --- */}
         {activeTab === 'births' && (
-          <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-stone-100 shadow-sm">
+          <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-stone-100 shadow-sm animate-fade-in">
             <h3 className="text-xs font-black uppercase text-emerald-900 mb-6 flex items-center gap-2"><Baby size={18}/> Registra Parto</h3>
             <div className="space-y-4 mb-6">
               <div className="space-y-1.5">
@@ -410,7 +490,7 @@ export default function App() {
 
         {/* --- ALBERO GENEALOGICO --- */}
         {activeTab === 'dinastia' && (
-          <div className="space-y-6">
+          <div className="space-y-6 animate-fade-in">
             {speciesList.map(species => {
               const founders = validAnimals.filter(a => a.species === species && !a.sire && !a.dam);
               if (founders.length === 0) return null;
@@ -428,7 +508,7 @@ export default function App() {
 
         {/* --- MAGAZZINO --- */}
         {activeTab === 'products' && (
-          <div className="space-y-8">
+          <div className="space-y-8 animate-fade-in">
             <div className="bg-white p-6 rounded-[2rem] border border-stone-100 shadow-sm">
               <h3 className="text-xs font-black uppercase tracking-widest text-emerald-900 mb-6 flex items-center gap-2"><Package size={18}/> Aggiungi Scorte</h3>
               <div className="space-y-4 mb-6">
@@ -457,30 +537,41 @@ export default function App() {
           </div>
         )}
 
-        {/* --- AGENDA LAVORI --- */}
+        {/* --- AGENDA LAVORI (CON CALENDARIO) --- */}
         {activeTab === 'tasks' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fade-in">
             <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-stone-100 shadow-sm">
               <h3 className="text-lg font-black mb-6 italic flex items-center gap-2 text-emerald-950"><ListChecks className="text-emerald-600" size={24} /> Da Fare</h3>
-              <div className="flex gap-3 mb-6 bg-stone-50 p-2 rounded-[1.2rem] border border-stone-200">
+              
+              <div className="flex flex-col md:flex-row gap-3 mb-6 bg-stone-50 p-3 rounded-[1.2rem] border border-stone-200">
+                <input type="date" className="ui-input py-2 md:w-40 flex-shrink-0 text-xs" value={newTaskDate} onChange={e => setNewTaskDate(e.target.value)} />
                 <input className="bg-transparent px-3 py-2 w-full outline-none font-medium text-sm" value={newTask} onChange={e => setNewTask(e.target.value)} placeholder="Es. Vaccinare vitelli..." />
-                <button onClick={handleAddTask} className="bg-emerald-600 text-white px-5 rounded-xl font-black text-[10px] uppercase shadow-sm">Aggiungi</button>
+                <button onClick={handleAddTask} className="bg-emerald-600 text-white px-5 py-3 md:py-0 rounded-xl font-black text-[10px] uppercase shadow-sm">Aggiungi</button>
               </div>
+
               <div className="space-y-3">
-                {tasks.filter(t => !t.done).map(t => (
+                {tasks.filter(t => !t.done)
+                  .sort((a,b) => (a.dueDate || '').localeCompare(b.dueDate || ''))
+                  .map(t => (
                   <div key={t.id} className="flex items-center justify-between p-4 bg-white rounded-2xl border border-stone-200 shadow-sm">
                     <div className="flex items-center gap-4">
                       <button onClick={async () => await updateDoc(doc(db, 'tasks', t.id), { done: true, dateCompleted: new Date().toLocaleDateString('it-IT') })} className="text-stone-300 hover:text-emerald-500 transition-colors"><CheckCircle2 size={28}/></button>
-                      <span className="font-bold text-[15px] text-stone-700 leading-tight">{t.text}</span>
+                      <div className="flex flex-col">
+                        <span className="font-bold text-[15px] text-stone-700 leading-tight">{t.text}</span>
+                        <span className="text-[10px] font-black text-emerald-600 uppercase mt-1">📅 {t.dueDate ? new Date(t.dueDate).toLocaleDateString('it-IT') : 'N/D'}</span>
+                      </div>
                     </div>
                     <button onClick={() => deleteDoc(doc(db, 'tasks', t.id))} className="text-stone-300 hover:text-red-500 bg-stone-50 p-2 rounded-xl"><Trash2 size={16}/></button>
                   </div>
                 ))}
+                {tasks.filter(t => !t.done).length === 0 && (
+                  <p className="text-stone-400 text-sm text-center py-6 italic border-2 border-dashed border-stone-200 rounded-2xl">L'agenda è vuota. Nessuna scadenza in vista!</p>
+                )}
               </div>
             </div>
 
             <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-stone-100 shadow-sm">
-              <h3 className="text-lg font-black italic flex items-center gap-2 mb-6 text-stone-800"><History className="text-stone-400" size={24} /> Storico Lavori</h3>
+              <h3 className="text-lg font-black italic flex items-center gap-2 mb-6 text-stone-800"><History className="text-stone-400" size={24} /> Storico Lavori Completati</h3>
               <div className="space-y-6">
                 {Array.from(new Set(tasks.filter(t => t.done).map(t => t.dateCompleted))).sort().reverse().map(date => (
                   <div key={date}>
@@ -499,19 +590,94 @@ export default function App() {
             </div>
           </div>
         )}
+
+        {/* --- VETERINARIO INTELLIGENTE --- */}
+        {activeTab === 'vet' && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="bg-amber-50 border border-amber-200 p-5 rounded-[1.5rem] flex items-start gap-4">
+              <AlertTriangle className="text-amber-500 shrink-0 mt-1" size={24} />
+              <div>
+                <h4 className="font-black text-amber-800 text-sm uppercase tracking-widest mb-1">Avvertenza Medica</h4>
+                <p className="text-xs text-amber-700 leading-relaxed font-medium">Questa funzione utilizza l'Intelligenza Artificiale per fornire un pre-triage indicativo. <strong className="font-black">Non sostituisce in alcun modo il parere di un medico veterinario.</strong> In caso di urgenze o sintomi gravi, contatta immediatamente il tuo veterinario di fiducia.</p>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-stone-100 shadow-sm">
+              <div className="space-y-6">
+                <div>
+                  <label className="text-xs font-black text-stone-400 uppercase ml-2 mb-2 block">1. Carica una foto del problema (Opzionale)</label>
+                  <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-stone-300 rounded-[1.5rem] cursor-pointer hover:bg-stone-50 transition-colors relative overflow-hidden">
+                    {vetImage ? (
+                      <img src={vetImage} alt="Preview" className="w-full h-full object-cover opacity-60" />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <UploadCloud className="w-10 h-10 text-stone-400 mb-3" />
+                        <p className="text-sm font-bold text-stone-500">Tocca per scattare o caricare</p>
+                      </div>
+                    )}
+                    <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                  </label>
+                  {vetImage && <button onClick={() => setVetImage(null)} className="text-[10px] font-bold text-red-500 mt-2 ml-2 uppercase">Rimuovi Foto</button>}
+                </div>
+
+                <div>
+                  <label className="text-xs font-black text-stone-400 uppercase ml-2 mb-2 block">2. Descrivi i sintomi</label>
+                  <textarea 
+                    placeholder="Es. Il vitello non mangia da ieri mattina e ha una leggera zoppia all'anteriore destro..." 
+                    className="ui-input h-28 resize-none"
+                    value={vetSymptom}
+                    onChange={(e) => setVetSymptom(e.target.value)}
+                  ></textarea>
+                </div>
+
+                <button 
+                  onClick={analyzeWithAI} 
+                  disabled={isAnalyzing}
+                  className={`w-full font-black py-4 rounded-xl text-xs uppercase shadow-md flex justify-center items-center gap-2 transition-all ${isAnalyzing ? 'bg-blue-300 text-white cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+                >
+                  {isAnalyzing ? (
+                    <><Activity className="animate-pulse" size={18}/> Analisi IA in corso...</>
+                  ) : (
+                    <><Stethoscope size={18}/> Analizza con Intelligenza Artificiale</>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {vetResult && (
+              <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-blue-200 shadow-lg shadow-blue-100/50 animate-fade-in relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-2 h-full bg-blue-500"></div>
+                <h3 className="text-lg font-black text-blue-900 mb-2 pl-4">Diagnosi Preliminare Stimata</h3>
+                <h4 className="text-xl font-bold text-stone-800 italic mb-4 pl-4">{vetResult.title}</h4>
+                
+                <div className="space-y-4 pl-4">
+                  <div>
+                    <h5 className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">Rilevamenti IA</h5>
+                    <p className="text-sm text-stone-600 leading-relaxed bg-stone-50 p-4 rounded-xl">{vetResult.desc}</p>
+                  </div>
+                  <div>
+                    <h5 className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Azione Consigliata</h5>
+                    <p className="text-sm text-blue-900 font-medium leading-relaxed bg-blue-50 p-4 rounded-xl border border-blue-100">{vetResult.action}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
       </main>
 
-      {/* BOTTOM NAVIGATION MOBILE BLINDATA */}
-      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-xl border-t border-stone-200 flex justify-around px-2 pb-safe pt-2 z-50">
+      {/* BOTTOM NAVIGATION MOBILE */}
+      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-xl border-t border-stone-200 flex justify-between px-1 pb-safe pt-2 z-50 overflow-x-auto hide-scrollbar">
         {[
+          { id: 'dashboard', icon: LayoutDashboard, label: 'Home' },
           { id: 'inventory', icon: PawPrint, label: 'Capi' },
           { id: 'finance', icon: Wallet, label: 'Bilancio' },
-          { id: 'births', icon: Baby, label: 'Parti' },
+          { id: 'vet', icon: Stethoscope, label: 'Vet IA' },
           { id: 'products', icon: Package, label: 'Scorte' },
           { id: 'tasks', icon: ListChecks, label: 'Agenda' },
-          { id: 'dinastia', icon: Network, label: 'Albero' }
         ].map(item => (
-          <button key={item.id} onClick={() => setActiveTab(item.id)} className={`flex flex-col items-center py-2 w-full transition-colors ${activeTab === item.id ? 'text-emerald-600' : 'text-stone-400'}`}>
+          <button key={item.id} onClick={() => setActiveTab(item.id)} className={`flex flex-col items-center py-2 min-w-[60px] transition-colors ${activeTab === item.id ? (item.id === 'vet' ? 'text-blue-600' : 'text-emerald-600') : 'text-stone-400'}`}>
             <item.icon size={22} strokeWidth={activeTab === item.id ? 2.5 : 2} />
             <span className="text-[8px] font-black mt-1.5 uppercase">{item.label}</span>
           </button>
