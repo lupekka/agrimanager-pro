@@ -11,8 +11,9 @@ body {
   background-color: #F8F9FA;
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
-  /* Evita il rimbalzo strano su iOS */
   overscroll-behavior-y: none; 
+  /* Aggiunge spazio extra in fondo per non far coprire l'ultimo elemento dalla barra */
+  padding-bottom: calc(85px + env(safe-area-inset-bottom));
 }
 
 h1, h2, h3, h4, .font-black {
@@ -20,7 +21,6 @@ h1, h2, h3, h4, .font-black {
   letter-spacing: -0.03em;
 }
 
-/* Nascondi scrollbar brutte su mobile */
 ::-webkit-scrollbar {
   width: 0px;
   height: 0px;
@@ -46,7 +46,7 @@ button:active {
   transition: transform 0.1s;
 }
 
-/* Aggiunge spazio sotto per non far coprire l'ultimo elemento dalla barra di navigazione */
+/* Incolla la barra esattamente sul bordo inferiore del telefono (anche su iPhone con la "tacca" giù) */
 .pb-safe {
-  padding-bottom: calc(80px + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom, 12px);
 }
