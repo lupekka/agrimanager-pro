@@ -134,11 +134,8 @@ export default function App() {
 
   const handleAddProduct = async () => {
     if (!newProduct.name.trim() || newProduct.quantity <= 0) return alert("Inserisci nome e quantità!");
-    
-    // RIMOSSE MAIUSCOLE E SPAZI PER IL CONFRONTO (Case-insensitive)
     const nameToMatch = newProduct.name.trim().toLowerCase();
     const existing = products.find(p => p.name.trim().toLowerCase() === nameToMatch);
-    
     if (existing) { 
       await updateDoc(doc(db, 'products', existing.id), { quantity: existing.quantity + newProduct.quantity }); 
     } else { 
@@ -150,6 +147,17 @@ export default function App() {
   const reduceProduct = async (id: string, amount: number) => {
     const p = products.find(prod => prod.id === id);
     if (p && p.quantity >= amount) await updateDoc(doc(db, 'products', id), { quantity: p.quantity - amount });
+  };
+
+  // LA FUNZIONE CHE MANCAVA E FACEVA CRASHARE VERCEL!
+  const handleAddTask = async () => {
+    if (!newTask.trim()) return alert("Scrivi il lavoro da fare prima di aggiungere!");
+    try {
+      await addDoc(collection(db, 'tasks'), { text: newTask, done: false, ownerId: user!.uid });
+      setNewTask('');
+    } catch (err) {
+      alert("Errore di rete. Riprova.");
+    }
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center font-black text-emerald-800 bg-stone-50 italic animate-pulse">AGRIMANAGE PRO...</div>;
@@ -238,7 +246,7 @@ export default function App() {
         {activeTab === 'inventory' && (
           <div className="space-y-6">
             <div className="bg-white p-5 md:p-8 rounded-3xl border border-stone-100 shadow-sm">
-              <h3 className="text-xs font-black mb-5 text-emerald-900 uppercase flex items-center gap-2"><PlusCircle size={18} /> Nuovo Capo</h3>
+              <h3 className="text-xs font-black mb-5 text-emerald-900 uppercase flex items-center gap-2"><PlusCircle size={18} /> Nuova Anagrafica</h3>
               <div className="space-y-3 mb-5">
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-stone-400 uppercase ml-1">Codice/Nome</label>
@@ -265,7 +273,7 @@ export default function App() {
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-stone-400 uppercase ml-1">Note e Trattamenti (1. INSERIMENTO NOTE)</label>
+                  <label className="text-[10px] font-black text-stone-400 uppercase ml-1">Note e Trattamenti</label>
                   <textarea placeholder="Scrivi note sanitarie..." className="ui-input h-20 resize-none" value={newAnimal.notes} onChange={e => setNewAnimal({...newAnimal, notes: e.target.value})}></textarea>
                 </div>
               </div>
@@ -315,7 +323,7 @@ export default function App() {
           </div>
         )}
 
-        {/* --- BILANCIO FINANZIARIO (DIVISO PER SPECIE CON TASTO CANCELLA) --- */}
+        {/* --- BILANCIO FINANZIARIO --- */}
         {activeTab === 'finance' && (
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-3xl border shadow-sm">
@@ -331,12 +339,11 @@ export default function App() {
               <button onClick={handleSaveTransaction} className="w-full bg-emerald-600 text-white font-black rounded-xl py-3.5 text-xs uppercase">Aggiungi</button>
             </div>
             
-            {/* 3. RENDICONTO PER SPECIE NELLA GESTIONE FINANZIARIA */}
             {speciesList.map(s => {
                 const specTrans = transactions.filter(t => t.species === s || t.species === s.substring(0,3)+".");
                 const balance = specTrans.reduce((acc, t) => acc + (t.type === 'Entrata' ? t.amount : -t.amount), 0);
                 
-                if(specTrans.length === 0) return null; // Mostra solo le specie che hanno movimenti
+                if(specTrans.length === 0) return null;
 
                 return (
                     <div key={s} className="bg-white p-5 rounded-2xl border shadow-sm">
@@ -358,7 +365,6 @@ export default function App() {
                                     </div>
                                     <div className="flex items-center gap-3">
                                       <span className={`font-black text-sm ${t.type === 'Entrata' ? 'text-emerald-600' : 'text-red-500'}`}>€{t.amount.toFixed(2)}</span>
-                                      {/* TASTO CANCELLA TRANSAZIONE */}
                                       <button onClick={() => { if(window.confirm("Cancellare questa transazione?")) deleteDoc(doc(db, 'transactions', t.id)); }} className="text-stone-300 hover:text-red-500 bg-white p-1.5 rounded-lg shadow-sm border border-stone-100"><Trash2 size={16}/></button>
                                     </div>
                                 </div>
@@ -370,12 +376,11 @@ export default function App() {
           </div>
         )}
 
-        {/* --- REGISTRO PARTI (CON SPECIE) --- */}
+        {/* --- REGISTRO PARTI --- */}
         {activeTab === 'births' && (
           <div className="bg-white p-6 rounded-3xl border shadow-sm">
             <h3 className="text-xs font-black uppercase text-emerald-900 mb-5">Nuovo Parto</h3>
             <div className="space-y-3 mb-5">
-              {/* 2. LA POSSIBILITÀ DI INSERIRE LA SPECIE AL PARTO */}
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-stone-400 uppercase ml-1">Specie del Nasciuturo</label>
                 <select className="ui-input w-full" value={newBirth.species} onChange={e => setNewBirth({...newBirth, species: e.target.value as Species})}>{speciesList.map(s => <option key={s}>{s}</option>)}</select>
@@ -488,7 +493,7 @@ export default function App() {
         )}
       </main>
 
-      {/* 5. BOTTOM NAVIGATION BAR - MESSA PIÙ IN BASSO */}
+      {/* BOTTOM NAVIGATION BAR */}
       <nav className="md:hidden fixed bottom-0 w-full bg-white/95 backdrop-blur-xl border-t border-stone-200 flex justify-around px-1 pt-2 pb-safe z-50">
         {[
           { id: 'inventory', icon: PawPrint, label: 'Capi' },
