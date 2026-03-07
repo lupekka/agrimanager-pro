@@ -25,7 +25,6 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// TIPI
 type Species = 'Maiali' | 'Cavalli' | 'Mucche' | 'Galline' | 'Oche';
 interface Animal { id: string; name: string; species: Species; notes: string; sire?: string; dam?: string; birthDate?: string; ownerId: string; }
 interface BirthRecord { id: string; animalName: string; species: Species; date: string; offspringCount: number; birthDate: string; ownerId: string; }
@@ -33,15 +32,14 @@ interface Transaction { id: string; type: 'Entrata' | 'Uscita'; amount: number; 
 interface Task { id: string; text: string; done: boolean; dateCompleted?: string; ownerId: string; }
 interface Product { id: string; name: string; quantity: number; unit: string; ownerId: string; }
 
-// Componente Dinastia
 const DynastyBranch = ({ animal, allAnimals, level = 0 }: { animal: Animal, allAnimals: Animal[], level?: number }) => {
   const children = allAnimals.filter(a => a.sire === animal.id || a.dam === animal.id);
   return (
-    <div className={level > 0 ? "ml-4 border-l-2 border-emerald-100 mt-2" : "mt-2"}>
-      <div className={`flex items-center gap-3 p-3 bg-white rounded-xl shadow-sm border ${level === 0 ? 'border-l-4 border-emerald-500' : 'border-gray-100 ml-2'}`}>
+    <div className={level > 0 ? "ml-4 border-l-2 border-emerald-100 mt-3" : "mt-2"}>
+      <div className={`flex items-center gap-3 p-4 bg-white rounded-2xl shadow-sm border ${level === 0 ? 'border-l-4 border-emerald-500' : 'border-stone-100 ml-3'}`}>
         <div className="flex flex-col">
-          <span className="font-bold text-gray-800 text-sm">{animal.name || '??'}</span>
-          <span className="text-[9px] text-gray-400 uppercase font-black">Gen. {level} • {animal.species}</span>
+          <span className="font-bold text-stone-800">{animal.name || '??'}</span>
+          <span className="text-[10px] text-stone-400 uppercase font-black tracking-widest mt-1">Gen. {level} • {animal.species}</span>
         </div>
       </div>
       {children.map(child => <DynastyBranch key={child.id} animal={child} allAnimals={allAnimals} level={level + 1} />)}
@@ -54,7 +52,6 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [isRegistering, setIsRegistering] = useState(false);
   const [activeTab, setActiveTab] = useState('inventory');
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [births, setBirths] = useState<BirthRecord[]>([]);
@@ -62,7 +59,6 @@ export default function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
 
-  // Form states
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [newAnimal, setNewAnimal] = useState({ name: '', species: 'Maiali' as Species, birthDate: '', sire: '', dam: '', notes: '' });
@@ -70,7 +66,6 @@ export default function App() {
   const [newTrans, setNewTrans] = useState({ desc: '', amount: 0, type: 'Entrata' as 'Entrata' | 'Uscita', species: 'Maiali' as Species });
   const [newProduct, setNewProduct] = useState({ name: '', quantity: 0, unit: 'kg' });
   const [newTask, setNewTask] = useState('');
-  const [searchTask, setSearchTask] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState({ name: '', notes: '' });
 
@@ -109,7 +104,6 @@ export default function App() {
     } catch (err: any) { alert("Errore: controlla email e password"); }
   };
 
-  // --- FUNZIONI DI SALVATAGGIO ---
   const handleSaveAnimal = async () => {
     if (!newAnimal.name.trim()) return alert("Inserisci un identificativo!");
     await addDoc(collection(db, 'animals'), { ...newAnimal, ownerId: user!.uid });
@@ -149,31 +143,29 @@ export default function App() {
     if (p && p.quantity >= amount) await updateDoc(doc(db, 'products', id), { quantity: p.quantity - amount });
   };
 
-  // LA FUNZIONE CHE MANCAVA E FACEVA CRASHARE VERCEL!
   const handleAddTask = async () => {
     if (!newTask.trim()) return alert("Scrivi il lavoro da fare prima di aggiungere!");
     try {
       await addDoc(collection(db, 'tasks'), { text: newTask, done: false, ownerId: user!.uid });
       setNewTask('');
-    } catch (err) {
-      alert("Errore di rete. Riprova.");
-    }
+    } catch (err) { alert("Errore di rete. Riprova."); }
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center font-black text-emerald-800 bg-stone-50 italic animate-pulse">AGRIMANAGE PRO...</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center font-black text-emerald-800 bg-stone-50 italic animate-pulse">Caricamento in corso...</div>;
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4">
-        <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-sm">
-          <div className="flex justify-center mb-6"><div className="bg-emerald-600 p-4 rounded-2xl text-white shadow-lg shadow-emerald-200"><TrendingUp size={32} strokeWidth={3} /></div></div>
-          <h1 className="text-3xl font-black text-center mb-8 text-emerald-950 italic">AgriManage</h1>
+      <div className="min-h-screen bg-stone-100 flex items-center justify-center p-4">
+        <div className="bg-white p-8 rounded-[2rem] shadow-xl w-full max-w-sm border border-stone-200">
+          <div className="flex justify-center mb-6"><div className="bg-emerald-600 p-4 rounded-[1.5rem] text-white shadow-lg shadow-emerald-200"><TrendingUp size={36} strokeWidth={3} /></div></div>
+          <h1 className="text-3xl font-black text-center mb-2 text-emerald-950 italic">AgriManage</h1>
+          <p className="text-center text-stone-500 text-sm mb-8 font-medium">Il gestionale agricolo intelligente</p>
           <form onSubmit={handleAuth} className="space-y-4">
-            <input type="email" placeholder="Email" className="ui-input w-full" value={email} onChange={e => setEmail(e.target.value)} required />
-            <input type="password" placeholder="Password" className="ui-input w-full" value={password} onChange={e => setPassword(e.target.value)} required />
-            <button type="submit" className="w-full bg-emerald-600 text-white py-4 rounded-xl font-black uppercase shadow-md active:scale-95 transition-transform">{isRegistering ? "Registrati" : "Entra"}</button>
+            <input type="email" placeholder="Email aziendale" className="ui-input" value={email} onChange={e => setEmail(e.target.value)} required />
+            <input type="password" placeholder="Password" className="ui-input" value={password} onChange={e => setPassword(e.target.value)} required />
+            <button type="submit" className="w-full bg-emerald-600 text-white py-4 rounded-[1rem] font-black uppercase shadow-md active:scale-95 transition-transform mt-2">{isRegistering ? "Crea Account" : "Accedi"}</button>
           </form>
-          <button onClick={() => setIsRegistering(!isRegistering)} className="w-full mt-6 text-stone-400 font-bold text-xs hover:text-emerald-600">
+          <button onClick={() => setIsRegistering(!isRegistering)} className="w-full mt-6 text-stone-400 font-bold text-xs hover:text-emerald-600 transition-colors">
             {isRegistering ? "Hai già un account? Accedi" : "Nuovo utente? Registrati qui"}
           </button>
         </div>
@@ -182,136 +174,141 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen flex bg-stone-50 text-stone-900">
-      <style>{`.ui-input { background: #f3f4f6; padding: 1rem 1.25rem; border-radius: 0.75rem; width: 100%; border: 1.5px solid transparent; outline: none; transition: 0.2s; font-size: 0.875rem; font-weight: 600; } .ui-input:focus { background: white; border-color: #10b981; box-shadow: 0 0 0 4px rgba(16,185,129,0.1); }`}</style>
-
-      {/* HEADER MOBILE */}
-      <header className="md:hidden fixed top-0 w-full bg-white/90 backdrop-blur-md z-40 border-b border-stone-200 px-5 py-4 flex justify-between items-center">
+    <div className="min-h-screen flex text-stone-900 bg-[#F4F5F7]">
+      
+      {/* 1. HEADER MOBILE CON SAFE AREA FIX */}
+      <header className="md:hidden fixed top-0 w-full bg-white/80 backdrop-blur-xl z-40 border-b border-stone-200/50 px-5 pb-4 pt-safe flex justify-between items-center shadow-sm">
         <div className="flex items-center gap-2">
-          <div className="bg-emerald-600 p-1.5 rounded-lg text-white"><TrendingUp size={18} strokeWidth={3} /></div>
+          <div className="bg-emerald-600 p-1.5 rounded-lg text-white"><TrendingUp size={20} strokeWidth={3} /></div>
           <h1 className="text-xl font-black italic text-emerald-950">AgriManage</h1>
         </div>
-        <button onClick={() => signOut(auth)} className="text-stone-400 hover:text-red-500"><LogOut size={20} /></button>
+        {/* Tasto Logout più grande e accessibile */}
+        <button onClick={() => signOut(auth)} className="bg-red-50 text-red-500 p-2 rounded-full hover:bg-red-100 transition-colors"><LogOut size={18} strokeWidth={2.5}/></button>
       </header>
 
       {/* SIDEBAR DESKTOP */}
-      <aside className="hidden md:flex flex-col w-72 bg-white border-r border-stone-200 p-6 fixed h-full z-40">
+      <aside className="hidden md:flex flex-col w-72 bg-white border-r border-stone-200/60 p-6 fixed h-full z-40">
         <div className="flex items-center gap-3 mb-10">
-          <div className="bg-emerald-600 p-2.5 rounded-xl text-white shadow-lg"><TrendingUp size={22} strokeWidth={3} /></div>
+          <div className="bg-emerald-600 p-3 rounded-2xl text-white shadow-lg"><TrendingUp size={24} strokeWidth={3} /></div>
           <h1 className="text-2xl font-black italic text-emerald-950">AgriManage</h1>
         </div>
         <nav className="space-y-2 flex-1">
-          {[ { id: 'inventory', label: 'Capi', icon: PawPrint }, { id: 'births', label: 'Parti', icon: Baby }, { id: 'finance', label: 'Bilancio', icon: Wallet }, { id: 'products', label: 'Scorte', icon: Package }, { id: 'tasks', label: 'Agenda', icon: ListChecks }, { id: 'dinastia', label: 'Dinastia', icon: Network } ].map(item => (
-            <button key={item.id} onClick={() => setActiveTab(item.id)} className={`flex items-center gap-4 w-full p-3 rounded-xl font-bold text-sm transition-all ${activeTab === item.id ? 'bg-emerald-50 text-emerald-700' : 'text-stone-500 hover:bg-stone-100'}`}>
-              <item.icon size={20} strokeWidth={activeTab === item.id ? 2.5 : 2} /> {item.label}
+          {[ { id: 'inventory', label: 'Anagrafica Capi', icon: PawPrint }, { id: 'births', label: 'Registro Parti', icon: Baby }, { id: 'finance', label: 'Bilancio', icon: Wallet }, { id: 'products', label: 'Magazzino', icon: Package }, { id: 'tasks', label: 'Agenda Lavori', icon: ListChecks }, { id: 'dinastia', label: 'Albero Genealogico', icon: Network } ].map(item => (
+            <button key={item.id} onClick={() => setActiveTab(item.id)} className={`flex items-center gap-4 w-full p-4 rounded-2xl font-bold text-sm transition-all ${activeTab === item.id ? 'bg-emerald-50 text-emerald-700' : 'text-stone-500 hover:bg-stone-50'}`}>
+              <item.icon size={22} strokeWidth={activeTab === item.id ? 2.5 : 2} /> {item.label}
             </button>
           ))}
         </nav>
-        <button onClick={() => signOut(auth)} className="mt-auto flex items-center gap-3 text-red-500 font-bold p-3 hover:bg-red-50 rounded-xl"><LogOut size={18} /> Esci dall'App</button>
+        <button onClick={() => signOut(auth)} className="mt-auto flex items-center gap-3 text-red-500 font-bold p-4 hover:bg-red-50 rounded-2xl transition-colors"><LogOut size={20} /> Disconnetti</button>
       </aside>
 
-      {/* CONTENUTO PRINCIPALE */}
-      <main className="flex-1 w-full md:ml-72 p-4 pt-24 md:pt-10 md:p-10">
+      {/* CONTENUTO PRINCIPALE (con margine top dinamico per via del nuovo header) */}
+      <main className="flex-1 w-full md:ml-72 px-4 pb-28 pt-main-safe md:pt-10 md:p-10 max-w-6xl mx-auto">
         
-        {/* KPI DASHBOARD */}
+        {/* KPI DASHBOARD: Look più pulito */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-          <div className="bg-white p-4 rounded-2xl shadow-sm border border-stone-100 flex flex-col justify-center items-center">
-            <p className="text-[9px] font-black text-stone-400 uppercase tracking-wider mb-0.5">Capi</p>
-            <h4 className="text-2xl font-black text-emerald-600 italic">{validAnimals.length}</h4>
+          <div className="bg-white p-5 rounded-[1.5rem] shadow-sm border border-stone-100 flex flex-col justify-center">
+            <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">Capi</p>
+            <h4 className="text-3xl font-black text-emerald-600 italic">{validAnimals.length}</h4>
           </div>
-          <div className="bg-white p-4 rounded-2xl shadow-sm border border-stone-100 flex flex-col justify-center items-center">
-            <p className="text-[9px] font-black text-stone-400 uppercase tracking-wider mb-0.5">Netto</p>
-            <h4 className="text-2xl font-black text-stone-800 italic">€{transactions.reduce((acc, t) => acc + (t.type === 'Entrata' ? t.amount : -t.amount), 0).toFixed(0)}</h4>
+          <div className="bg-white p-5 rounded-[1.5rem] shadow-sm border border-stone-100 flex flex-col justify-center">
+            <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">Netto</p>
+            <h4 className="text-3xl font-black text-stone-800 italic">€{transactions.reduce((acc, t) => acc + (t.type === 'Entrata' ? t.amount : -t.amount), 0).toFixed(0)}</h4>
           </div>
-          <div className="bg-white p-4 rounded-2xl shadow-sm border border-stone-100 flex flex-col justify-center items-center">
-            <p className="text-[9px] font-black text-stone-400 uppercase tracking-wider mb-0.5">Task</p>
-            <h4 className="text-2xl font-black text-amber-500 italic">{tasks.filter(t=>!t.done).length}</h4>
+          <div className="bg-white p-5 rounded-[1.5rem] shadow-sm border border-stone-100 flex flex-col justify-center">
+            <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">Task</p>
+            <h4 className="text-3xl font-black text-amber-500 italic">{tasks.filter(t=>!t.done).length}</h4>
           </div>
-          <div className="bg-white p-4 rounded-2xl shadow-sm border border-stone-100 flex flex-col justify-center items-center">
-            <p className="text-[9px] font-black text-stone-400 uppercase tracking-wider mb-0.5">Scorte</p>
-            <h4 className="text-2xl font-black text-blue-500 italic">{products.length}</h4>
+          <div className="bg-white p-5 rounded-[1.5rem] shadow-sm border border-stone-100 flex flex-col justify-center">
+            <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">Scorte</p>
+            <h4 className="text-3xl font-black text-blue-500 italic">{products.length}</h4>
           </div>
         </div>
 
         {ghostCount > 0 && (
-          <div className="mb-6 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2 text-amber-700 font-bold"><Ghost size={16} /><span>Errori rilevati</span></div>
-            <button onClick={cleanFantasmi} className="bg-amber-600 text-white px-3 py-1.5 rounded-lg font-bold uppercase">Pulisci</button>
+          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-between text-sm shadow-sm">
+            <div className="flex items-center gap-2 text-amber-700 font-bold"><Ghost size={18} /><span>Dati obsoleti rilevati.</span></div>
+            <button onClick={cleanFantasmi} className="bg-amber-600 text-white px-4 py-2 rounded-xl font-bold uppercase text-[10px] shadow-sm">Pulisci</button>
           </div>
         )}
 
-        <h2 className="text-4xl md:text-5xl font-black text-emerald-950 capitalize tracking-tighter italic mb-8">{activeTab}</h2>
+        {/* TITOLO TAB */}
+        <h2 className="text-3xl md:text-4xl font-black text-emerald-950 capitalize tracking-tighter italic mb-6 ml-1">
+          {activeTab === 'inventory' ? 'Anagrafica Capi' : activeTab === 'finance' ? 'Bilancio' : activeTab === 'births' ? 'Parti' : activeTab === 'products' ? 'Magazzino' : activeTab === 'tasks' ? 'Agenda Lavori' : 'Albero Genealogico'}
+        </h2>
 
         {/* --- INVENTARIO CAPI --- */}
         {activeTab === 'inventory' && (
-          <div className="space-y-6">
-            <div className="bg-white p-5 md:p-8 rounded-3xl border border-stone-100 shadow-sm">
-              <h3 className="text-xs font-black mb-5 text-emerald-900 uppercase flex items-center gap-2"><PlusCircle size={18} /> Nuova Anagrafica</h3>
-              <div className="space-y-3 mb-5">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-stone-400 uppercase ml-1">Codice/Nome</label>
-                  <input placeholder="Codice" className="ui-input" value={newAnimal.name} onChange={e => setNewAnimal({...newAnimal, name: e.target.value})} />
+          <div className="space-y-8">
+            <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-stone-100 shadow-sm">
+              <h3 className="text-xs font-black mb-6 text-emerald-900 uppercase flex items-center gap-2"><PlusCircle size={18} className="text-emerald-500"/> Nuovo Capo</h3>
+              <div className="space-y-4 mb-6">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-stone-400 uppercase ml-2">Codice Identificativo</label>
+                  <input placeholder="Es. IT001..." className="ui-input" value={newAnimal.name} onChange={e => setNewAnimal({...newAnimal, name: e.target.value})} />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-stone-400 uppercase ml-1">Specie</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-stone-400 uppercase ml-2">Specie</label>
                     <select className="ui-input" value={newAnimal.species} onChange={e => setNewAnimal({...newAnimal, species: e.target.value as Species})}>{speciesList.map(s => <option key={s}>{s}</option>)}</select>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-stone-400 uppercase ml-1">Nato il</label>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-stone-400 uppercase ml-2">Data Nascita</label>
                     <input type="date" className="ui-input" value={newAnimal.birthDate} onChange={e => setNewAnimal({...newAnimal, birthDate: e.target.value})} />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-stone-400 uppercase ml-1">Padre</label>
-                    <select className="ui-input text-xs" value={newAnimal.sire} onChange={e => setNewAnimal({...newAnimal, sire: e.target.value})}><option value="">Ignoto</option>{validAnimals.filter(a => a.species === newAnimal.species).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-stone-400 uppercase ml-2">Padre</label>
+                    <select className="ui-input text-sm" value={newAnimal.sire} onChange={e => setNewAnimal({...newAnimal, sire: e.target.value})}><option value="">Ignoto</option>{validAnimals.filter(a => a.species === newAnimal.species).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-stone-400 uppercase ml-1">Madre</label>
-                    <select className="ui-input text-xs" value={newAnimal.dam} onChange={e => setNewAnimal({...newAnimal, dam: e.target.value})}><option value="">Ignota</option>{validAnimals.filter(a => a.species === newAnimal.species).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-stone-400 uppercase ml-2">Madre</label>
+                    <select className="ui-input text-sm" value={newAnimal.dam} onChange={e => setNewAnimal({...newAnimal, dam: e.target.value})}><option value="">Ignota</option>{validAnimals.filter(a => a.species === newAnimal.species).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-stone-400 uppercase ml-1">Note e Trattamenti</label>
-                  <textarea placeholder="Scrivi note sanitarie..." className="ui-input h-20 resize-none" value={newAnimal.notes} onChange={e => setNewAnimal({...newAnimal, notes: e.target.value})}></textarea>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-stone-400 uppercase ml-2">Note e Trattamenti Sanitari</label>
+                  <textarea placeholder="Vaccini, cure, stato salute..." className="ui-input h-24 resize-none" value={newAnimal.notes} onChange={e => setNewAnimal({...newAnimal, notes: e.target.value})}></textarea>
                 </div>
               </div>
-              <button onClick={handleSaveAnimal} className="w-full bg-emerald-600 text-white font-black rounded-xl py-3.5 uppercase text-xs active:scale-[0.98] transition-transform">Salva nel Registro</button>
+              <button onClick={handleSaveAnimal} className="w-full bg-emerald-600 text-white font-black rounded-xl py-4 uppercase text-xs shadow-lg shadow-emerald-200">Registra Capo</button>
             </div>
 
             {speciesList.map(species => {
               const capi = validAnimals.filter(a => a.species === species);
               if (capi.length === 0) return null;
               return (
-                <div key={species} className="space-y-3">
-                  <h3 className="text-xl md:text-2xl font-black text-emerald-950 uppercase italic px-1 pt-4">{species} <span className="text-sm text-stone-400">({capi.length})</span></h3>
+                <div key={species} className="space-y-4">
+                  <h3 className="text-xl md:text-2xl font-black text-emerald-950 uppercase italic px-2 pt-2 border-b border-stone-200 pb-2">{species} <span className="text-sm text-stone-400 font-bold ml-2 bg-stone-200 px-2 py-1 rounded-lg">{capi.length}</span></h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {capi.map(a => (
-                      <div key={a.id} className="bg-white p-5 rounded-2xl border border-stone-100 shadow-sm relative group flex flex-col">
+                      <div key={a.id} className="bg-white p-5 rounded-[1.5rem] border border-stone-100 shadow-sm relative flex flex-col">
                         {editingId === a.id ? (
                           <div className="space-y-3">
                             <input className="ui-input font-bold" value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} />
-                            <textarea className="ui-input text-xs h-20 resize-none" value={editData.notes} onChange={e => setEditData({...editData, notes: e.target.value})} />
-                            <button onClick={async () => { await updateDoc(doc(db, 'animals', a.id), { name: editData.name, notes: editData.notes }); setEditingId(null); }} className="w-full bg-emerald-600 text-white py-2 rounded-xl text-xs font-black uppercase">Salva Modifiche</button>
+                            <textarea className="ui-input text-xs h-24 resize-none" value={editData.notes} onChange={e => setEditData({...editData, notes: e.target.value})} />
+                            <button onClick={async () => { await updateDoc(doc(db, 'animals', a.id), { name: editData.name, notes: editData.notes }); setEditingId(null); }} className="w-full bg-emerald-600 text-white py-3 rounded-xl text-xs font-black uppercase">Salva</button>
                           </div>
                         ) : (
                           <>
-                            <div className="flex justify-between items-start mb-2">
-                              <h4 className="text-lg font-black text-stone-800">{a.name}</h4>
-                              <div className="flex gap-2">
-                                <button onClick={() => { setEditingId(a.id); setEditData({name: a.name, notes: a.notes}); }} className="text-stone-300 hover:text-emerald-600 p-1"><Edit2 size={16}/></button>
-                                <button onClick={() => { if(window.confirm("Eliminare definitivamente?")) deleteDoc(doc(db, 'animals', a.id)); }} className="text-stone-300 hover:text-red-500 p-1"><Trash2 size={16}/></button>
+                            <div className="flex justify-between items-start mb-3">
+                              <h4 className="text-lg font-black text-stone-800 leading-tight">{a.name}</h4>
+                              <div className="flex gap-1 bg-stone-50 rounded-lg p-1">
+                                <button onClick={() => { setEditingId(a.id); setEditData({name: a.name, notes: a.notes}); }} className="text-stone-400 hover:text-emerald-600 p-1.5 rounded-md hover:bg-white"><Edit2 size={16}/></button>
+                                <button onClick={() => { if(window.confirm("Eliminare definitivamente?")) deleteDoc(doc(db, 'animals', a.id)); }} className="text-stone-400 hover:text-red-500 p-1.5 rounded-md hover:bg-white"><Trash2 size={16}/></button>
                               </div>
                             </div>
-                            <p className="text-[10px] text-stone-400 font-bold uppercase mb-2"><CalendarDays size={12} className="inline mr-1 mb-0.5"/>{a.birthDate || 'N/D'}</p>
-                            {(a.sire || a.dam) && (
-                              <div className="bg-stone-50 p-2 rounded-lg text-[10px] font-bold text-stone-500 mb-2 flex gap-4">
-                                {a.sire && <span>Padre: {validAnimals.find(p=>p.id===a.sire)?.name}</span>}
-                                {a.dam && <span>Madre: {validAnimals.find(p=>p.id===a.dam)?.name}</span>}
-                              </div>
-                            )}
-                            {a.notes && <p className="text-xs text-stone-600 mt-2 p-3 bg-emerald-50/50 rounded-xl border border-emerald-100 italic">{a.notes}</p>}
+                            <div className="space-y-2 mb-3">
+                                <p className="text-[11px] text-stone-500 font-bold uppercase flex items-center gap-1.5 bg-stone-50 inline-flex px-2 py-1 rounded-md"><CalendarDays size={12} className="text-stone-400"/> {a.birthDate || 'Data Ignota'}</p>
+                                {(a.sire || a.dam) && (
+                                <div className="bg-emerald-50/50 p-2 rounded-xl border border-emerald-100 text-[10px] font-black text-emerald-700 uppercase space-y-1">
+                                    {a.sire && <div className="flex gap-2"><span>Sire:</span> <span className="text-emerald-900">{validAnimals.find(p=>p.id===a.sire)?.name}</span></div>}
+                                    {a.dam && <div className="flex gap-2"><span>Dam:</span> <span className="text-emerald-900">{validAnimals.find(p=>p.id===a.dam)?.name}</span></div>}
+                                </div>
+                                )}
+                            </div>
+                            {a.notes && <p className="text-xs text-stone-600 mt-auto pt-3 border-t border-stone-100 italic leading-relaxed">{a.notes}</p>}
                           </>
                         )}
                       </div>
@@ -325,47 +322,54 @@ export default function App() {
 
         {/* --- BILANCIO FINANZIARIO --- */}
         {activeTab === 'finance' && (
-          <div className="space-y-6">
-            <div className="bg-white p-6 rounded-3xl border shadow-sm">
-              <h3 className="text-xs font-black uppercase mb-4 text-emerald-900">Registra Movimento</h3>
-              <div className="space-y-3 mb-4">
-                <input placeholder="Causale (es. Vendita)" className="ui-input" value={newTrans.desc} onChange={e => setNewTrans({...newTrans, desc: e.target.value})} />
+          <div className="space-y-8">
+            <div className="bg-emerald-950 p-10 rounded-[2rem] text-white shadow-lg relative overflow-hidden">
+                <p className="text-emerald-400 text-[10px] font-black uppercase tracking-widest mb-2 opacity-80">Bilancio Netto Totale</p>
+                <h2 className="text-6xl font-black italic tracking-tighter">€ {transactions.reduce((acc, t) => acc + (t.type === 'Entrata' ? t.amount : -t.amount), 0).toFixed(2)}</h2>
+            </div>
+            
+            <div className="bg-white p-6 rounded-[2rem] border border-stone-100 shadow-sm">
+              <h3 className="text-xs font-black uppercase mb-5 text-emerald-900">Registra Movimento</h3>
+              <div className="space-y-4 mb-5">
+                <input placeholder="Causale (es. Vendita Vitello)" className="ui-input" value={newTrans.desc} onChange={e => setNewTrans({...newTrans, desc: e.target.value})} />
                 <div className="grid grid-cols-3 gap-3">
-                  <input placeholder="€" type="number" className="ui-input col-span-1" value={newTrans.amount || ''} onChange={e => setNewTrans({...newTrans, amount: Number(e.target.value) || 0})} />
-                  <select className="ui-input col-span-1 px-2 font-black" value={newTrans.type} onChange={e => setNewTrans({...newTrans, type: e.target.value as any})}><option>Entrata</option><option>Uscita</option></select>
-                  <select className="ui-input col-span-1 px-2" value={newTrans.species} onChange={e => setNewTrans({...newTrans, species: e.target.value as Species})}>{speciesList.map(s=><option key={s}>{s.substring(0,3)}.</option>)}</select>
+                  <input placeholder="€" type="number" className="ui-input font-bold" value={newTrans.amount || ''} onChange={e => setNewTrans({...newTrans, amount: Number(e.target.value) || 0})} />
+                  <select className="ui-input font-black" value={newTrans.type} onChange={e => setNewTrans({...newTrans, type: e.target.value as any})}><option>Entrata</option><option>Uscita</option></select>
+                  <select className="ui-input" value={newTrans.species} onChange={e => setNewTrans({...newTrans, species: e.target.value as Species})}>{speciesList.map(s=><option key={s}>{s}</option>)}</select>
                 </div>
               </div>
-              <button onClick={handleSaveTransaction} className="w-full bg-emerald-600 text-white font-black rounded-xl py-3.5 text-xs uppercase">Aggiungi</button>
+              <button onClick={handleSaveTransaction} className="w-full bg-emerald-600 text-white font-black rounded-xl py-4 text-xs uppercase">Aggiungi a Bilancio</button>
             </div>
             
             {speciesList.map(s => {
                 const specTrans = transactions.filter(t => t.species === s || t.species === s.substring(0,3)+".");
                 const balance = specTrans.reduce((acc, t) => acc + (t.type === 'Entrata' ? t.amount : -t.amount), 0);
-                
                 if(specTrans.length === 0) return null;
 
                 return (
-                    <div key={s} className="bg-white p-5 rounded-2xl border shadow-sm">
-                        <div className="flex justify-between items-center mb-4 border-b border-stone-100 pb-3">
-                          <div className="flex items-center gap-2">
-                            <Activity className="text-stone-400" size={18}/>
-                            <h4 className="text-lg font-black italic uppercase">{s}</h4>
+                    <div key={s} className="bg-white p-6 rounded-[2rem] border border-stone-100 shadow-sm">
+                        <div className="flex justify-between items-center mb-5 border-b border-stone-100 pb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="bg-stone-100 p-2 rounded-lg text-stone-400"><Activity size={18}/></div>
+                            <h4 className="text-xl font-black italic uppercase text-stone-800">{s}</h4>
                           </div>
-                          <span className={`font-black text-xl ${balance >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>€ {balance.toFixed(2)}</span>
+                          <span className={`font-black text-2xl ${balance >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>€ {balance.toFixed(2)}</span>
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                             {specTrans.sort((a,b)=>b.date.localeCompare(a.date)).map(t => (
-                                <div key={t.id} className="flex justify-between items-center py-2 bg-stone-50 px-3 rounded-xl border border-stone-100">
-                                    <div className="flex items-center gap-3">
-                                      <div className={`p-2 rounded-lg ${t.type === 'Entrata' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
-                                        {t.type === 'Entrata' ? <ArrowUpRight size={16}/> : <ArrowDownLeft size={16}/>}
+                                <div key={t.id} className="flex justify-between items-center p-4 bg-[#F9FAFB] rounded-[1rem] border border-stone-100">
+                                    <div className="flex items-center gap-4">
+                                      <div className={`p-2.5 rounded-xl ${t.type === 'Entrata' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+                                        {t.type === 'Entrata' ? <ArrowUpRight size={18} strokeWidth={3}/> : <ArrowDownLeft size={18} strokeWidth={3}/>}
                                       </div>
-                                      <div className="leading-tight"><p className="font-bold text-stone-700 text-sm">{t.desc}</p><p className="text-[9px] font-black text-stone-400">{t.date}</p></div>
+                                      <div>
+                                        <p className="font-bold text-stone-800 text-sm leading-tight">{t.desc}</p>
+                                        <p className="text-[10px] font-black text-stone-400 mt-1">{t.date}</p>
+                                      </div>
                                     </div>
-                                    <div className="flex items-center gap-3">
-                                      <span className={`font-black text-sm ${t.type === 'Entrata' ? 'text-emerald-600' : 'text-red-500'}`}>€{t.amount.toFixed(2)}</span>
-                                      <button onClick={() => { if(window.confirm("Cancellare questa transazione?")) deleteDoc(doc(db, 'transactions', t.id)); }} className="text-stone-300 hover:text-red-500 bg-white p-1.5 rounded-lg shadow-sm border border-stone-100"><Trash2 size={16}/></button>
+                                    <div className="flex items-center gap-4">
+                                      <span className={`font-black text-lg ${t.type === 'Entrata' ? 'text-emerald-600' : 'text-red-500'}`}>€{t.amount.toFixed(2)}</span>
+                                      <button onClick={() => { if(window.confirm("Cancellare questa transazione?")) deleteDoc(doc(db, 'transactions', t.id)); }} className="text-stone-400 hover:text-red-500 bg-white p-2 rounded-lg border border-stone-200 shadow-sm"><Trash2 size={16}/></button>
                                     </div>
                                 </div>
                             ))}
@@ -378,70 +382,74 @@ export default function App() {
 
         {/* --- REGISTRO PARTI --- */}
         {activeTab === 'births' && (
-          <div className="bg-white p-6 rounded-3xl border shadow-sm">
-            <h3 className="text-xs font-black uppercase text-emerald-900 mb-5">Nuovo Parto</h3>
-            <div className="space-y-3 mb-5">
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-stone-400 uppercase ml-1">Specie del Nasciuturo</label>
+          <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-stone-100 shadow-sm">
+            <h3 className="text-xs font-black uppercase text-emerald-900 mb-6 flex items-center gap-2"><Baby size={18}/> Registra Parto</h3>
+            <div className="space-y-4 mb-6">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-stone-400 uppercase ml-2">Specie</label>
                 <select className="ui-input w-full" value={newBirth.species} onChange={e => setNewBirth({...newBirth, species: e.target.value as Species})}>{speciesList.map(s => <option key={s}>{s}</option>)}</select>
               </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-stone-400 uppercase ml-1">Codice Madre</label>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-stone-400 uppercase ml-2">Codice / Nome Madre</label>
                 <input placeholder="Madre..." className="ui-input w-full" value={newBirth.idCode} onChange={e => setNewBirth({...newBirth, idCode: e.target.value})} />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-stone-400 uppercase ml-1">Numero Nati</label>
-                  <input type="number" placeholder="Nati" className="ui-input w-full" value={newBirth.count} onChange={e => setNewBirth({...newBirth, count: Number(e.target.value) || 1})} />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-stone-400 uppercase ml-2">Nati Vivi</label>
+                  <input type="number" placeholder="Es. 3" className="ui-input w-full font-bold" value={newBirth.count} onChange={e => setNewBirth({...newBirth, count: Number(e.target.value) || 1})} />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-stone-400 uppercase ml-1">Data Nascita</label>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-stone-400 uppercase ml-2">Data Parto</label>
                   <input type="date" className="ui-input w-full" value={newBirth.birthDate} onChange={e => setNewBirth({...newBirth, birthDate: e.target.value})} />
                 </div>
               </div>
             </div>
-            <button onClick={handleSaveBirth} className="w-full bg-emerald-600 text-white font-black py-3.5 rounded-xl text-xs uppercase">Registra Nati</button>
+            <button onClick={handleSaveBirth} className="w-full bg-emerald-600 text-white font-black py-4 rounded-xl text-xs uppercase shadow-md">Salva Parto e Crea Capi</button>
           </div>
         )}
 
-        {/* --- DINASTIA --- */}
+        {/* --- ALBERO GENEALOGICO --- */}
         {activeTab === 'dinastia' && (
           <div className="space-y-6">
             {speciesList.map(species => {
               const founders = validAnimals.filter(a => a.species === species && !a.sire && !a.dam);
               if (founders.length === 0) return null;
               return (
-                <div key={species} className="bg-white p-5 rounded-3xl border shadow-sm">
-                  <h3 className="text-xl font-black text-emerald-950 mb-4 border-b pb-2 uppercase italic">{species}</h3>
-                  {founders.map(founder => <div key={founder.id} className="mb-4"><DynastyBranch animal={founder} allAnimals={validAnimals} level={0} /></div>)}
+                <div key={species} className="bg-white p-6 rounded-[2rem] border border-stone-100 shadow-sm">
+                  <h3 className="text-2xl font-black text-emerald-950 mb-6 border-b border-stone-100 pb-3 uppercase italic">{species}</h3>
+                  <div className="relative">
+                      {founders.map(founder => <div key={founder.id} className="mb-4 last:mb-0"><DynastyBranch animal={founder} allAnimals={validAnimals} level={0} /></div>)}
+                  </div>
                 </div>
               );
             })}
           </div>
         )}
 
-        {/* --- PRODOTTI E MAGAZZINO --- */}
+        {/* --- MAGAZZINO --- */}
         {activeTab === 'products' && (
-          <div className="space-y-6">
-            <div className="bg-white p-6 rounded-3xl border shadow-sm">
-              <div className="space-y-3 mb-4">
-                <input placeholder="Nome prodotto (es. Mangime)" className="ui-input" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
-                <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-8">
+            <div className="bg-white p-6 rounded-[2rem] border border-stone-100 shadow-sm">
+              <h3 className="text-xs font-black uppercase tracking-widest text-emerald-900 mb-6 flex items-center gap-2"><Package size={18}/> Aggiungi Scorte</h3>
+              <div className="space-y-4 mb-6">
+                <input placeholder="Nome prodotto (es. Fieno)" className="ui-input font-bold" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
+                <div className="grid grid-cols-2 gap-4">
                   <input placeholder="Q.tà" type="number" className="ui-input" value={newProduct.quantity || ''} onChange={e => setNewProduct({...newProduct, quantity: Number(e.target.value) || 0})} />
                   <select className="ui-input" value={newProduct.unit} onChange={e => setNewProduct({...newProduct, unit: e.target.value})}><option>kg</option><option>litri</option><option>unità</option></select>
                 </div>
               </div>
-              <button onClick={handleAddProduct} className="w-full bg-emerald-600 text-white font-black rounded-xl py-3.5 text-xs uppercase">Carica Magazzino</button>
+              <button onClick={handleAddProduct} className="w-full bg-emerald-600 text-white font-black rounded-xl py-4 text-xs uppercase shadow-md">Carica in Magazzino</button>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {products.map(p => (
-                <div key={p.id} className="bg-white p-4 rounded-2xl border text-center shadow-sm relative">
-                  <div className="text-emerald-500 mb-2 flex justify-center"><Package size={24}/></div>
-                  <h4 className="font-bold text-stone-800 text-sm mb-1">{p.name}</h4>
-                  <div className="text-xl font-black text-emerald-600 mb-3">{p.quantity} <span className="text-[10px]">{p.unit}</span></div>
-                  <div className="flex justify-center gap-4 border-t pt-3">
-                    <button onClick={() => reduceProduct(p.id, 1)} className="text-stone-400 hover:text-red-500 bg-stone-50 p-2 rounded-lg"><MinusCircle size={18}/></button>
-                    <button onClick={() => deleteDoc(doc(db, 'products', p.id))} className="text-stone-400 hover:text-red-500 bg-stone-50 p-2 rounded-lg"><Trash2 size={18}/></button>
+                <div key={p.id} className="bg-white p-5 rounded-[1.5rem] border border-stone-100 text-center shadow-sm relative flex flex-col items-center">
+                  <div className="bg-emerald-50 text-emerald-600 p-4 rounded-[1rem] mb-4"><Package size={28} strokeWidth={2}/></div>
+                  <h4 className="font-black text-stone-800 text-[15px] mb-1 uppercase tracking-tight w-full truncate">{p.name}</h4>
+                  <div className="text-2xl font-black text-emerald-600 mb-4">{p.quantity} <span className="text-[10px] uppercase">{p.unit}</span></div>
+                  <div className="flex w-full gap-2 mt-auto">
+                    <button onClick={() => reduceProduct(p.id, 1)} className="flex-1 flex justify-center text-stone-400 hover:text-red-500 hover:bg-red-50 bg-stone-50 py-2 rounded-xl transition-colors"><MinusCircle size={20}/></button>
+                    <button onClick={() => deleteDoc(doc(db, 'products', p.id))} className="flex-1 flex justify-center text-stone-400 hover:text-red-500 hover:bg-red-50 bg-stone-50 py-2 rounded-xl transition-colors"><Trash2 size={20}/></button>
                   </div>
                 </div>
               ))}
@@ -451,37 +459,37 @@ export default function App() {
 
         {/* --- AGENDA LAVORI --- */}
         {activeTab === 'tasks' && (
-          <div className="space-y-6">
-            <div className="bg-white p-5 rounded-3xl border shadow-sm">
-              <h3 className="text-lg font-black mb-4 italic flex items-center gap-2"><ListChecks className="text-emerald-600" size={20} /> Da Fare</h3>
-              <div className="flex gap-2 mb-5">
-                <input className="ui-input flex-1 py-3" value={newTask} onChange={e => setNewTask(e.target.value)} placeholder="Scrivi cosa fare..." />
-                <button onClick={handleAddTask} className="bg-emerald-600 text-white px-4 rounded-xl font-black text-[10px] uppercase">Add</button>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-stone-100 shadow-sm">
+              <h3 className="text-lg font-black mb-6 italic flex items-center gap-2 text-emerald-950"><ListChecks className="text-emerald-600" size={24} /> Da Fare</h3>
+              <div className="flex gap-3 mb-6 bg-stone-50 p-2 rounded-[1.2rem] border border-stone-200">
+                <input className="bg-transparent px-3 py-2 w-full outline-none font-medium text-sm" value={newTask} onChange={e => setNewTask(e.target.value)} placeholder="Es. Vaccinare vitelli..." />
+                <button onClick={handleAddTask} className="bg-emerald-600 text-white px-5 rounded-xl font-black text-[10px] uppercase shadow-sm">Aggiungi</button>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {tasks.filter(t => !t.done).map(t => (
-                  <div key={t.id} className="flex items-center justify-between p-3 bg-stone-50 rounded-xl border border-stone-100">
-                    <div className="flex items-center gap-3">
-                      <button onClick={async () => await updateDoc(doc(db, 'tasks', t.id), { done: true, dateCompleted: new Date().toLocaleDateString('it-IT') })} className="text-stone-300 hover:text-emerald-500"><CheckCircle2 size={24}/></button>
-                      <span className="font-bold text-sm text-stone-700">{t.text}</span>
+                  <div key={t.id} className="flex items-center justify-between p-4 bg-white rounded-2xl border border-stone-200 shadow-sm">
+                    <div className="flex items-center gap-4">
+                      <button onClick={async () => await updateDoc(doc(db, 'tasks', t.id), { done: true, dateCompleted: new Date().toLocaleDateString('it-IT') })} className="text-stone-300 hover:text-emerald-500 transition-colors"><CheckCircle2 size={28}/></button>
+                      <span className="font-bold text-[15px] text-stone-700 leading-tight">{t.text}</span>
                     </div>
-                    <button onClick={() => deleteDoc(doc(db, 'tasks', t.id))} className="text-stone-300 hover:text-red-500"><Trash2 size={16}/></button>
+                    <button onClick={() => deleteDoc(doc(db, 'tasks', t.id))} className="text-stone-300 hover:text-red-500 bg-stone-50 p-2 rounded-xl"><Trash2 size={16}/></button>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="bg-white p-5 rounded-3xl border shadow-sm">
-              <h3 className="text-lg font-black italic flex items-center gap-2 mb-4"><History className="text-stone-400" size={20} /> Storico</h3>
+            <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-stone-100 shadow-sm">
+              <h3 className="text-lg font-black italic flex items-center gap-2 mb-6 text-stone-800"><History className="text-stone-400" size={24} /> Storico Lavori</h3>
               <div className="space-y-6">
                 {Array.from(new Set(tasks.filter(t => t.done).map(t => t.dateCompleted))).sort().reverse().map(date => (
                   <div key={date}>
-                    <p className="text-[10px] font-black text-emerald-600 uppercase mb-2">{date}</p>
+                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-3 border-b border-emerald-100 inline-block pb-1">{date}</p>
                     <div className="space-y-2">
                       {tasks.filter(t => t.done && t.dateCompleted === date).map(i => (
-                        <div key={i.id} className="flex justify-between items-center p-2 bg-stone-50 rounded-lg">
-                          <p className="text-xs font-bold text-stone-400 line-through">• {i.text}</p>
-                          <button onClick={() => deleteDoc(doc(db, 'tasks', i.id))} className="text-red-200 hover:text-red-500"><Trash2 size={14}/></button>
+                        <div key={i.id} className="flex justify-between items-center py-2 px-3 bg-stone-50 rounded-xl border border-transparent hover:border-stone-200 transition-colors">
+                          <p className="text-[13px] font-bold text-stone-400 line-through truncate w-4/5">{i.text}</p>
+                          <button onClick={() => deleteDoc(doc(db, 'tasks', i.id))} className="text-stone-300 hover:text-red-500 p-1"><Trash2 size={14}/></button>
                         </div>
                       ))}
                     </div>
@@ -493,8 +501,8 @@ export default function App() {
         )}
       </main>
 
-      {/* BOTTOM NAVIGATION BAR */}
-      <nav className="md:hidden fixed bottom-0 w-full bg-white/95 backdrop-blur-xl border-t border-stone-200 flex justify-around px-1 pt-2 pb-safe z-50">
+      {/* BOTTOM NAVIGATION MOBILE BLINDATA */}
+      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-xl border-t border-stone-200 flex justify-around px-2 pb-safe pt-2 z-50">
         {[
           { id: 'inventory', icon: PawPrint, label: 'Capi' },
           { id: 'finance', icon: Wallet, label: 'Bilancio' },
@@ -503,9 +511,9 @@ export default function App() {
           { id: 'tasks', icon: ListChecks, label: 'Agenda' },
           { id: 'dinastia', icon: Network, label: 'Albero' }
         ].map(item => (
-          <button key={item.id} onClick={() => setActiveTab(item.id)} className={`flex flex-col items-center pt-2 pb-1 w-full transition-colors ${activeTab === item.id ? 'text-emerald-600' : 'text-stone-400'}`}>
+          <button key={item.id} onClick={() => setActiveTab(item.id)} className={`flex flex-col items-center py-2 w-full transition-colors ${activeTab === item.id ? 'text-emerald-600' : 'text-stone-400'}`}>
             <item.icon size={22} strokeWidth={activeTab === item.id ? 2.5 : 2} />
-            <span className="text-[8px] font-black mt-1 uppercase">{item.label}</span>
+            <span className="text-[8px] font-black mt-1.5 uppercase">{item.label}</span>
           </button>
         ))}
       </nav>
