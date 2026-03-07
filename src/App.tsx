@@ -59,6 +59,9 @@ const DynastyBranch = ({ animal, allAnimals, level = 0 }: { animal: Animal, allA
 export default function App() {
   // STATO ASSISTENTE
   const [showAssistant, setShowAssistant] = useState(false);
+
+  const [model, setModel] = useState(null);
+  const [modelLoading, setModelLoading] = useState(false);
   
   const [user, setUser] = useState<User | null>(null);
   const [userRole, setUserRole] = useState<'farmer' | 'consumer' | null>(null);
