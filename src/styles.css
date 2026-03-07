@@ -2,70 +2,51 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 1. VARIABILI PREMIUM */
 :root {
-  --emerald-glow: rgba(16, 185, 129, 0.15);
-  --soft-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
+  --soft-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
 }
 
-/* 2. RESET & PERFORMANCE */
 body {
   margin: 0;
   background-color: #F8F9FA;
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
-  scroll-behavior: smooth;
+  /* Evita il rimbalzo strano su iOS */
+  overscroll-behavior-y: none; 
 }
 
-/* 3. TITOLI "ENTERPRISE BLACK" */
 h1, h2, h3, h4, .font-black {
   font-family: 'Plus Jakarta Sans', sans-serif !important;
-  letter-spacing: -0.04em;
-  font-style: italic;
+  letter-spacing: -0.03em;
 }
 
-/* 4. SCROLLBAR MINIMALISTA (Stile Apple) */
+/* Nascondi scrollbar brutte su mobile */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-}
-
-::-webkit-scrollbar-track {
+  width: 0px;
+  height: 0px;
   background: transparent;
 }
 
-::-webkit-scrollbar-thumb {
-  background: #10B981;
-  border-radius: 20px;
-}
-
-/* 5. ANIMAZIONE DI ENTRATA DELLE TAB */
 main {
-  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: fadeSlideUp 0.3s ease-out forwards;
 }
 
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(15px); }
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* 6. EFFETTO NEUMORFICO SULLE CARD */
 .bg-white {
   box-shadow: var(--soft-shadow);
-  transition: all 0.3s ease;
-  border: 1px solid rgba(255, 255, 255, 0.8);
-}
-
-.bg-white:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 25px 30px -5px rgba(0, 0, 0, 0.08);
-}
-
-/* 7. FEEDBACK TATTILE SUI BOTTONI */
-button {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(230, 230, 230, 0.8);
 }
 
 button:active {
   transform: scale(0.95);
+  transition: transform 0.1s;
+}
+
+/* Aggiunge spazio sotto per non far coprire l'ultimo elemento dalla barra di navigazione */
+.pb-safe {
+  padding-bottom: calc(80px + env(safe-area-inset-bottom));
 }
