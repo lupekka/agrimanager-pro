@@ -60,7 +60,7 @@ interface Animal {
 
 interface BirthRecord {
   id: string;
-  animalName: string;   // forse da rivedere naming
+  animalName: string;
   species: Species;
   date: string;
   offspringCount: number;
@@ -381,10 +381,6 @@ export default function App() {
     );
   }
 
-  // ────────────────────────────────────────────────
-  // RENDER PRINCIPALE
-  // ────────────────────────────────────────────────
-
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-[#F8F9FA] text-stone-900 font-sans">
       <style>{`
@@ -456,7 +452,7 @@ export default function App() {
 
       {/* MAIN CONTENT */}
       <main className="flex-1 p-6 md:p-14 h-screen overflow-y-auto scroll-smooth">
-        {/* DASHBOARD CARDS */}
+        {/* KPI DASHBOARD */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
           <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-stone-100 text-center">
             <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">
@@ -522,48 +518,94 @@ export default function App() {
           </div>
         </div>
 
-        {/* =================== TABS =================== */}
+        {/* =================== TAB INVENTORY =================== */}
 
         {activeTab === 'inventory' && (
           <div className="space-y-12">
-            {/* FORM NUOVO CAPO */}
             <div className="bg-white p-10 rounded-[2.5rem] border border-stone-100 shadow-xl">
               <h3 className="text-xs font-black mb-8 text-emerald-900 uppercase tracking-widest flex items-center gap-2">
                 <PlusCircle size={20} className="text-emerald-500" /> Nuova Anagrafica
               </h3>
 
+              {/* RIGA 1: NOME, SPECIE, DATA */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <input
-                  placeholder="Codice Capo"
-                  className="ui-input w-full"
-                  value={newAnimal.name}
-                  onChange={e => setNewAnimal({ ...newAnimal, name: e.target.value })}
-                />
-                <select
-                  className="ui-input w-full"
-                  value={newAnimal.species}
-                  onChange={e =>
-                    setNewAnimal({ ...newAnimal, species: e.target.value as Species })
-                  }
-                >
-                  {speciesList.map(s => (
-                    <option key={s}>{s}</option>
-                  ))}
-                </select>
-                <input
-                  type="date"
-                  className="ui-input w-full"
-                  value={newAnimal.birthDate}
-                  onChange={e => setNewAnimal({ ...newAnimal, birthDate: e.target.value })}
-                />
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-stone-400 uppercase ml-1">Identificativo</label>
+                  <input
+                    placeholder="Codice o Nome"
+                    className="ui-input w-full"
+                    value={newAnimal.name}
+                    onChange={e => setNewAnimal({ ...newAnimal, name: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-stone-400 uppercase ml-1">Specie</label>
+                  <select
+                    className="ui-input w-full"
+                    value={newAnimal.species}
+                    onChange={e =>
+                      setNewAnimal({ ...newAnimal, species: e.target.value as Species })
+                    }
+                  >
+                    {speciesList.map(s => (
+                      <option key={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-stone-400 uppercase ml-1">Data Nascita</label>
+                  <input
+                    type="date"
+                    className="ui-input w-full"
+                    value={newAnimal.birthDate}
+                    onChange={e => setNewAnimal({ ...newAnimal, birthDate: e.target.value })}
+                  />
+                </div>
               </div>
 
-              <textarea
-                placeholder="Note sanitarie..."
-                className="ui-input w-full h-24 resize-none mb-8"
-                value={newAnimal.notes}
-                onChange={e => setNewAnimal({ ...newAnimal, notes: e.target.value })}
-              />
+              {/* RIGA 2: GENITORI (SIRE & DAM) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-stone-400 uppercase ml-1">Padre (Sire)</label>
+                  <select
+                    className="ui-input w-full text-xs"
+                    value={newAnimal.sire}
+                    onChange={e => setNewAnimal({ ...newAnimal, sire: e.target.value })}
+                  >
+                    <option value="">Ignoto</option>
+                    {validAnimals
+                      .filter(a => a.species === newAnimal.species)
+                      .map(parent => (
+                        <option key={parent.id} value={parent.id}>{parent.name}</option>
+                      ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-stone-400 uppercase ml-1">Madre (Dam)</label>
+                  <select
+                    className="ui-input w-full text-xs"
+                    value={newAnimal.dam}
+                    onChange={e => setNewAnimal({ ...newAnimal, dam: e.target.value })}
+                  >
+                    <option value="">Ignota</option>
+                    {validAnimals
+                      .filter(a => a.species === newAnimal.species)
+                      .map(parent => (
+                        <option key={parent.id} value={parent.id}>{parent.name}</option>
+                      ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-2 mb-8">
+                <label className="text-[10px] font-black text-stone-400 uppercase ml-1">Note e Trattamenti</label>
+                <textarea
+                  placeholder="Descrizione libera..."
+                  className="ui-input w-full h-24 resize-none"
+                  value={newAnimal.notes}
+                  onChange={e => setNewAnimal({ ...newAnimal, notes: e.target.value })}
+                />
+              </div>
 
               <button
                 onClick={async () => {
@@ -640,6 +682,13 @@ export default function App() {
                             <p className="text-[10px] text-stone-400 font-black uppercase mb-4 flex items-center gap-2">
                               <CalendarDays size={14} /> Nato: {a.birthDate || 'N/D'}
                             </p>
+                            {/* Visualizzazione nomi genitori se presenti */}
+                            {(a.sire || a.dam) && (
+                              <div className="text-[9px] font-black text-emerald-600 uppercase mb-4 flex flex-col gap-1">
+                                {a.sire && <span>Padre: {validAnimals.find(p=>p.id===a.sire)?.name || 'N/D'}</span>}
+                                {a.dam && <span>Madre: {validAnimals.find(p=>p.id===a.dam)?.name || 'N/D'}</span>}
+                              </div>
+                            )}
                             {a.notes && (
                               <div className="mt-4 p-4 bg-stone-50 rounded-2xl text-xs text-stone-500 italic border-l-4 border-emerald-500 leading-relaxed">
                                 {a.notes}
@@ -675,6 +724,8 @@ export default function App() {
             })}
           </div>
         )}
+
+        {/* =================== RESTO TABS =================== */}
 
         {activeTab === 'finance' && (
           <div className="space-y-12">
@@ -743,7 +794,6 @@ export default function App() {
               );
             })}
 
-            {/* FORM NUOVA TRANSAZIONE */}
             <div className="bg-white p-10 rounded-[2.5rem] border shadow-xl">
               <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 <input
@@ -755,8 +805,6 @@ export default function App() {
                 <input
                   placeholder="€"
                   type="number"
-                  min="0"
-                  step="0.01"
                   className="ui-input"
                   value={newTrans.amount || ''}
                   onChange={e =>
@@ -789,18 +837,14 @@ export default function App() {
               <button
                 onClick={async () => {
                   if (!newTrans.desc.trim() || newTrans.amount <= 0) return;
-                  try {
-                    await addDoc(collection(db, 'transactions'), {
-                      ...newTrans,
-                      date: new Date().toLocaleDateString('it-IT'),
-                      ownerId: user.uid
-                    });
-                    setNewTrans({ desc: '', amount: 0, type: 'Entrata', species: 'Maiali' });
-                  } catch (err) {
-                    alert("Errore salvataggio movimento");
-                  }
+                  await addDoc(collection(db, 'transactions'), {
+                    ...newTrans,
+                    date: new Date().toLocaleDateString('it-IT'),
+                    ownerId: user.uid
+                  });
+                  setNewTrans({ desc: '', amount: 0, type: 'Entrata', species: 'Maiali' });
                 }}
-                className="mt-6 bg-emerald-600 text-white font-black rounded-2xl py-4 px-12 shadow-lg hover:bg-emerald-700 uppercase tracking-widest text-[10px]"
+                className="mt-6 bg-emerald-600 text-white font-black rounded-2xl py-4 px-12 shadow-lg hover:bg-emerald-700 transition-all uppercase tracking-widest text-[10px]"
               >
                 Aggiungi
               </button>
@@ -816,35 +860,24 @@ export default function App() {
 
             <div className="flex flex-col md:flex-row gap-6 items-end">
               <div className="flex-1 w-full">
-                <label className="text-[10px] font-black text-stone-400 mb-2 block uppercase">
-                  Madre
-                </label>
+                <label className="text-[10px] font-black text-stone-400 mb-2 block uppercase">Madre</label>
                 <input
                   className="ui-input w-full"
                   value={newBirth.idCode}
                   onChange={e => setNewBirth({ ...newBirth, idCode: e.target.value })}
                 />
               </div>
-
               <div className="w-full md:w-24">
-                <label className="text-[10px] font-black text-stone-400 mb-2 block uppercase">
-                  Nati
-                </label>
+                <label className="text-[10px] font-black text-stone-400 mb-2 block uppercase">Nati</label>
                 <input
                   type="number"
-                  min="1"
                   className="ui-input w-full text-center"
                   value={newBirth.count}
-                  onChange={e =>
-                    setNewBirth({ ...newBirth, count: Number(e.target.value) || 1 })
-                  }
+                  onChange={e => setNewBirth({ ...newBirth, count: Number(e.target.value) || 1 })}
                 />
               </div>
-
               <div className="w-full md:w-48">
-                <label className="text-[10px] font-black text-stone-400 mb-2 block uppercase">
-                  Data
-                </label>
+                <label className="text-[10px] font-black text-stone-400 mb-2 block uppercase">Data</label>
                 <input
                   type="date"
                   className="ui-input w-full"
@@ -852,7 +885,6 @@ export default function App() {
                   onChange={e => setNewBirth({ ...newBirth, birthDate: e.target.value })}
                 />
               </div>
-
               <button
                 onClick={handleSaveBirth}
                 className="bg-emerald-600 text-white px-10 h-14 rounded-2xl font-black shadow-lg"
@@ -872,10 +904,7 @@ export default function App() {
               if (founders.length === 0) return null;
 
               return (
-                <div
-                  key={species}
-                  className="bg-white p-10 rounded-[3rem] border shadow-xl relative overflow-hidden"
-                >
+                <div key={species} className="bg-white p-10 rounded-[3rem] border shadow-xl relative overflow-hidden">
                   <h3 className="text-4xl font-black text-emerald-950 mb-10 border-b pb-6 uppercase italic tracking-tighter">
                     {species}
                   </h3>
@@ -894,9 +923,7 @@ export default function App() {
 
         {activeTab === 'products' && (
           <div className="space-y-10">
-            {/* FORM NUOVO PRODOTTO */}
             <div className="bg-white p-10 rounded-[2.5rem] border shadow-xl">
-              <h3 className="text-xl font-black mb-8 italic">Magazzino</h3>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <input
                   placeholder="Prodotto"
@@ -907,12 +934,9 @@ export default function App() {
                 <input
                   placeholder="Q.tà"
                   type="number"
-                  min="0"
                   className="ui-input"
                   value={newProduct.quantity || ''}
-                  onChange={e =>
-                    setNewProduct({ ...newProduct, quantity: Number(e.target.value) || 0 })
-                  }
+                  onChange={e => setNewProduct({ ...newProduct, quantity: Number(e.target.value) || 0 })}
                 />
                 <select
                   className="ui-input"
@@ -932,36 +956,21 @@ export default function App() {
               </div>
             </div>
 
-            {/* LISTA PRODOTTI */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
               {products.map(p => (
-                <div
-                  key={p.id}
-                  className="bg-white p-8 rounded-[2rem] border border-stone-100 text-center shadow-sm relative group hover:border-emerald-200 transition-all"
-                >
+                <div key={p.id} className="bg-white p-8 rounded-[2rem] border border-stone-100 text-center shadow-sm relative group hover:border-emerald-200 transition-all">
                   <div className="bg-emerald-50 w-16 h-16 rounded-[1.5rem] flex items-center justify-center text-emerald-600 mx-auto mb-6">
                     <Package size={32} />
                   </div>
-                  <h4 className="font-black text-stone-800 uppercase tracking-tight text-xl mb-2">
-                    {p.name}
-                  </h4>
+                  <h4 className="font-black text-stone-800 uppercase tracking-tight text-xl mb-2">{p.name}</h4>
                   <div className="inline-block bg-emerald-600 text-white px-6 py-2 rounded-full text-2xl font-black mb-6">
                     {p.quantity} <span className="text-xs uppercase font-bold">{p.unit}</span>
                   </div>
                   <div className="flex gap-2 justify-center pt-6 border-t border-stone-50">
-                    <button
-                      onClick={() => reduceProduct(p.id, 1)}
-                      className="p-3 bg-stone-50 text-stone-400 rounded-xl hover:bg-red-50 hover:text-red-500 transition-all"
-                    >
+                    <button onClick={() => reduceProduct(p.id, 1)} className="p-3 bg-stone-50 text-stone-400 rounded-xl hover:bg-red-50 hover:text-red-500 transition-all">
                       <MinusCircle size={24} />
                     </button>
-                    <button
-                      onClick={() => {
-                        if (window.confirm("Eliminare prodotto?"))
-                          deleteDoc(doc(db, 'products', p.id));
-                      }}
-                      className="p-3 bg-stone-50 text-stone-400 rounded-xl hover:bg-red-50 hover:text-red-500 transition-all"
-                    >
+                    <button onClick={() => deleteDoc(doc(db, 'products', p.id))} className="p-3 bg-stone-50 text-stone-400 rounded-xl hover:bg-red-50 hover:text-red-500 transition-all">
                       <Trash2 size={24} />
                     </button>
                   </div>
@@ -971,7 +980,83 @@ export default function App() {
           </div>
         )}
 
-        {/* Tab "tasks" non implementata nel codice originale → lasciato vuoto */}
+        {activeTab === 'tasks' && (
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-12 pb-24">
+            <div className="bg-white p-10 rounded-[3rem] border shadow-xl">
+              <h3 className="text-xl font-black mb-8 italic flex items-center gap-3">
+                <ListChecks className="text-emerald-600" size={24} /> Da Fare
+              </h3>
+              <div className="flex gap-4 mb-10">
+                <input
+                  className="ui-input flex-1"
+                  value={newTask}
+                  onChange={e => setNewTask(e.target.value)}
+                  placeholder="Aggiungi lavoro..."
+                />
+                <button
+                  onClick={async () => {
+                    if (!newTask.trim()) return;
+                    await addDoc(collection(db, 'tasks'), { text: newTask, done: false, ownerId: user.uid });
+                    setNewTask('');
+                  }}
+                  className="bg-emerald-600 text-white px-8 rounded-2xl font-black uppercase text-[10px]"
+                >
+                  Aggiungi
+                </button>
+              </div>
+              <div className="space-y-3">
+                {tasks.filter(t => !t.done).map(t => (
+                  <div key={t.id} className="flex items-center justify-between p-6 bg-stone-50 rounded-[1.5rem] border group">
+                    <div className="flex items-center gap-6">
+                      <button
+                        onClick={async () => await updateDoc(doc(db, 'tasks', t.id), { done: true, dateCompleted: new Date().toLocaleDateString('it-IT') })}
+                        className="text-stone-300 hover:text-emerald-500 transition-colors"
+                      >
+                        <CheckCircle2 size={32} />
+                      </button>
+                      <span className="font-black text-stone-700 tracking-tight">{t.text}</span>
+                    </div>
+                    <button onClick={() => deleteDoc(doc(db, 'tasks', t.id))} className="text-red-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
+                      <Trash2 size={20} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white p-10 rounded-[3rem] border shadow-xl flex flex-col">
+              <h3 className="text-xl font-black italic flex items-center gap-3 mb-8">
+                <History size={24} className="text-stone-400" /> Storico
+              </h3>
+              <div className="relative mb-6">
+                <Search className="absolute left-4 top-3 text-stone-300" size={18} />
+                <input
+                  className="ui-input pl-12 py-3 text-xs w-full"
+                  placeholder="Cerca lavoro..."
+                  value={searchTask}
+                  onChange={e => setSearchTask(e.target.value)}
+                />
+              </div>
+              <div className="space-y-10 overflow-y-auto max-h-[600px] pr-2 custom-scrollbar">
+                {Array.from(new Set(tasks.filter(t => t.done).map(t => t.dateCompleted))).sort().reverse().map(date => (
+                  <div key={date}>
+                    <p className="text-[11px] font-black text-emerald-600 uppercase mb-4 bg-emerald-50 inline-block px-4 py-1.5 rounded-full tracking-[0.2em]">{date}</p>
+                    <div className="space-y-3">
+                      {tasks.filter(t => t.done && t.dateCompleted === date && t.text.toLowerCase().includes(searchTask.toLowerCase())).map(i => (
+                        <div key={i.id} className="flex justify-between items-center p-2 group">
+                          <p className="text-sm font-bold text-stone-400 line-through">• {i.text}</p>
+                          <button onClick={() => deleteDoc(doc(db, 'tasks', i.id))} className="text-red-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
