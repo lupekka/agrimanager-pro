@@ -16,7 +16,9 @@
     "lucide-react": "0.576.0",
     "firebase": "12.10.0",
     "jspdf": "^2.5.1",
-    "jspdf-autotable": "^3.8.2"
+    "jspdf-autotable": "^3.8.2",
+    "@tensorflow/tfjs": "^4.10.0",
+  "@tensorflow-models/coco-ssd": "^2.2.2"
   },
   "devDependencies": {
     "@types/react": "18.2.38",
