@@ -4,7 +4,7 @@ import {
   PlusCircle, LogOut, Lock, UserPlus, Menu, X, DollarSign, Search, 
   History, Package, LayoutDashboard, Edit2, ChevronRight, CheckCircle2, 
   MinusCircle, FileText, Save, PieChart, Activity, AlertTriangle, 
-  ListChecks, Wallet 
+  ListChecks, Wallet, ArrowUpRight, ArrowDownLeft
 } from 'lucide-react';
 
 // --- CONFIGURAZIONE FIREBASE ---
@@ -29,7 +29,6 @@ const auth = getAuth(app);
 type Species = 'Maiali' | 'Cavalli' | 'Mucche' | 'Galline' | 'Oche';
 interface Animal { id: string; name: string; species: Species; notes: string; sire?: string; dam?: string; birthDate?: string; ownerId: string; }
 interface BirthRecord { id: string; animalName: string; species: Species; date: string; offspringCount: number; birthDate: string; ownerId: string; }
-interface Production { id: string; item: string; quantity: number; date: string; species: Species; ownerId: string; }
 interface Transaction { id: string; type: 'Entrata' | 'Uscita'; amount: number; desc: string; species: Species; date: string; ownerId: string; }
 interface Task { id: string; text: string; done: boolean; dateCompleted?: string; ownerId: string; }
 interface Product { id: string; name: string; quantity: number; unit: string; ownerId: string; }
@@ -58,7 +57,6 @@ export default function App() {
   
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [births, setBirths] = useState<BirthRecord[]>([]);
-  const [production, setProduction] = useState<Production[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -67,7 +65,6 @@ export default function App() {
   const [password, setPassword] = useState('');
   const [newAnimal, setNewAnimal] = useState({ name: '', species: 'Maiali' as Species, birthDate: '', sire: '', dam: '', notes: '' });
   const [newBirth, setNewBirth] = useState({ idCode: '', species: 'Maiali' as Species, count: 1, birthDate: '' });
-  const [newProd, setNewProd] = useState({ item: '', quantity: 1, species: 'Maiali' as Species });
   const [newTrans, setNewTrans] = useState({ desc: '', amount: 0, type: 'Entrata' as 'Entrata' | 'Uscita', species: 'Maiali' as Species });
   const [newProduct, setNewProduct] = useState({ name: '', quantity: 0, unit: 'kg' });
   const [newTask, setNewTask] = useState('');
@@ -88,16 +85,15 @@ export default function App() {
     const qF = (c: string) => query(collection(db, c), where("ownerId", "==", user.uid));
     const unsubA = onSnapshot(qF('animals'), s => setAnimals(s.docs.map(d => ({id: d.id, ...d.data()})) as Animal[]));
     const unsubB = onSnapshot(qF('births'), s => setBirths(s.docs.map(d => ({id: d.id, ...d.data()})) as BirthRecord[]));
-    const unsubP = onSnapshot(qF('production'), s => setProduction(s.docs.map(d => ({id: d.id, ...d.data()})) as Production[]));
     const unsubT = onSnapshot(qF('transactions'), s => setTransactions(s.docs.map(d => ({id: d.id, ...d.data()})) as Transaction[]));
     const unsubTk = onSnapshot(qF('tasks'), s => setTasks(s.docs.map(d => ({id: d.id, ...d.data()})) as Task[]));
     const unsubPr = onSnapshot(qF('products'), s => setProducts(s.docs.map(d => ({id: d.id, ...d.data()})) as Product[]));
-    return () => { unsubA(); unsubB(); unsubP(); unsubT(); unsubTk(); unsubPr(); };
+    return () => { unsubA(); unsubB(); unsubT(); unsubTk(); unsubPr(); };
   }, [user]);
 
-  // AZIONE: REGISTRA PARTO E CREA CAPI
+  // LOGICA: AUTOMAZIONE PARTI
   const handleSaveBirth = async () => {
-    if (!newBirth.idCode || newBirth.count <= 0) return alert("Inserisci madre e quantità");
+    if (!newBirth.idCode || newBirth.count <= 0) return alert("Inserisci dati madre");
     await addDoc(collection(db, 'births'), { ...newBirth, date: new Date().toLocaleDateString(), ownerId: user?.uid });
     for (let i = 0; i < newBirth.count; i++) {
       await addDoc(collection(db, 'animals'), {
@@ -112,7 +108,7 @@ export default function App() {
     setNewBirth({ idCode: '', species: 'Maiali', count: 1, birthDate: '' });
   };
 
-  // AZIONE: SOMMA SMART PRODOTTI
+  // LOGICA: PRODOTTI SMART
   const handleAddProduct = async () => {
     if (!newProduct.name || newProduct.quantity <= 0) return;
     const existing = products.find(p => p.name.toLowerCase().trim() === newProduct.name.toLowerCase().trim());
@@ -129,18 +125,14 @@ export default function App() {
     if (p && p.quantity >= amount) await updateDoc(doc(db, 'products', id), { quantity: p.quantity - amount });
   };
 
-  const completeTask = async (task: Task) => {
-    await updateDoc(doc(db, 'tasks', task.id), { done: true, dateCompleted: new Date().toLocaleDateString('it-IT') });
-  };
-
-  if (loading) return <div className="min-h-screen flex items-center justify-center font-black text-emerald-800 bg-stone-50 italic animate-pulse">AGRIMANAGE PRO...</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center font-black text-emerald-800 bg-stone-50 italic animate-pulse text-2xl">AGRIMANAGE PRO...</div>;
 
   if (!user) {
     return (
       <div className="min-h-screen bg-emerald-950 flex items-center justify-center p-4">
         <div className="bg-white p-10 rounded-[3rem] shadow-2xl w-full max-w-md">
           <h1 className="text-4xl font-black text-center mb-10 text-emerald-950 italic">AgriManage <span className="text-emerald-600">Pro</span></h1>
-          <form onSubmit={async (e) => { e.preventDefault(); try { await signInWithEmailAndPassword(auth, email, password); } catch(err) { alert("Accesso fallito"); } }} className="space-y-4">
+          <form onSubmit={async (e) => { e.preventDefault(); try { await signInWithEmailAndPassword(auth, email, password); } catch(err) { alert("Credenziali errate"); } }} className="space-y-4">
             <input type="email" placeholder="Email" className="ui-input w-full border p-4 rounded-2xl" onChange={e => setEmail(e.target.value)} />
             <input type="password" placeholder="Password" className="ui-input w-full border p-4 rounded-2xl" onChange={e => setPassword(e.target.value)} />
             <button type="submit" className="w-full bg-emerald-600 text-white p-5 rounded-2xl font-black uppercase shadow-lg">Entra</button>
@@ -158,14 +150,13 @@ export default function App() {
       <aside className={`fixed md:static inset-y-0 left-0 z-40 w-80 bg-white border-r border-stone-100 p-8 flex flex-col transform transition-transform duration-500 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         <div className="flex items-center gap-4 mb-12">
           <div className="bg-emerald-600 p-3 rounded-2xl text-white shadow-lg shadow-emerald-100"><TrendingUp size={24} strokeWidth={3} /></div>
-          <h1 className="text-2xl font-black italic text-emerald-950">AgriManage</h1>
+          <h1 className="text-2xl font-black italic text-emerald-950 tracking-tighter">AgriManage</h1>
           <button className="md:hidden ml-auto p-2" onClick={() => setIsMobileMenuOpen(false)}><X size={24} /></button>
         </div>
         <nav className="space-y-2 flex-1 overflow-y-auto">
           {[
             { id: 'inventory', label: 'Inventario Capi', icon: PawPrint },
             { id: 'births', label: 'Registro Parti', icon: Baby },
-            { id: 'production', label: 'Produzione', icon: Milk },
             { id: 'dinastia', label: 'Dinastia e Sangue', icon: Network },
             { id: 'products', label: 'Scorte Magazzino', icon: Package },
             { id: 'finance', label: 'Bilancio Economico', icon: Wallet },
@@ -183,20 +174,20 @@ export default function App() {
         
         {/* KPI DASHBOARD */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
-            <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-stone-100">
-                <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">Capi</p>
+            <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-stone-100 text-center">
+                <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">Capi Effettivi</p>
                 <h4 className="text-3xl font-black text-emerald-600 italic">{animals.length}</h4>
             </div>
-            <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-stone-100">
+            <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-stone-100 text-center">
                 <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">Saldo Netto</p>
                 <h4 className="text-3xl font-black text-stone-800 italic">€{transactions.reduce((acc, t) => acc + (t.type === 'Entrata' ? t.amount : -t.amount), 0).toFixed(0)}</h4>
             </div>
-            <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-stone-100">
-                <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">Agenda</p>
+            <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-stone-100 text-center">
+                <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">Agenda Task</p>
                 <h4 className="text-3xl font-black text-amber-500 italic">{tasks.filter(t=>!t.done).length}</h4>
             </div>
-            <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-stone-100">
-                <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">Scorte</p>
+            <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-stone-100 text-center">
+                <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">Voci Scorte</p>
                 <h4 className="text-3xl font-black text-blue-500 italic">{products.length}</h4>
             </div>
         </div>
@@ -206,11 +197,11 @@ export default function App() {
           <div className="md:hidden bg-emerald-600 p-2 rounded-xl text-white shadow-lg" onClick={() => setIsMobileMenuOpen(true)}><Menu size={24} /></div>
         </div>
 
-        {/* --- INVENTARIO CAPI (Con Note) --- */}
+        {/* --- INVENTARIO CAPI --- */}
         {activeTab === 'inventory' && (
           <div className="space-y-12">
             <div className="bg-white p-10 rounded-[2.5rem] border border-stone-100 shadow-xl">
-              <h3 className="text-xs font-black mb-8 text-emerald-900 uppercase tracking-widest flex items-center gap-2"><PlusCircle size={20} className="text-emerald-500" /> Nuovo Capo</h3>
+              <h3 className="text-xs font-black mb-8 text-emerald-900 uppercase tracking-widest flex items-center gap-2"><PlusCircle size={20} className="text-emerald-500" /> Registrazione Anagrafica</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <div className="space-y-2"><label className="text-[10px] font-black text-stone-400 uppercase ml-1">Identificativo</label><input placeholder="Nome o Codice" className="ui-input w-full" value={newAnimal.name} onChange={e => setNewAnimal({...newAnimal, name: e.target.value})} /></div>
                 <div className="space-y-2"><label className="text-[10px] font-black text-stone-400 uppercase ml-1">Specie</label><select className="ui-input w-full" value={newAnimal.species} onChange={e => setNewAnimal({...newAnimal, species: e.target.value as Species})}>{speciesList.map(s => <option key={s}>{s}</option>)}</select></div>
@@ -220,11 +211,8 @@ export default function App() {
                 <div className="space-y-2"><label className="text-[10px] font-black text-stone-400 uppercase ml-1">Padre</label><select className="ui-input w-full text-xs" value={newAnimal.sire} onChange={e => setNewAnimal({...newAnimal, sire: e.target.value})}><option value="">Ignoto</option>{animals.filter(a => a.species === newAnimal.species).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select></div>
                 <div className="space-y-2"><label className="text-[10px] font-black text-stone-400 uppercase ml-1">Madre</label><select className="ui-input w-full text-xs" value={newAnimal.dam} onChange={e => setNewAnimal({...newAnimal, dam: e.target.value})}><option value="">Ignota</option>{animals.filter(a => a.species === newAnimal.species).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select></div>
               </div>
-              <div className="space-y-2 mb-8">
-                <label className="text-[10px] font-black text-stone-400 uppercase ml-1">Note e Trattamenti</label>
-                <textarea placeholder="Descrizione libera, dieta, vaccini..." className="ui-input w-full h-24 resize-none" value={newAnimal.notes} onChange={e => setNewAnimal({...newAnimal, notes: e.target.value})}></textarea>
-              </div>
-              <button onClick={async () => { if(!newAnimal.name) return; await addDoc(collection(db, 'animals'), { ...newAnimal, ownerId: user.uid }); setNewAnimal({name:'', species:'Maiali', birthDate:'', sire:'', dam:'', notes:''}); }} className="bg-emerald-600 text-white font-black rounded-2xl py-5 px-12 shadow-lg hover:bg-emerald-700 transition-all uppercase tracking-widest text-xs">Salva</button>
+              <div className="space-y-2 mb-8"><label className="text-[10px] font-black text-stone-400 uppercase ml-1">Note e Trattamenti</label><textarea placeholder="Dettagli, vaccini, dieta..." className="ui-input w-full h-24 resize-none" value={newAnimal.notes} onChange={e => setNewAnimal({...newAnimal, notes: e.target.value})}></textarea></div>
+              <button onClick={async () => { if(!newAnimal.name) return; await addDoc(collection(db, 'animals'), { ...newAnimal, ownerId: user.uid }); setNewAnimal({name:'', species:'Maiali', birthDate:'', sire:'', dam:'', notes:''}); }} className="bg-emerald-600 text-white font-black rounded-2xl py-5 px-12 shadow-lg hover:bg-emerald-700 transition-all uppercase tracking-widest text-xs">Salva Capo</button>
             </div>
 
             {speciesList.map(species => {
@@ -252,7 +240,7 @@ export default function App() {
                                 <div className="bg-emerald-50 text-emerald-700 p-2 rounded-xl"><PawPrint size={18} /></div>
                             </div>
                             <p className="text-[10px] text-stone-400 font-black uppercase mb-4 flex items-center gap-2"><CalendarDays size={14} /> Nato: {a.birthDate || 'DATA N/D'}</p>
-                            {a.notes && <div className="mt-4 p-4 bg-emerald-50/30 rounded-2xl text-xs text-stone-600 italic border-l-4 border-emerald-500 font-medium leading-relaxed">{a.notes}</div>}
+                            {a.notes && <div className="mt-4 p-4 bg-stone-50 rounded-2xl text-xs text-stone-500 italic border-l-4 border-emerald-500 font-medium leading-relaxed">{a.notes}</div>}
                             <div className="absolute top-4 right-4 flex gap-2 md:opacity-0 group-hover:opacity-100 transition-all">
                               <button onClick={() => { setEditingId(a.id); setEditData({name: a.name, notes: a.notes}); }} className="bg-stone-100 text-stone-400 p-2 rounded-xl hover:text-emerald-600"><Edit2 size={16}/></button>
                               <button onClick={() => deleteDoc(doc(db, 'animals', a.id))} className="bg-stone-100 text-stone-400 p-2 rounded-xl hover:text-red-600"><Trash2 size={16}/></button>
@@ -268,55 +256,87 @@ export default function App() {
           </div>
         )}
 
-        {/* --- ECONOMIA (Suddivisione per Specie) --- */}
+        {/* --- ECONOMIA (Con Lista Movimenti per Specie) --- */}
         {activeTab === 'finance' && (
           <div className="space-y-12">
+            {/* Riepilogo Totale */}
             <div className="bg-emerald-950 p-12 rounded-[3rem] text-white flex flex-col md:flex-row justify-between items-center shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-10 opacity-10 -rotate-12 scale-150"><PieChart size={200} /></div>
                 <div className="relative z-10 text-center md:text-left mb-8 md:mb-0">
                     <p className="text-emerald-300 text-[10px] font-black uppercase tracking-[0.3em] mb-2">Profitto Netto Aziendale</p>
                     <h2 className="text-7xl font-black italic tracking-tighter">€ {transactions.reduce((acc, t) => acc + (t.type === 'Entrata' ? t.amount : -t.amount), 0).toFixed(2)}</h2>
                 </div>
                 <div className="grid grid-cols-2 gap-4 relative z-10">
-                    <div className="bg-emerald-900/50 backdrop-blur-md p-6 rounded-3xl border border-emerald-800"><p className="text-[9px] font-black text-emerald-400 uppercase mb-1">Entrate</p><p className="text-2xl font-black text-emerald-400">+ €{transactions.filter(t=>t.type==='Entrata').reduce((acc,t)=>acc+t.amount,0).toFixed(0)}</p></div>
-                    <div className="bg-red-900/30 backdrop-blur-md p-6 rounded-3xl border border-red-800/50"><p className="text-[9px] font-black text-red-400 uppercase mb-1">Uscite</p><p className="text-2xl font-black text-red-400">- €{transactions.filter(t=>t.type==='Uscita').reduce((acc,t)=>acc+t.amount,0).toFixed(0)}</p></div>
+                    <div className="bg-emerald-900/50 backdrop-blur-md p-6 rounded-3xl border border-emerald-800"><p className="text-[9px] font-black uppercase mb-1">Entrate</p><p className="text-2xl font-black text-emerald-400">+ €{transactions.filter(t=>t.type==='Entrata').reduce((acc,t)=>acc+t.amount,0).toFixed(0)}</p></div>
+                    <div className="bg-red-900/30 backdrop-blur-md p-6 rounded-3xl border border-red-800/50"><p className="text-[9px] font-black uppercase mb-1">Uscite</p><p className="text-2xl font-black text-red-400">- €{transactions.filter(t=>t.type==='Uscita').reduce((acc,t)=>acc+t.amount,0).toFixed(0)}</p></div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Modulo inserimento */}
-                <div className="bg-white p-10 rounded-[2.5rem] border shadow-sm">
-                    <h3 className="text-xs font-black uppercase tracking-widest text-emerald-900 mb-6">Nuovo Movimento</h3>
-                    <div className="space-y-4">
-                        <input placeholder="Descrizione" className="ui-input w-full" value={newTrans.desc} onChange={e => setNewTrans({...newTrans, desc: e.target.value})} />
-                        <div className="flex gap-4">
-                            <input placeholder="Importo €" type="number" className="ui-input flex-1" value={newTrans.amount || ''} onChange={e => setNewTrans({...newTrans, amount: parseFloat(e.target.value)})} />
-                            <select className="ui-input flex-1 font-black" value={newTrans.type} onChange={e => setNewTrans({...newTrans, type: e.target.value as any})}><option>Entrata</option><option>Uscita</option></select>
+            {/* Inserimento Movimento */}
+            <div className="bg-white p-10 rounded-[2.5rem] border border-stone-100 shadow-sm">
+                <h3 className="text-xs font-black uppercase tracking-widest text-emerald-900 mb-8">Registra Nuovo Movimento</h3>
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                  <input placeholder="Causale (es. Mangime)" className="ui-input md:col-span-2" value={newTrans.desc} onChange={e => setNewTrans({...newTrans, desc: e.target.value})} />
+                  <input placeholder="Importo €" type="number" className="ui-input" value={newTrans.amount || ''} onChange={e => setNewTrans({...newTrans, amount: parseFloat(e.target.value)})} />
+                  <select className="ui-input font-black" value={newTrans.type} onChange={e => setNewTrans({...newTrans, type: e.target.value as any})}><option>Entrata</option><option>Uscita</option></select>
+                  <select className="ui-input" value={newTrans.species} onChange={e => setNewTrans({...newTrans, species: e.target.value as Species})}>{speciesList.map(s => <option key={s}>{s}</option>)}</select>
+                </div>
+                <button onClick={async () => { if(!newTrans.desc) return; await addDoc(collection(db, 'transactions'), { ...newTrans, date: new Date().toLocaleDateString('it-IT'), ownerId: user.uid }); setNewTrans({desc:'', amount:0, type:'Entrata', species:'Maiali'}); }} className="mt-6 bg-emerald-600 text-white font-black rounded-2xl py-4 px-12 shadow-lg hover:bg-emerald-700 transition-all text-xs uppercase tracking-widest">Aggiungi</button>
+            </div>
+
+            {/* Liste per Specie */}
+            {speciesList.map(s => {
+              const specTrans = transactions.filter(t => t.species === s);
+              const specBalance = specTrans.reduce((acc, t) => acc + (t.type === 'Entrata' ? t.amount : -t.amount), 0);
+              
+              return (
+                <div key={s} className="space-y-4">
+                  <div className="bg-white p-6 rounded-[2rem] border border-stone-100 shadow-sm flex flex-col md:flex-row justify-between items-center group">
+                      <div className="flex items-center gap-4">
+                        <div className="bg-stone-50 p-4 rounded-2xl text-stone-400 group-hover:text-emerald-600 transition-colors"><Activity size={24} /></div>
+                        <div>
+                          <h4 className="text-xl font-black text-emerald-950 uppercase italic">{s}</h4>
+                          <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Bilancio Categoria</p>
                         </div>
-                        <select className="ui-input w-full" value={newTrans.species} onChange={e => setNewTrans({...newTrans, species: e.target.value as Species})}>{speciesList.map(s => <option key={s}>{s}</option>)}</select>
-                        <button onClick={async () => { if(!newTrans.desc) return; await addDoc(collection(db, 'transactions'), { ...newTrans, date: new Date().toLocaleDateString('it-IT'), ownerId: user.uid }); setNewTrans({desc:'', amount:0, type:'Entrata', species:'Maiali'}); }} className="w-full bg-emerald-600 text-white font-black rounded-2xl py-4 shadow-lg hover:bg-emerald-700 uppercase text-[10px] tracking-widest">Registra</button>
-                    </div>
-                </div>
+                      </div>
+                      <div className="mt-4 md:mt-0 text-center md:text-right">
+                        <span className={`text-3xl font-black ${specBalance >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>€ {specBalance.toFixed(2)}</span>
+                      </div>
+                  </div>
 
-                {/* Suddivisione per Specie */}
-                <div className="bg-white p-10 rounded-[2.5rem] border shadow-sm">
-                    <h3 className="text-xs font-black uppercase tracking-widest text-emerald-900 mb-6">Analisi per Categoria</h3>
-                    <div className="space-y-4">
-                        {speciesList.map(s => {
-                            const specBalance = transactions.filter(t => t.species === s).reduce((acc, t) => acc + (t.type === 'Entrata' ? t.amount : -t.amount), 0);
-                            return (
-                                <div key={s} className="flex justify-between items-center p-4 bg-stone-50 rounded-2xl border border-stone-100">
-                                    <span className="font-black text-stone-400 uppercase text-[10px] tracking-widest italic">{s}</span>
-                                    <span className={`font-black text-lg ${specBalance >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>€ {specBalance.toFixed(2)}</span>
-                                </div>
-                            );
-                        })}
+                  {/* LISTA MOVIMENTI SOTTO IL RIQUADRO */}
+                  {specTrans.length > 0 && (
+                    <div className="bg-white/50 rounded-[2rem] border border-dashed border-stone-200 overflow-hidden mx-4 md:mx-8">
+                      <div className="divide-y divide-stone-100">
+                        {specTrans.sort((a,b) => b.date.localeCompare(a.date)).map(t => (
+                          <div key={t.id} className="p-5 flex justify-between items-center hover:bg-white transition-colors group">
+                            <div className="flex items-center gap-4">
+                              <div className={`p-2 rounded-lg ${t.type === 'Entrata' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+                                {t.type === 'Entrata' ? <ArrowUpRight size={16} /> : <ArrowDownLeft size={16} />}
+                              </div>
+                              <div>
+                                <p className="font-bold text-stone-700">{t.desc}</p>
+                                <p className="text-[10px] font-black text-stone-400 uppercase">{t.date}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <span className={`font-black ${t.type === 'Entrata' ? 'text-emerald-600' : 'text-red-500'}`}>
+                                {t.type === 'Entrata' ? '+' : '-'} €{t.amount.toFixed(2)}
+                              </span>
+                              <button onClick={() => deleteDoc(doc(db, 'transactions', t.id))} className="text-stone-300 hover:text-red-500 md:opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={16}/></button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
+                  )}
                 </div>
-            </div>
+              );
+            })}
           </div>
         )}
 
-        {/* --- REGISTRO PARTI (Automazione) --- */}
+        {/* --- REGISTRO PARTI --- */}
         {activeTab === 'births' && (
           <div className="space-y-10">
             <div className="bg-white p-10 rounded-[2.5rem] border shadow-xl">
@@ -329,8 +349,8 @@ export default function App() {
                 <button onClick={handleSaveBirth} className="bg-emerald-600 text-white px-10 h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg">Salva e Genera</button>
               </div>
             </div>
-            <div className="bg-white rounded-[2rem] border divide-y overflow-hidden">
-              {births.map(b => <div key={b.id} className="p-6 flex justify-between items-center hover:bg-stone-50 transition"><div><p className="font-black text-xl italic">{b.animalName} <span className="text-[10px] px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 ml-4 font-black uppercase">{b.species}</span></p><p className="text-xs text-stone-400 font-bold mt-2 tracking-widest">{b.offspringCount} nati il {b.birthDate}</p></div><button onClick={() => deleteDoc(doc(db, 'births', b.id))} className="text-red-300 hover:text-red-500"><Trash2 size={20}/></button></div>)}
+            <div className="bg-white rounded-[2rem] border divide-y overflow-hidden shadow-sm">
+              {births.map(b => <div key={b.id} className="p-6 flex justify-between items-center hover:bg-stone-50 transition"><div><p className="font-black text-xl italic tracking-tighter">{b.animalName} <span className="text-[10px] px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 ml-4 font-black uppercase">{b.species}</span></p><p className="text-xs text-stone-400 font-bold mt-2 tracking-widest">{b.offspringCount} nati il {b.birthDate}</p></div><button onClick={() => deleteDoc(doc(db, 'births', b.id))} className="text-red-300 hover:text-red-500"><Trash2 size={20}/></button></div>)}
             </div>
           </div>
         )}
@@ -356,7 +376,7 @@ export default function App() {
         {activeTab === 'products' && (
           <div className="space-y-10">
             <div className="bg-white p-10 rounded-[2.5rem] border shadow-xl">
-              <h3 className="text-xl font-black mb-8 italic">Scorte Magazzino</h3>
+              <h3 className="text-xl font-black mb-8 italic">Magazzino Scorte</h3>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <input placeholder="Prodotto" className="ui-input" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
                 <input placeholder="Q.tà" type="number" className="ui-input" value={newProduct.quantity || ''} onChange={e => setNewProduct({...newProduct, quantity: parseFloat(e.target.value)})} />
@@ -369,7 +389,7 @@ export default function App() {
                 <div key={p.id} className="bg-white p-8 rounded-[2rem] border border-stone-100 text-center shadow-sm relative group hover:border-emerald-200 transition-all">
                   <div className="bg-emerald-50 w-16 h-16 rounded-[1.5rem] flex items-center justify-center text-emerald-600 mx-auto mb-6"><Package size={32} /></div>
                   <h4 className="font-black text-stone-800 uppercase tracking-tight text-xl mb-2">{p.name}</h4>
-                  <div className="inline-block bg-emerald-600 text-white px-6 py-2 rounded-full text-2xl font-black shadow-lg mb-6">{p.quantity} <span className="text-xs uppercase font-bold">{p.unit}</span></div>
+                  <div className="inline-block bg-emerald-600 text-white px-6 py-2 rounded-full text-2xl font-black shadow-lg shadow-emerald-100 mb-6">{p.quantity} <span className="text-xs uppercase font-bold">{p.unit}</span></div>
                   <div className="flex gap-2 justify-center pt-6 border-t border-stone-50">
                     <button onClick={() => reduceProduct(p.id, 1)} className="p-3 bg-stone-50 text-stone-400 rounded-xl hover:bg-red-50 hover:text-red-500 transition-all"><MinusCircle size={24}/></button>
                     <button onClick={() => deleteDoc(doc(db, 'products', p.id))} className="p-3 bg-stone-50 text-stone-400 rounded-xl hover:bg-red-50 hover:text-red-500 transition-all"><Trash2 size={24}/></button>
@@ -384,7 +404,7 @@ export default function App() {
         {activeTab === 'tasks' && (
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-12 pb-24">
                 <div className="bg-white p-10 rounded-[3rem] border shadow-xl">
-                    <h3 className="text-xl font-black mb-8 italic flex items-center gap-3"><ListChecks className="text-emerald-600" size={24}/> Da Fare</h3>
+                    <h3 className="text-xl font-black mb-8 italic flex items-center gap-3"><ListChecks className="text-emerald-600" size={24}/> Da Completare</h3>
                     <div className="flex gap-4 mb-10">
                         <input className="ui-input flex-1" value={newTask} onChange={e => setNewTask(e.target.value)} placeholder="Cosa devi fare?" />
                         <button onClick={async () => { if(newTask) { await addDoc(collection(db, 'tasks'), { text: newTask, done: false, ownerId: user.uid }); setNewTask(''); } }} className="bg-emerald-600 text-white px-8 rounded-2xl font-black uppercase tracking-widest text-[10px]">Aggiungi</button>
@@ -392,7 +412,7 @@ export default function App() {
                     <div className="space-y-3">
                         {tasks.filter(t => !t.done).map(t => (
                             <div key={t.id} className="flex items-center justify-between p-6 bg-stone-50 rounded-[1.5rem] group transition-all hover:bg-emerald-50 border border-stone-100">
-                                <div className="flex items-center gap-6"><button onClick={() => completeTask(t)} className="text-stone-300 hover:text-emerald-500 transition-colors"><CheckCircle2 size={32}/></button><span className="font-black text-stone-700 tracking-tight">{t.text}</span></div>
+                                <div className="flex items-center gap-6"><button onClick={async () => await updateDoc(doc(db, 'tasks', t.id), { done: true, dateCompleted: new Date().toLocaleDateString('it-IT') })} className="text-stone-300 hover:text-emerald-500 transition-colors"><CheckCircle2 size={32}/></button><span className="font-black text-stone-700 tracking-tight">{t.text}</span></div>
                                 <button onClick={() => deleteDoc(doc(db, 'tasks', t.id))} className="text-red-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={20}/></button>
                             </div>
                         ))}
@@ -400,10 +420,10 @@ export default function App() {
                 </div>
                 <div className="bg-white p-10 rounded-[3rem] border shadow-xl flex flex-col">
                     <div className="flex justify-between items-center mb-8 border-b pb-6">
-                        <h3 className="text-xl font-black italic flex items-center gap-3"><History size={24} className="text-stone-400" /> Storico Lavori</h3>
+                        <h3 className="text-xl font-black italic flex items-center gap-3"><History size={24} className="text-stone-400" /> Rendiconto Storico</h3>
                         <div className="relative"><Search className="absolute left-4 top-3 text-stone-300" size={18}/><input className="ui-input pl-12 py-3 text-xs w-52" placeholder="Cerca lavoro..." value={searchTask} onChange={e => setSearchTask(e.target.value)} /></div>
                     </div>
-                    <div className="space-y-10 overflow-y-auto custom-scrollbar max-h-[600px]">
+                    <div className="space-y-10 overflow-y-auto max-h-[600px] pr-2 custom-scrollbar">
                         {Array.from(new Set(tasks.filter(t => t.done).map(t => t.dateCompleted))).sort().reverse().map(date => (
                         <div key={date}>
                             <p className="text-[11px] font-black text-emerald-600 uppercase mb-4 bg-emerald-50 inline-block px-4 py-1.5 rounded-full tracking-[0.2em]">{date}</p>
