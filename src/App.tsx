@@ -498,5 +498,4 @@ export default function App() {
         {/* FINANCE */}
         {activeTab === 'finance' && userRole === 'farmer' && (
           <div className="space-y-6 animate-in slide-in-from-right-4">
-            <div className="bg-white p-4 rounded-2xl border shadow-sm grid grid-cols-1 md:grid-cols-5 gap-2">
-              <input placeholder="Descrizione" className="p-2 bg-stone
+            <div className="bg-white p-4 rounded-2xl
