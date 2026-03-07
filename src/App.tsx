@@ -43,13 +43,16 @@ interface Product { id: string; name: string; quantity: number; unit: string; ow
 interface StockLog { id: string; productName: string; change: number; date: string; ownerId: string; }
 interface MarketItem { id: string; name: string; price: number; quantity: number; unit: string; sellerId: string; sellerName: string; contactEmail: string; contactPhone: string; createdAt: string; }
 
+// Interfaccia per le predizioni di TensorFlow
+interface Prediction {
+  bbox: number[];
+  class: string;
+  score: number;
+}
+
 // Interfaccia per il modello TensorFlow
 interface ObjectDetectionModel {
-  detect: (image: HTMLImageElement) => Promise<Array<{
-    bbox: number[];
-    class: string;
-    score: number;
-  }>>;
+  detect: (image: HTMLImageElement) => Promise<Prediction[]>;
 }
 
 const DynastyBranch = ({ animal, allAnimals, level = 0 }: { animal: Animal, allAnimals: Animal[], level?: number }) => {
@@ -278,7 +281,7 @@ export default function App() {
 
   const handleAICommand = async () => {
     const frasi = aiInput.toLowerCase().split(/ e |,|\./).filter(s => s.trim());
-    let logs = [];
+    let logs: string[] = [];
     for (let f of frasi) {
       const num = f.match(/(\d+)/)?.[1];
       if (f.includes('venduto') && num) {
@@ -370,7 +373,7 @@ export default function App() {
   };
 
   // Funzione per analizzare l'immagine con TensorFlow.js
-  const analyzeImageWithTensorFlow = async (imageElement: HTMLImageElement) => {
+  const analyzeImageWithTensorFlow = async (imageElement: HTMLImageElement): Promise<Prediction[]> => {
     if (!model) return [];
     
     try {
@@ -880,7 +883,7 @@ export default function App() {
                 setIsAnalyzing(true);
                 
                 try {
-                  let aiPredictions = [];
+                  let aiPredictions: Prediction[] = [];
                   
                   // Analizza la foto con TensorFlow.js se presente
                   if (vetImage && model) {
