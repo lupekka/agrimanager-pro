@@ -6,7 +6,7 @@ import {
   MinusCircle, Activity, ListChecks, Wallet,
   ArrowUpRight, ArrowDownLeft, Ghost, UserPlus, Stethoscope, 
   UploadCloud, AlertTriangle, FileDown, Store, ShoppingBag, 
-  MessageCircle, Mail, Bot, Info, Send, Save, ArrowRightLeft, Plus
+  MessageCircle, Mail, Bot, Info, Send, Save, ArrowRightLeft, Plus, ChevronDown, ChevronRight
 } from 'lucide-react';
 
 import jsPDF from 'jspdf';
@@ -64,6 +64,9 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isRegistering, setIsRegistering] = useState(false);
 
+  // STATO PER LE SPECIE ESPANSE
+  const [expandedSpecies, setExpandedSpecies] = useState<Species[]>([]);
+
   // DATI
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -109,6 +112,15 @@ export default function App() {
   const [sellPhone, setSellPhone] = useState('');
 
   const speciesList: Species[] = ['Maiali', 'Cavalli', 'Mucche', 'Galline', 'Oche'];
+
+  // FUNZIONE PER TOGGLE ESPANSIONE SPECIE
+  const toggleSpecies = (species: Species) => {
+    setExpandedSpecies(prev => 
+      prev.includes(species) 
+        ? prev.filter(s => s !== species) 
+        : [...prev, species]
+    );
+  };
 
   // ACCESSO
   useEffect(() => {
@@ -435,7 +447,7 @@ export default function App() {
           </div>
         )}
 
-        {/* 2. INVENTARIO */}
+        {/* 2. INVENTARIO - MODIFICATO CON ACCORDION */}
         {activeTab === 'inventory' && userRole === 'farmer' && (
           <div className="space-y-6 animate-in slide-in-from-bottom-4">
             <div className="bg-white p-4 rounded-2xl border shadow-sm space-y-3">
@@ -496,57 +508,88 @@ export default function App() {
               </div>
             </div>
 
-            {speciesList.map(specie => {
-              const capi = animals.filter(a => a.species === specie);
-              if (capi.length === 0) return null;
-              return (
-                <div key={specie} className="space-y-2">
-                  <h4 className="text-xs font-black text-emerald-800 uppercase px-1 italic border-l-4 border-emerald-500 pl-2">{specie} ({capi.length})</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    {capi.map(a => (
-                      <div key={a.id} className="bg-white p-4 rounded-2xl border border-stone-200 shadow-sm relative group hover:border-emerald-500 transition-all">
-                        <div className="flex justify-between items-start mb-1">
-                           <h4 className="font-black text-stone-800 uppercase text-xs">{a.name}</h4>
-                           <div className="flex gap-2">
-                              <button onClick={()=>{setEditingAnimalId(a.id); setEditNote(a.notes || '');}} className="text-stone-600 hover:text-emerald-500"><Edit2 size={14}/></button>
-                              <button onClick={()=>deleteDoc(doc(db,'animals',a.id))} className="text-stone-600 hover:text-red-500"><Trash2 size={14}/></button>
-                           </div>
-                        </div>
-                        
-                        {/* Visualizzazione genitori */}
-                        <div className="mb-2 text-[8px] font-bold text-stone-500 uppercase">
-                          {a.sire && <div>Padre: {a.sire}</div>}
-                          {a.dam && <div>Madre: {a.dam}</div>}
-                          {!a.sire && !a.dam && <div className="text-stone-300">Genitori non registrati</div>}
-                        </div>
-                        
-                        {editingAnimalId === a.id ? (
-                           <div className="mt-2 space-y-2">
-                              <textarea 
-                                className="w-full p-2 bg-stone-50 rounded-lg text-[10px] border-none font-bold italic shadow-inner" 
-                                value={editNote} 
-                                onChange={e=>setEditNote(e.target.value)} 
-                                placeholder="Modifica note..."
-                              />
-                              <button 
-                                onClick={()=>handleUpdateNotes(a.id)} 
-                                className="w-full bg-emerald-600 text-white py-1.5 rounded-lg text-[9px] font-black uppercase"
-                              >
-                                Salva Note
-                              </button>
-                           </div>
+            {/* SEZIONE SPECIE CON ACCORDION */}
+            <div className="space-y-3">
+              {speciesList.map(specie => {
+                const capi = animals.filter(a => a.species === specie);
+                if (capi.length === 0) return null;
+                const isExpanded = expandedSpecies.includes(specie);
+                
+                return (
+                  <div key={specie} className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-sm">
+                    {/* Header della specie - sempre visibile */}
+                    <div 
+                      onClick={() => toggleSpecies(specie)}
+                      className="flex items-center justify-between p-4 cursor-pointer hover:bg-stone-50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        {isExpanded ? (
+                          <ChevronDown size={20} className="text-emerald-600" />
                         ) : (
-                           <>
-                             <p className="text-[9px] text-stone-600 font-bold mb-2 italic uppercase">{a.birthDate || 'N/D'}</p>
-                             <p className="text-[10px] text-stone-700 bg-stone-50 p-2 rounded-lg italic leading-relaxed font-medium">"{a.notes || 'Nessuna nota presente.'}"</p>
-                           </>
+                          <ChevronRight size={20} className="text-stone-400" />
                         )}
+                        <h4 className="text-sm font-black text-emerald-800 uppercase">
+                          {specie}
+                        </h4>
                       </div>
-                    ))}
+                      <div className="flex items-center gap-4">
+                        <span className="text-xs font-bold text-stone-600 bg-stone-100 px-3 py-1 rounded-full">
+                          {capi.length} {capi.length === 1 ? 'capo' : 'capi'}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {/* Contenuto espandibile */}
+                    {isExpanded && (
+                      <div className="p-4 border-t border-stone-100 bg-stone-50/50 animate-in slide-in-from-top-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {capi.map(a => (
+                            <div key={a.id} className="bg-white p-4 rounded-xl border border-stone-200 shadow-sm relative group hover:border-emerald-500 transition-all">
+                              <div className="flex justify-between items-start mb-1">
+                                <h4 className="font-black text-stone-800 uppercase text-xs">{a.name}</h4>
+                                <div className="flex gap-2">
+                                  <button onClick={()=>{setEditingAnimalId(a.id); setEditNote(a.notes || '');}} className="text-stone-600 hover:text-emerald-500"><Edit2 size={14}/></button>
+                                  <button onClick={()=>deleteDoc(doc(db,'animals',a.id))} className="text-stone-600 hover:text-red-500"><Trash2 size={14}/></button>
+                                </div>
+                              </div>
+                              
+                              {/* Visualizzazione genitori */}
+                              <div className="mb-2 text-[8px] font-bold text-stone-500 uppercase">
+                                {a.sire && <div>Padre: {a.sire}</div>}
+                                {a.dam && <div>Madre: {a.dam}</div>}
+                                {!a.sire && !a.dam && <div className="text-stone-300">Genitori non registrati</div>}
+                              </div>
+                              
+                              {editingAnimalId === a.id ? (
+                                <div className="mt-2 space-y-2">
+                                  <textarea 
+                                    className="w-full p-2 bg-stone-50 rounded-lg text-[10px] border-none font-bold italic shadow-inner" 
+                                    value={editNote} 
+                                    onChange={e=>setEditNote(e.target.value)} 
+                                    placeholder="Modifica note..."
+                                  />
+                                  <button 
+                                    onClick={()=>handleUpdateNotes(a.id)} 
+                                    className="w-full bg-emerald-600 text-white py-1.5 rounded-lg text-[9px] font-black uppercase"
+                                  >
+                                    Salva Note
+                                  </button>
+                                </div>
+                              ) : (
+                                <>
+                                  <p className="text-[9px] text-stone-600 font-bold mb-2 italic uppercase">{a.birthDate || 'N/D'}</p>
+                                  <p className="text-[10px] text-stone-700 bg-stone-50 p-2 rounded-lg italic leading-relaxed font-medium">"{a.notes || 'Nessuna nota presente.'}"</p>
+                                </>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         )}
 
@@ -563,7 +606,9 @@ export default function App() {
                   <option value="Entrata">📈 ENTRATA</option>
                   <option value="Uscita">📉 USCITA</option>
               </select>
-              <select className="p-2 bg-stone-50 rounded-lg text-[10px] font-black border-none uppercase shadow-inner" value={newTrans.species} onChange={e=>setNewTrans({...newTrans, species:e.target.value as Species})}>{speciesList.map(s=><option key={s}>{s}</option>)}</select>
+              <select className="p-2 bg-stone-50 rounded-lg text-[10px] font-black border-none uppercase shadow-inner" value={newTrans.species} onChange={e=>setNewTrans({...newTrans, species:e.target.value as Species})}>
+                {speciesList.map(s=><option key={s}>{s}</option>)}
+              </select>
               <button onClick={handleSaveTransaction} className="bg-emerald-950 text-white rounded-lg py-3 text-[10px] font-black uppercase col-span-full shadow-lg mt-1 active:scale-95 transition-all">Registra Movimento</button>
             </div>
 
