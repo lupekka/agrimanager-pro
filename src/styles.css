@@ -1,4 +1,71 @@
-.App {
-  font-family: sans-serif;
-  text-align: center;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 1. VARIABILI PREMIUM */
+:root {
+  --emerald-glow: rgba(16, 185, 129, 0.15);
+  --soft-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
+}
+
+/* 2. RESET & PERFORMANCE */
+body {
+  margin: 0;
+  background-color: #F8F9FA;
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  scroll-behavior: smooth;
+}
+
+/* 3. TITOLI "ENTERPRISE BLACK" */
+h1, h2, h3, h4, .font-black {
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+  letter-spacing: -0.04em;
+  font-style: italic;
+}
+
+/* 4. SCROLLBAR MINIMALISTA (Stile Apple) */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #10B981;
+  border-radius: 20px;
+}
+
+/* 5. ANIMAZIONE DI ENTRATA DELLE TAB */
+main {
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 6. EFFETTO NEUMORFICO SULLE CARD */
+.bg-white {
+  box-shadow: var(--soft-shadow);
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.bg-white:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 25px 30px -5px rgba(0, 0, 0, 0.08);
+}
+
+/* 7. FEEDBACK TATTILE SUI BOTTONI */
+button {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+button:active {
+  transform: scale(0.95);
 }
