@@ -164,6 +164,24 @@ export default function App() {
     return () => unsubs.forEach(u => u());
   }, [user?.uid, userRole]);
 
+  // 🆕 TENSORFLOW (da aggiungere ORA)
+  useEffect(() => {
+    const loadModel = async () => {
+      if (activeTab === 'vet' && !model && !modelLoading) {
+        setModelLoading(true);
+        try {
+          const loadedModel = await cocoSsd.load();
+          setModel(loadedModel);
+        } catch (error) {
+          console.error(error);
+        } finally {
+          setModelLoading(false);
+        }
+      }
+    };
+    loadModel();
+  }, [activeTab, model, modelLoading]);
+  
   // FUNZIONI
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
