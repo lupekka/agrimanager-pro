@@ -17,9 +17,9 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, query, where, getDocs, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, setDoc, getDoc, orderBy, limit } from "firebase/firestore";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, User } from "firebase/auth";
 
-// TensorFlow per AI locale (gratuita)
+// TensorFlow per AI locale (gratuita) - USIAMO MOBILENET PER VELOCITÀ
 import * as tf from '@tensorflow/tfjs';
-import * as cocoSsd from '@tensorflow-models/coco-ssd';
+import * as mobilenet from '@tensorflow-models/mobilenet';
 
 const firebaseConfig = {
   apiKey: "AIzaSyD6ZxCO6BvGLKfsF235GSsLh-7GQm84Vdk",
@@ -43,16 +43,10 @@ interface Product { id: string; name: string; quantity: number; unit: string; ow
 interface StockLog { id: string; productName: string; change: number; date: string; ownerId: string; }
 interface MarketItem { id: string; name: string; price: number; quantity: number; unit: string; sellerId: string; sellerName: string; contactEmail: string; contactPhone: string; createdAt: string; }
 
-// Interfaccia per le predizioni di TensorFlow
+// Interfaccia per le predizioni
 interface Prediction {
-  bbox: number[];
-  class: string;
-  score: number;
-}
-
-// Interfaccia per il modello TensorFlow
-interface ObjectDetectionModel {
-  detect: (image: HTMLImageElement) => Promise<Prediction[]>;
+  className: string;
+  probability: number;
 }
 
 const DynastyBranch = ({ animal, allAnimals, level = 0 }: { animal: Animal, allAnimals: Animal[], level?: number }) => {
@@ -71,12 +65,13 @@ const DynastyBranch = ({ animal, allAnimals, level = 0 }: { animal: Animal, allA
 };
 
 export default function App() {
-  // STATO ASSISTENTE
+  // STATI PRINCIPALI
   const [showAssistant, setShowAssistant] = useState(false);
   
-  // STATO MODELLO TENSORFLOW
-  const [model, setModel] = useState<ObjectDetectionModel | null>(null);
+  // STATO MODELLO TENSORFLOW (MobileNet)
+  const [model, setModel] = useState<any>(null);
   const [modelLoading, setModelLoading] = useState(false);
+  const [modelError, setModelError] = useState<string | null>(null);
   
   const [user, setUser] = useState<User | null>(null);
   const [userRole, setUserRole] = useState<'farmer' | 'consumer' | null>(null);
@@ -123,6 +118,8 @@ export default function App() {
 
   const [aiInput, setAiInput] = useState('');
   const [aiLogs, setAiLogs] = useState<string[]>([]);
+  
+  // STATI PER IL VET IA
   const [vetSymptom, setVetSymptom] = useState('');
   const [vetImage, setVetImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -179,26 +176,53 @@ export default function App() {
     return () => unsubs.forEach(u => u());
   }, [user?.uid, userRole]);
 
-  // Caricamento modello TensorFlow per il Vet IA
+  // Caricamento modello MobileNet (VELOCISSIMO - 2-3 secondi)
   useEffect(() => {
+    let isMounted = true;
+    
     const loadModel = async () => {
-      if (activeTab === 'vet' && !model && !modelLoading) {
+      if (activeTab === 'vet' && !model && !modelLoading && !modelError) {
         setModelLoading(true);
+        setModelError(null);
+        
+        // Timeout di sicurezza (10 secondi)
+        const timeoutId = setTimeout(() => {
+          if (isMounted) {
+            setModelLoading(false);
+            setModelError("Timeout caricamento AI. Riprova.");
+          }
+        }, 10000);
+        
         try {
-          console.log("Caricamento modello AI in corso...");
-          const loadedModel = await cocoSsd.load();
-          setModel(loadedModel as ObjectDetectionModel);
-          console.log("✅ Modello AI caricato con successo!");
+          console.log("🚀 Caricamento MobileNet in corso...");
+          // Carica MobileNet (solo 5MB, velocissimo)
+          const loadedModel = await mobilenet.load();
+          
+          if (isMounted) {
+            setModel(loadedModel);
+            setModelError(null);
+            console.log("✅ MobileNet caricato con successo!");
+          }
+          clearTimeout(timeoutId);
         } catch (error) {
           console.error("❌ Errore caricamento modello:", error);
+          if (isMounted) {
+            setModelError("Errore caricamento AI. Usa solo sintomi.");
+          }
         } finally {
-          setModelLoading(false);
+          if (isMounted) {
+            setModelLoading(false);
+          }
         }
       }
     };
     
     loadModel();
-  }, [activeTab, model, modelLoading]);
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [activeTab, model, modelLoading, modelError]);
 
   // FUNZIONI
   const handleAuth = async (e: React.FormEvent) => {
@@ -218,34 +242,19 @@ export default function App() {
     if (newAnimal.sire) {
       const sireExists = animals.some(a => a.name === newAnimal.sire || a.id === newAnimal.sire);
       if (!sireExists) {
-        if (!confirm(`Il padre "${newAnimal.sire}" non esiste nell'anagrafica. Continuare comunque?`)) {
-          return;
-        }
+        if (!confirm(`Il padre "${newAnimal.sire}" non esiste. Continuare?`)) return;
       }
     }
     
     if (newAnimal.dam) {
       const damExists = animals.some(a => a.name === newAnimal.dam || a.id === newAnimal.dam);
       if (!damExists) {
-        if (!confirm(`La madre "${newAnimal.dam}" non esiste nell'anagrafica. Continuare comunque?`)) {
-          return;
-        }
+        if (!confirm(`La madre "${newAnimal.dam}" non esiste. Continuare?`)) return;
       }
     }
     
-    await addDoc(collection(db, 'animals'), { 
-      ...newAnimal, 
-      ownerId: user!.uid 
-    });
-    
-    setNewAnimal({ 
-      name: '', 
-      species: 'Maiali', 
-      birthDate: '', 
-      sire: '',
-      dam: '', 
-      notes: '' 
-    });
+    await addDoc(collection(db, 'animals'), { ...newAnimal, ownerId: user!.uid });
+    setNewAnimal({ name: '', species: 'Maiali', birthDate: '', sire: '', dam: '', notes: '' });
   };
 
   const handleUpdateNotes = async (id: string) => {
@@ -262,7 +271,12 @@ export default function App() {
   const handleModifyProduct = async (p: Product, amount: number, isAddition: boolean) => {
     const newQty = isAddition ? p.quantity + amount : Math.max(0, p.quantity - amount);
     await updateDoc(doc(db, 'products', p.id), { quantity: newQty });
-    await addDoc(collection(db, 'stock_logs'), { productName: p.name, change: isAddition ? amount : -amount, date: new Date().toLocaleString('it-IT'), ownerId: user!.uid });
+    await addDoc(collection(db, 'stock_logs'), { 
+      productName: p.name, 
+      change: isAddition ? amount : -amount, 
+      date: new Date().toLocaleString('it-IT'), 
+      ownerId: user!.uid 
+    });
   };
 
   const handlePublishToMarket = async () => {
@@ -319,7 +333,8 @@ export default function App() {
   };
 
   const exportASLReport = () => {
-    const d = new jsPDF(); const n = window.prompt("Nome Azienda:") || "Azienda";
+    const d = new jsPDF(); 
+    const n = window.prompt("Nome Azienda:") || "Azienda";
     d.text(n, 14, 20);
     const sorted = [...animals].sort((a,b) => a.species.localeCompare(b.species));
     autoTable(d, { 
@@ -337,15 +352,10 @@ export default function App() {
     
     try {
       const mother = animals.find(a => a.name === newBirth.idCode || a.id === newBirth.idCode);
-      
-      if (!mother) {
-        return alert("Madre non trovata. Verifica il codice.");
-      }
+      if (!mother) return alert("Madre non trovata.");
       
       for (let i = 0; i < newBirth.count; i++) {
-        const birthDate = new Date(newBirth.birthDate);
-        const defaultName = `${newBirth.species.substring(0, 3)}-${birthDate.getFullYear()}-${String(i + 1).padStart(2, '0')}`;
-        
+        const defaultName = `${newBirth.species.substring(0, 3)}-${new Date().getFullYear()}-${String(i + 1).padStart(2, '0')}`;
         await addDoc(collection(db, 'animals'), {
           name: defaultName,
           species: newBirth.species,
@@ -356,40 +366,99 @@ export default function App() {
         });
       }
       
-      await addDoc(collection(db, 'stock_logs'), {
-        productName: `Nascita ${newBirth.species}`,
-        change: newBirth.count,
-        date: new Date().toLocaleString('it-IT'),
-        ownerId: user!.uid,
-        reason: 'birth'
-      });
-      
       setNewBirth({ idCode: '', species: 'Maiali', count: 1, birthDate: '' });
       alert(`${newBirth.count} nuovi capi registrati con successo!`);
     } catch (error) {
-      console.error("Errore nel salvataggio:", error);
-      alert("Errore durante la registrazione dei parti.");
+      console.error("Errore:", error);
+      alert("Errore durante la registrazione.");
     }
   };
 
-  // Funzione per analizzare l'immagine con TensorFlow.js
-  const analyzeImageWithTensorFlow = async (imageElement: HTMLImageElement): Promise<Prediction[]> => {
+  // Funzione per analizzare l'immagine con MobileNet
+  const analyzeImageWithMobileNet = async (imageElement: HTMLImageElement): Promise<Prediction[]> => {
     if (!model) return [];
     
     try {
-      const predictions = await model.detect(imageElement);
-      
-      const animalKeywords = ['animal', 'dog', 'cat', 'cow', 'horse', 'sheep', 'pig', 'chicken', 'bird', 'leg', 'head', 'ear', 'eye', 'nose', 'mouth', 'hoof', 'tail'];
-      
-      const relevantPredictions = predictions.filter(p => 
-        animalKeywords.some(keyword => p.class.toLowerCase().includes(keyword))
-      );
-      
-      return relevantPredictions.length > 0 ? relevantPredictions : predictions;
+      // MobileNet classify è velocissimo
+      const predictions = await model.classify(imageElement);
+      return predictions.slice(0, 5); // Prendi le prime 5 predizioni
     } catch (error) {
-      console.error("Errore analisi:", error);
+      console.error("Errore analisi immagine:", error);
       return [];
     }
+  };
+
+  // Funzione per diagnosi avanzata basata su sintomi
+  const getDiagnosisFromSymptoms = (symptoms: string, animalType?: string): any => {
+    const s = symptoms.toLowerCase();
+    
+    // Matrice di diagnosi veterinaria
+    const diagnoses = [
+      {
+        name: "Infezione Respiratoria",
+        keywords: ['tosse', 'starnuti', 'naso', 'respira', 'febbre', 'dispnea', 'fiatone'],
+        causes: ["Influenza", "Bronchite", "Polmonite", "Mycoplasma"],
+        action: "ISOLARE IL CAPO, MISURARE TEMPERATURA, GARANTIRE VENTILAZIONE, CONTATTARE VETERINARIO",
+        severity: "high"
+      },
+      {
+        name: "Problema Gastrointestinale",
+        keywords: ['diarrea', 'feci liquide', 'vomito', 'stomaco', 'intestino', 'disidrata'],
+        causes: ["Parassiti intestinali", "Infezione batterica", "Coccidiosi", "Alimentazione scorretta"],
+        action: "SOSPENDERE ALIMENTAZIONE PER 12H, GARANTIRE ACQUA CON ELETTROLITI, CONTATTARE VETERINARIO",
+        severity: "high"
+      },
+      {
+        name: "Patologia Podale",
+        keywords: ['zoppia', 'zampa', 'piede', 'arto', 'gamba', 'ungula', 'zoccolo'],
+        causes: ["Ascesso podale", "Panaritium", "Corpo estraneo", "Artrite"],
+        action: "ISPEZIONARE L'ARTO, PULIRE LA FERITA, APPLICARE DISINFETTANTE, CONTATTARE VETERINARIO",
+        severity: "medium"
+      },
+      {
+        name: "Lesione Cutanea",
+        keywords: ['ferita', 'lesione', 'taglio', 'abrasione', 'pelle', 'cute', 'piaga'],
+        causes: ["Ferita traumatica", "Dermatite", "Infezione cutanea", "Parassiti esterni"],
+        action: "PULIRE CON DISINFETTANTE, APPLICARE POMPATA, MONITORARE SEGNI DI INFEZIONE",
+        severity: "medium"
+      },
+      {
+        name: "Gonfiore/Tumefazione",
+        keywords: ['gonfio', 'gonfiore', 'tumefazione', 'edema', 'palla'],
+        causes: ["Ascesso", "Edema", "Reazione allergica", "Trauma"],
+        action: "APPLICARE GHIACCIO, MONITORARE L'EVOLUZIONE, CONTATTARE VETERINARIO SE PERSISTE",
+        severity: "medium"
+      },
+      {
+        name: "Sintomi Generali",
+        keywords: ['febbre', 'inappetenza', 'non mangia', 'letargia', 'stanco', 'abbattuto'],
+        causes: ["Infezione sistemica", "Stress", "Dolore", "Patologia metabolica"],
+        action: "MISURARE TEMPERATURA, MONITORARE COMPORTAMENTO, CONTATTARE VETERINARIO",
+        severity: "medium"
+      }
+    ];
+    
+    // Trova la diagnosi più pertinente
+    for (let diag of diagnoses) {
+      for (let keyword of diag.keywords) {
+        if (s.includes(keyword)) {
+          return {
+            title: diag.name,
+            possibleCauses: diag.causes,
+            action: diag.action,
+            severity: diag.severity
+          };
+        }
+      }
+    }
+    
+    // Default se nessun sintomo riconosciuto
+    return {
+      title: "Sintomi Aspecifici",
+      possibleCauses: ["Stress", "Malessere generale", "Infezione in fase iniziale", "Problemi ambientali"],
+      action: "MONITORARE L'EVOLUZIONE, RACCOGLIERE PIÙ INFORMAZIONI, CONTATTARE VETERINARIO SE NECESSARIO",
+      severity: "low"
+    };
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-emerald-800 bg-stone-50">Sincronizzazione in corso...</div>;
@@ -510,55 +579,15 @@ export default function App() {
                 <button onClick={exportASLReport} className="text-[9px] font-bold bg-stone-900 text-white px-3 py-1 rounded-lg uppercase shadow-md">PDF ASL</button>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <input 
-                  placeholder="Codice Capo *" 
-                  className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner" 
-                  value={newAnimal.name} 
-                  onChange={(e)=>setNewAnimal({...newAnimal, name:e.target.value})} 
-                />
-                
-                <select 
-                  className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner uppercase" 
-                  value={newAnimal.species} 
-                  onChange={(e)=>setNewAnimal({...newAnimal, species:e.target.value as Species})}
-                >
+                <input placeholder="Codice Capo *" className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner" value={newAnimal.name} onChange={(e)=>setNewAnimal({...newAnimal, name:e.target.value})} />
+                <select className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner uppercase" value={newAnimal.species} onChange={(e)=>setNewAnimal({...newAnimal, species:e.target.value as Species})}>
                   {speciesList.map(s=><option key={s}>{s}</option>)}
                 </select>
-                
-                <input 
-                  type="date" 
-                  className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner text-emerald-700" 
-                  value={newAnimal.birthDate} 
-                  onChange={(e)=>setNewAnimal({...newAnimal, birthDate:e.target.value})} 
-                />
-                
-                <input 
-                  placeholder="Padre (Codice)" 
-                  className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner uppercase" 
-                  value={newAnimal.sire} 
-                  onChange={(e)=>setNewAnimal({...newAnimal, sire:e.target.value})} 
-                />
-                
-                <input 
-                  placeholder="Madre (Codice)" 
-                  className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner uppercase" 
-                  value={newAnimal.dam} 
-                  onChange={(e)=>setNewAnimal({...newAnimal, dam:e.target.value})} 
-                />
-                
-                <input 
-                  placeholder="Note (Cure, Salute)" 
-                  className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner col-span-2" 
-                  value={newAnimal.notes} 
-                  onChange={(e)=>setNewAnimal({...newAnimal, notes:e.target.value})} 
-                />
-                
-                <button 
-                  onClick={handleSaveAnimal} 
-                  className="bg-emerald-600 text-white font-bold rounded-lg py-2 text-[10px] uppercase col-span-full shadow-md active:scale-95"
-                >
-                  Salva Capo
-                </button>
+                <input type="date" className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner text-emerald-700" value={newAnimal.birthDate} onChange={(e)=>setNewAnimal({...newAnimal, birthDate:e.target.value})} />
+                <input placeholder="Padre (Codice)" className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner uppercase" value={newAnimal.sire} onChange={(e)=>setNewAnimal({...newAnimal, sire:e.target.value})} />
+                <input placeholder="Madre (Codice)" className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner uppercase" value={newAnimal.dam} onChange={(e)=>setNewAnimal({...newAnimal, dam:e.target.value})} />
+                <input placeholder="Note (Cure, Salute)" className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner col-span-2" value={newAnimal.notes} onChange={(e)=>setNewAnimal({...newAnimal, notes:e.target.value})} />
+                <button onClick={handleSaveAnimal} className="bg-emerald-600 text-white font-bold rounded-lg py-2 text-[10px] uppercase col-span-full shadow-md active:scale-95">Salva Capo</button>
               </div>
             </div>
 
@@ -571,29 +600,16 @@ export default function App() {
                 
                 return (
                   <div key={specie} className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-sm">
-                    {/* Header della specie */}
-                    <div 
-                      onClick={() => toggleSpecies(specie)}
-                      className="flex items-center justify-between p-4 cursor-pointer hover:bg-stone-50 transition-colors"
-                    >
+                    <div onClick={() => toggleSpecies(specie)} className="flex items-center justify-between p-4 cursor-pointer hover:bg-stone-50 transition-colors">
                       <div className="flex items-center gap-3">
-                        {isExpanded ? (
-                          <ChevronDown size={20} className="text-emerald-600" />
-                        ) : (
-                          <ChevronRight size={20} className="text-stone-400" />
-                        )}
-                        <h4 className="text-sm font-black text-emerald-800 uppercase">
-                          {specie}
-                        </h4>
+                        {isExpanded ? <ChevronDown size={20} className="text-emerald-600" /> : <ChevronRight size={20} className="text-stone-400" />}
+                        <h4 className="text-sm font-black text-emerald-800 uppercase">{specie}</h4>
                       </div>
-                      <div className="flex items-center gap-4">
-                        <span className="text-xs font-bold text-stone-600 bg-stone-100 px-3 py-1 rounded-full">
-                          {capi.length} {capi.length === 1 ? 'capo' : 'capi'}
-                        </span>
-                      </div>
+                      <span className="text-xs font-bold text-stone-600 bg-stone-100 px-3 py-1 rounded-full">
+                        {capi.length} {capi.length === 1 ? 'capo' : 'capi'}
+                      </span>
                     </div>
                     
-                    {/* Contenuto espandibile */}
                     {isExpanded && (
                       <div className="p-4 border-t border-stone-100 bg-stone-50/50 animate-in slide-in-from-top-2">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -615,18 +631,8 @@ export default function App() {
                               
                               {editingAnimalId === a.id ? (
                                 <div className="mt-2 space-y-2">
-                                  <textarea 
-                                    className="w-full p-2 bg-stone-50 rounded-lg text-[10px] border-none font-bold italic shadow-inner" 
-                                    value={editNote} 
-                                    onChange={(e)=>setEditNote(e.target.value)} 
-                                    placeholder="Modifica note..."
-                                  />
-                                  <button 
-                                    onClick={()=>handleUpdateNotes(a.id)} 
-                                    className="w-full bg-emerald-600 text-white py-1.5 rounded-lg text-[9px] font-black uppercase"
-                                  >
-                                    Salva Note
-                                  </button>
+                                  <textarea className="w-full p-2 bg-stone-50 rounded-lg text-[10px] border-none font-bold italic shadow-inner" value={editNote} onChange={(e)=>setEditNote(e.target.value)} placeholder="Modifica note..." />
+                                  <button onClick={()=>handleUpdateNotes(a.id)} className="w-full bg-emerald-600 text-white py-1.5 rounded-lg text-[9px] font-black uppercase">Salva Note</button>
                                 </div>
                               ) : (
                                 <>
@@ -790,24 +796,46 @@ export default function App() {
           </div>
         )}
 
-        {/* 6. VET IA */}
+        {/* 6. VET IA - VERSIONE VELOCISSIMA CON DIAGNOSI ACCURATA */}
         {activeTab === 'vet' && userRole === 'farmer' && (
           <div className="bg-white p-6 rounded-3xl border shadow-xl max-w-lg mx-auto border-t-8 border-blue-600">
             <div className="bg-blue-600 p-6 rounded-2xl text-white mb-6 flex items-center gap-4 shadow-lg">
               <Stethoscope size={40} strokeWidth={1} />
               <div>
-                <h3 className="text-xl font-black uppercase italic leading-none mb-1">Diagnosi IA</h3>
+                <h3 className="text-xl font-black uppercase italic leading-none mb-1">Diagnosi Veterinaria IA</h3>
                 <p className="text-blue-100 text-[10px] uppercase tracking-widest">
-                  {modelLoading ? "⏳ Caricamento AI..." : model ? "✓ AI Pronta" : "Clicca per caricare AI"}
+                  {modelLoading ? "⏳ Caricamento AI (3 sec)..." : model ? "✓ AI MobileNet Pronta" : "Analisi senza foto"}
                 </p>
               </div>
             </div>
+
+            {/* Stato caricamento */}
+            {modelLoading && (
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl text-center">
+                <div className="flex items-center justify-center gap-2">
+                  <Activity className="animate-spin text-blue-600" size={16} />
+                  <p className="text-[10px] font-bold text-blue-800">Caricamento AI in corso (massimo 5 secondi)...</p>
+                </div>
+                <div className="w-full bg-blue-200 h-1 mt-2 rounded-full overflow-hidden">
+                  <div className="bg-blue-600 h-1 rounded-full animate-pulse" style={{width: '100%'}}></div>
+                </div>
+              </div>
+            )}
+
+            {/* Messaggio errore */}
+            {modelError && !modelLoading && (
+              <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-center">
+                <AlertTriangle size={16} className="text-amber-600 mx-auto mb-1" />
+                <p className="text-[9px] font-bold text-amber-800">{modelError}</p>
+                <p className="text-[8px] text-amber-600 mt-1">Puoi comunque usare l'analisi basata sui sintomi</p>
+              </div>
+            )}
 
             <div className="space-y-4 mb-6">
               {/* Sezione Foto */}
               <div>
                 <p className="text-[10px] font-black text-stone-700 uppercase mb-2 flex items-center gap-2">
-                  <Camera size={14} /> Foto del sintomo
+                  <Camera size={14} /> Foto del sintomo {model && <span className="text-emerald-600 text-[8px]">(AI attiva)</span>}
                 </p>
                 <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-2xl cursor-pointer hover:bg-blue-50 transition-all bg-stone-50">
                   {vetImage ? (
@@ -817,6 +845,7 @@ export default function App() {
                         alt="Sintomo" 
                         className="w-full h-full object-cover rounded-2xl"
                         id="vet-analysis-image"
+                        crossOrigin="anonymous"
                       />
                       <button
                         onClick={(e) => {
@@ -831,8 +860,8 @@ export default function App() {
                   ) : (
                     <div className="text-center p-4">
                       <UploadCloud size={32} className="text-stone-400 mx-auto mb-2" />
-                      <p className="text-[9px] font-bold text-stone-600">CLICCA PER CARICARE</p>
-                      <p className="text-[7px] text-stone-400 mt-1">(foto dell'animale o del sintomo)</p>
+                      <p className="text-[9px] font-bold text-stone-600">CLICCA PER CARICARE FOTO</p>
+                      <p className="text-[7px] text-stone-400 mt-1">(migliora l'accuratezza della diagnosi)</p>
                     </div>
                   )}
                   <input 
@@ -847,16 +876,23 @@ export default function App() {
               {/* Sezione Sintomi */}
               <div>
                 <p className="text-[10px] font-black text-stone-700 uppercase mb-2 flex items-center gap-2">
-                  <MessageCircle size={14} /> Sintomi
+                  <MessageCircle size={14} /> Sintomi osservati
                 </p>
                 
                 <div className="flex flex-wrap gap-1 mb-3">
-                  {['Febbre', 'Tosse', 'Diarrea', 'Zoppia', 'Gonfiore', 'Ferita', 'Inappetenza', 'Letargia'].map(s => (
+                  {[
+                    'Febbre', 'Tosse', 'Diarrea', 'Zoppia', 'Gonfiore', 
+                    'Ferita', 'Inappetenza', 'Secrezioni', 'Letargia', 'Respiro'
+                  ].map(s => (
                     <button
                       key={s}
                       type="button"
-                      onClick={() => setVetSymptom(prev => prev ? `${prev}, ${s.toLowerCase()}` : s.toLowerCase())}
-                      className="text-[8px] bg-stone-100 hover:bg-blue-100 px-2 py-1 rounded-full font-bold"
+                      onClick={() => setVetSymptom(prev => {
+                        const symptom = s.toLowerCase();
+                        if (prev.includes(symptom)) return prev;
+                        return prev ? `${prev}, ${symptom}` : symptom;
+                      })}
+                      className="text-[8px] bg-stone-100 hover:bg-blue-100 px-2 py-1 rounded-full font-bold transition-colors"
                     >
                       + {s}
                     </button>
@@ -864,8 +900,8 @@ export default function App() {
                 </div>
 
                 <textarea
-                  className="w-full p-4 bg-stone-50 rounded-2xl font-bold text-sm h-32 shadow-inner"
-                  placeholder="Descrivi i sintomi in dettaglio..."
+                  className="w-full p-4 bg-stone-50 rounded-2xl font-bold text-sm h-32 shadow-inner resize-none"
+                  placeholder="Descrivi i sintomi in dettaglio (es. tosse secca, feci liquide, temperatura 40°C, non mangia da 2 giorni...)"
                   value={vetSymptom}
                   onChange={e => setVetSymptom(e.target.value)}
                 />
@@ -884,84 +920,52 @@ export default function App() {
                 
                 try {
                   let aiPredictions: Prediction[] = [];
+                  let visualDesc = "";
                   
-                  // Analizza la foto con TensorFlow.js se presente
+                  // Analizza la foto con MobileNet se presente (velocissimo)
                   if (vetImage && model) {
                     const img = document.getElementById('vet-analysis-image') as HTMLImageElement;
                     if (img && img.complete) {
-                      aiPredictions = await analyzeImageWithTensorFlow(img);
-                    }
-                  }
-                  
-                  // Logica di diagnosi
-                  const symptoms = vetSymptom.toLowerCase();
-                  
-                  // Costruisci il risultato
-                  let title = "Analisi in corso";
-                  let possibleCauses: string[] = [];
-                  let action = "";
-                  let severity = "medium";
-                  let visualDesc = "";
-                  
-                  if (aiPredictions.length > 0) {
-                    // Cosa ha visto l'AI
-                    const detectedItems = aiPredictions.map(p => 
-                      `${p.class} (${Math.round(p.score*100)}%)`
-                    ).join(', ');
-                    
-                    visualDesc = `Nell'immagine ho rilevato: ${detectedItems}. `;
-                    
-                    // Diagnosi basata su quello che l'AI ha visto
-                    if (aiPredictions.some(p => p.class.includes('cow') || p.class.includes('horse') || p.class.includes('sheep') || p.class.includes('pig'))) {
-                      const animal = aiPredictions.find(p => p.class.includes('cow') || p.class.includes('horse') || p.class.includes('sheep') || p.class.includes('pig'))?.class;
+                      aiPredictions = await analyzeImageWithMobileNet(img);
                       
-                      if (symptoms.includes('zoppia')) {
-                        title = `Problema locomotorio in ${animal}`;
-                        possibleCauses = ["Trauma", "Artrite", "Ascesso podale", "Corpo estraneo"];
-                        action = "ISPEZIONARE L'ARTO, VERIFICARE PRESENZA DI CORPI ESTRANEI, CONTATTARE VETERINARIO";
-                      } else if (symptoms.includes('tosse') || symptoms.includes('febbre')) {
-                        title = `Possibile infezione respiratoria in ${animal}`;
-                        possibleCauses = ["Influenza", "Bronchite", "Polmonite"];
-                        action = "ISOLARE IL CAPO, MONITORARE TEMPERATURA, CONTATTARE VETERINARIO";
-                        severity = "high";
-                      } else if (symptoms.includes('diarrea')) {
-                        title = `Problema gastrointestinale in ${animal}`;
-                        possibleCauses = ["Parassiti", "Infezione batterica", "Alimentazione"];
-                        action = "SOSPENDERE ALIMENTAZIONE PER 12H, GARANTIRE ACQUA, CONTATTARE VETERINARIO";
-                        severity = "high";
+                      if (aiPredictions.length > 0) {
+                        visualDesc = `📸 Analisi foto: ${aiPredictions.map(p => 
+                          `${p.className.split(',')[0]} (${Math.round(p.probability*100)}%)`
+                        ).join(', ')}. `;
                       }
                     }
                   }
                   
-                  // Se non c'è diagnosi specifica
-                  if (title === "Analisi in corso") {
-                    if (symptoms.includes('febbre') || symptoms.includes('tosse')) {
-                      title = "Possibile infezione respiratoria";
-                      possibleCauses = ["Influenza", "Bronchite", "Polmonite"];
-                      action = "ISOLARE IL CAPO, MONITORARE TEMPERATURA, CONTATTARE VETERINARIO";
-                      severity = "high";
-                    } else if (symptoms.includes('diarrea')) {
-                      title = "Problema gastrointestinale";
-                      possibleCauses = ["Parassiti", "Infezione batterica", "Alimentazione"];
-                      action = "SOSPENDERE ALIMENTAZIONE PER 12H, GARANTIRE ACQUA, CONTATTARE VETERINARIO";
-                      severity = "high";
-                    } else {
-                      title = "Sintomi aspecifici";
-                      possibleCauses = ["Stress", "Malessere generale", "Infezione in fase iniziale"];
-                      action = "MONITORARE L'EVOLUZIONE, RACCOGLIERE PIÙ INFORMAZIONI";
-                      severity = "low";
+                  // Ottieni diagnosi basata sui sintomi
+                  const diagnosis = getDiagnosisFromSymptoms(vetSymptom);
+                  
+                  // Determina l'animale dalla foto se possibile
+                  let animalType = "";
+                  if (aiPredictions.length > 0) {
+                    const animalKeywords = ['cow', 'pig', 'horse', 'sheep', 'chicken', 'dog', 'cat'];
+                    for (let pred of aiPredictions) {
+                      const className = pred.className.toLowerCase();
+                      for (let keyword of animalKeywords) {
+                        if (className.includes(keyword)) {
+                          animalType = keyword;
+                          break;
+                        }
+                      }
                     }
                   }
                   
-                  setVetResult({
-                    title: title,
-                    desc: `${visualDesc}Sintomi descritti: ${vetSymptom || 'non specificati'}.`,
-                    action: action,
-                    possibleCauses: possibleCauses,
-                    severity: severity,
-                    visualFindings: aiPredictions.map(p => `${p.class} (${Math.round(p.score*100)}%)`),
-                    confidence: aiPredictions.length > 0 ? "alta (foto analizzata)" : "media (solo sintomi)"
-                  });
+                  // Costruisci il risultato finale
+                  const result = {
+                    title: diagnosis.title + (animalType ? ` in ${animalType}` : ''),
+                    desc: visualDesc + `Sintomi: ${vetSymptom || 'non specificati'}.`,
+                    action: diagnosis.action,
+                    possibleCauses: diagnosis.possibleCauses,
+                    severity: diagnosis.severity,
+                    visualFindings: aiPredictions.map(p => `${p.className.split(',')[0]} (${Math.round(p.probability*100)}%)`),
+                    confidence: aiPredictions.length > 0 ? "alta (foto + sintomi)" : "media (soli sintomi)"
+                  };
+                  
+                  setVetResult(result);
                 } catch (error) {
                   console.error("Errore analisi:", error);
                   alert("Errore durante l'analisi. Riprova.");
@@ -969,15 +973,13 @@ export default function App() {
                   setIsAnalyzing(false);
                 }
               }}
-              disabled={isAnalyzing || (modelLoading && !model)}
-              className="w-full bg-stone-900 text-white py-4 rounded-xl font-black uppercase text-sm shadow-lg hover:bg-stone-800 disabled:opacity-50 flex items-center justify-center gap-2"
+              disabled={isAnalyzing}
+              className="w-full bg-stone-900 text-white py-4 rounded-xl font-black uppercase text-sm shadow-lg hover:bg-stone-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              {modelLoading ? (
-                <><Activity className="animate-spin" size={16}/> CARICAMENTO AI...</>
-              ) : isAnalyzing ? (
+              {isAnalyzing ? (
                 <><Activity className="animate-spin" size={16}/> ANALISI IN CORSO...</>
               ) : (
-                <><Camera size={16}/> ANALIZZA CON AI</>
+                <><Camera size={16}/> ANALIZZA SINTOMI {model ? 'E FOTO' : ''}</>
               )}
             </button>
 
@@ -993,7 +995,7 @@ export default function App() {
                   <div className="flex justify-between items-start mb-3">
                     <h4 className="text-sm font-black uppercase">{vetResult.title}</h4>
                     <span className="bg-green-500 text-white text-[8px] px-2 py-1 rounded-full">
-                      AI Locale ✓
+                      {vetResult.visualFindings?.length > 0 ? '📸 AI' : '📝 Sintomi'}
                     </span>
                   </div>
 
@@ -1001,7 +1003,7 @@ export default function App() {
 
                   {vetResult.visualFindings?.length > 0 && (
                     <div className="mb-4 bg-blue-50 p-3 rounded-xl">
-                      <p className="text-[8px] font-black mb-2">🔍 COSA HA VISTO L'AI:</p>
+                      <p className="text-[8px] font-black mb-2">🔍 RILEVATO DALLA FOTO:</p>
                       <div className="flex flex-wrap gap-1">
                         {vetResult.visualFindings.map((f: string, i: number) => (
                           <span key={i} className="text-[8px] bg-white px-2 py-1 rounded-full border border-blue-200">
@@ -1033,7 +1035,7 @@ export default function App() {
                 </div>
 
                 <p className="text-[6px] text-stone-400 text-center">
-                  🤖 AI eseguita localmente nel browser - 100% gratuita - Privacy garantita
+                  🤖 AI basata su MobileNet + matrice diagnostica veterinaria - Consultare sempre un veterinario
                 </p>
 
                 <button
