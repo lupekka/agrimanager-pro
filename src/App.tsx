@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PawPrint, CalendarDays, TrendingUp, Network, Baby, Milk, Trash2, PlusCircle, LogOut, Lock, UserPlus, Menu, X, DollarSign, Search, History, Package, LayoutDashboard, Edit2, ChevronRight, CheckCircle2, MinusCircle } from 'lucide-react';
+import { PawPrint, CalendarDays, TrendingUp, Network, Baby, Milk, Trash2, PlusCircle, LogOut, Lock, UserPlus, Menu, X, DollarSign, Search, History, Package, LayoutDashboard, Edit2, ChevronRight, CheckCircle2, MinusCircle, FileText, Save } from 'lucide-react';
 
 // --- CONFIGURAZIONE FIREBASE ---
 import { initializeApp } from "firebase/app";
@@ -61,13 +61,17 @@ export default function App() {
   // Form States
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [newAnimal, setNewAnimal] = useState({ name: '', species: 'Maiali' as Species, birthDate: '', sire: '', dam: '' });
+  const [newAnimal, setNewAnimal] = useState({ name: '', species: 'Maiali' as Species, birthDate: '', sire: '', dam: '', notes: '' });
   const [newBirth, setNewBirth] = useState({ idCode: '', species: 'Maiali' as Species, count: 1, birthDate: '' });
   const [newProd, setNewProd] = useState({ item: '', quantity: 1, species: 'Maiali' as Species });
   const [newTrans, setNewTrans] = useState({ desc: '', amount: 0, type: 'Entrata' as 'Entrata' | 'Uscita', species: 'Maiali' as Species });
   const [newProduct, setNewProduct] = useState({ name: '', quantity: 0, unit: 'kg' });
   const [newTask, setNewTask] = useState('');
   const [searchTask, setSearchTask] = useState('');
+
+  // Edit States
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editData, setEditData] = useState({ name: '', notes: '' });
 
   const speciesList: Species[] = ['Maiali', 'Cavalli', 'Mucche', 'Galline', 'Oche'];
 
@@ -88,7 +92,28 @@ export default function App() {
     return () => { unsubA(); unsubB(); unsubP(); unsubT(); unsubTk(); unsubPr(); };
   }, [user]);
 
-  // FUNZIONI AZIONE
+  // FUNZIONI AUTOMATIZZATE
+  const handleSaveBirth = async () => {
+    if (!newBirth.idCode || newBirth.count <= 0) return;
+    await addDoc(collection(db, 'births'), { animalName: newBirth.idCode, species: newBirth.species, offspringCount: newBirth.count, birthDate: newBirth.birthDate, ownerId: user?.uid });
+    for (let i = 0; i < newBirth.count; i++) {
+      await addDoc(collection(db, 'animals'), {
+        name: `Figlio di ${newBirth.idCode} #${i + 1}`,
+        species: newBirth.species,
+        birthDate: newBirth.birthDate,
+        dam: newBirth.idCode,
+        notes: `Parto registrato da ${newBirth.idCode}`,
+        ownerId: user?.uid
+      });
+    }
+    setNewBirth({ idCode: '', species: 'Maiali', count: 1, birthDate: '' });
+  };
+
+  const handleAnimalEdit = async (id: string) => {
+    await updateDoc(doc(db, 'animals', id), { name: editData.name, notes: editData.notes });
+    setEditingId(null);
+  };
+
   const handleAddProduct = async () => {
     if (!newProduct.name || newProduct.quantity <= 0) return;
     const existing = products.find(p => p.name.toLowerCase() === newProduct.name.toLowerCase());
@@ -100,37 +125,17 @@ export default function App() {
     setNewProduct({ name: '', quantity: 0, unit: 'kg' });
   };
 
-  const reduceProduct = async (id: string, amount: number) => {
-    const p = products.find(prod => prod.id === id);
-    if (p && p.quantity >= amount) await updateDoc(doc(db, 'products', id), { quantity: p.quantity - amount });
-  };
-
-  const completeTask = async (task: Task) => {
-    await updateDoc(doc(db, 'tasks', task.id), { done: true, dateCompleted: new Date().toLocaleDateString('it-IT') });
-  };
-
-  const getGroupedHistory = () => {
-    const groups: Record<string, Task[]> = {};
-    tasks.filter(t => t.done && t.text.toLowerCase().includes(searchTask.toLowerCase())).forEach(t => {
-      const date = t.dateCompleted || 'Recenti';
-      if (!groups[date]) groups[date] = [];
-      groups[date].push(t);
-    });
-    return groups;
-  };
-
-  if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-emerald-800 bg-stone-50">Caricamento AgriManage Pro...</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-emerald-800 bg-stone-50 italic">AgriManage Pro...</div>;
 
   if (!user) {
     return (
       <div className="min-h-screen bg-emerald-900 flex items-center justify-center p-4">
         <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md">
-          <h1 className="text-3xl font-black text-center mb-6 text-emerald-950">AgriManage <span className="text-emerald-600">Pro</span></h1>
+          <h1 className="text-3xl font-black text-center mb-6 text-emerald-950 italic tracking-tighter">AgriManage <span className="text-emerald-600">Pro</span></h1>
           <div className="space-y-4">
             <input type="email" placeholder="Email" className="ui-input w-full border p-3 rounded-xl" onChange={e => setEmail(e.target.value)} />
             <input type="password" placeholder="Password" className="ui-input w-full border p-3 rounded-xl" onChange={e => setPassword(e.target.value)} />
             <button onClick={() => signInWithEmailAndPassword(auth, email, password)} className="w-full bg-emerald-600 text-white p-4 rounded-xl font-bold">Accedi</button>
-            <button onClick={() => createUserWithEmailAndPassword(auth, email, password)} className="w-full text-emerald-700 text-sm font-bold text-center">Registrati ora</button>
           </div>
         </div>
       </div>
@@ -158,7 +163,7 @@ export default function App() {
             { id: 'finance', label: 'Economia', icon: TrendingUp },
             { id: 'tasks', label: 'Attività', icon: CalendarDays }
           ].map(item => (
-            <button key={item.id} onClick={() => { setActiveTab(item.id); setIsMobileMenuOpen(false); }} className={`flex items-center gap-3 w-full p-3.5 rounded-xl font-bold text-sm transition-all ${activeTab === item.id ? 'bg-emerald-50 text-emerald-700' : 'text-stone-500 hover:bg-stone-50'}`}>
+            <button key={item.id} onClick={() => { setActiveTab(item.id); setIsMobileMenuOpen(false); }} className={`flex items-center gap-3 w-full p-3.5 rounded-xl font-bold text-sm transition-all ${activeTab === item.id ? 'bg-emerald-50 text-emerald-700 shadow-inner' : 'text-stone-500 hover:bg-stone-50'}`}>
               <item.icon size={20} /> {item.label}
             </button>
           ))}
@@ -166,77 +171,84 @@ export default function App() {
         <button onClick={() => signOut(auth)} className="mt-auto flex items-center gap-2 p-3 text-red-500 font-bold"><LogOut size={18} /> Esci</button>
       </aside>
 
-      <main className="flex-1 p-4 md:p-10 h-screen overflow-y-auto scroll-smooth">
-        <div className="mb-8 flex justify-between items-end">
-          <h2 className="text-4xl font-black text-emerald-950 capitalize tracking-tighter">{activeTab}</h2>
+      <main className="flex-1 p-4 md:p-10 h-screen overflow-y-auto">
+        <div className="mb-8 flex justify-between items-end border-b pb-4">
+          <h2 className="text-4xl font-black text-emerald-950 capitalize tracking-tighter italic">{activeTab}</h2>
           <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden bg-white p-3 rounded-xl border"><Menu size={24} /></button>
         </div>
 
-        {/* --- INVENTARIO CAPI (Punto 1: Data Nascita) --- */}
+        {/* --- INVENTARIO CAPI (Con Note e Edit) --- */}
         {activeTab === 'inventory' && (
-          <div className="space-y-8">
-            <div className="bg-white p-6 rounded-3xl border border-stone-100 shadow-sm">
-              <h3 className="text-lg font-bold mb-6 text-emerald-900 uppercase text-xs tracking-widest">Aggiungi Capo</h3>
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="space-y-10">
+            <div className="bg-white p-6 md:p-8 rounded-3xl border border-stone-100 shadow-sm">
+              <h3 className="text-xs font-black mb-6 text-emerald-900 uppercase tracking-widest flex items-center gap-2"><PlusCircle size={18}/> Registrazione Capo</h3>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                 <input placeholder="Codice/Nome" className="ui-input" value={newAnimal.name} onChange={e => setNewAnimal({...newAnimal, name: e.target.value})} />
                 <select className="ui-input" value={newAnimal.species} onChange={e => setNewAnimal({...newAnimal, species: e.target.value as Species})}>{speciesList.map(s => <option key={s}>{s}</option>)}</select>
                 <input type="date" className="ui-input" value={newAnimal.birthDate} onChange={e => setNewAnimal({...newAnimal, birthDate: e.target.value})} />
                 <select className="ui-input text-xs" value={newAnimal.sire} onChange={e => setNewAnimal({...newAnimal, sire: e.target.value})}><option value="">Padre (Ignoto)</option>{animals.filter(a => a.species === newAnimal.species).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
-                <button onClick={async () => { if(!newAnimal.name) return; await addDoc(collection(db, 'animals'), { ...newAnimal, notes: '', ownerId: user.uid }); setNewAnimal({name:'', species:'Maiali', birthDate:'', sire:'', dam:''}); }} className="bg-emerald-600 text-white font-bold rounded-xl py-3">Salva</button>
               </div>
+              <textarea placeholder="Inserisci note (es. trattamenti, caratteristiche...)" className="ui-input w-full mb-4 h-20 resize-none" value={newAnimal.notes} onChange={e => setNewAnimal({...newAnimal, notes: e.target.value})}></textarea>
+              <button onClick={async () => { if(!newAnimal.name) return; await addDoc(collection(db, 'animals'), { ...newAnimal, ownerId: user.uid }); setNewAnimal({name:'', species:'Maiali', birthDate:'', sire:'', dam:'', notes:''}); }} className="bg-emerald-600 text-white font-bold rounded-xl py-3 px-10 hover:shadow-lg transition">Salva Anagrafica</button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {animals.map(a => (
-                <div key={a.id} className="bg-white p-5 rounded-2xl border relative group shadow-sm">
-                  <h4 className="text-xl font-black">{a.name}</h4>
-                  <p className="text-xs text-stone-400 mt-2 flex items-center gap-1.5 uppercase font-bold tracking-widest text-emerald-600">{a.species}</p>
-                  <p className="text-xs text-stone-400 mt-1 italic">Nato: {a.birthDate || 'N/D'}</p>
-                  <button onClick={() => deleteDoc(doc(db, 'animals', a.id))} className="absolute top-4 right-4 text-stone-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={18}/></button>
+
+            {speciesList.map(species => (
+              <div key={species} className="space-y-4">
+                <h3 className="text-2xl font-black text-emerald-950 uppercase italic border-b border-stone-200 pb-2">{species} <span className="text-xs font-normal text-stone-400 normal-case ml-2">({animals.filter(a => a.species === species).length} individui)</span></h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {animals.filter(a => a.species === species).map(a => (
+                    <div key={a.id} className="bg-white p-6 rounded-2xl border relative group shadow-sm hover:border-emerald-200 transition-all">
+                      {editingId === a.id ? (
+                        <div className="space-y-3">
+                          <input className="ui-input w-full text-sm font-bold" value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} />
+                          <textarea className="ui-input w-full text-xs h-20 resize-none" value={editData.notes} onChange={e => setEditData({...editData, notes: e.target.value})} />
+                          <div className="flex gap-2">
+                            <button onClick={() => handleAnimalEdit(a.id)} className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1"><Save size={14}/> Salva</button>
+                            <button onClick={() => setEditingId(null)} className="text-stone-400 text-xs font-bold">Annulla</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <h4 className="text-xl font-black text-stone-800">{a.name}</h4>
+                          <p className="text-[10px] text-stone-400 mt-2 flex items-center gap-1.5 font-bold uppercase tracking-widest"><CalendarDays size={12}/> {a.birthDate || 'N/D'}</p>
+                          {a.notes && (
+                            <div className="mt-4 p-3 bg-stone-50 rounded-xl border border-stone-100 flex gap-2">
+                              <FileText size={14} className="text-emerald-500 shrink-0" />
+                              <p className="text-xs text-stone-500 italic leading-relaxed">{a.notes}</p>
+                            </div>
+                          )}
+                          <div className="absolute top-4 right-4 flex gap-2 md:opacity-0 group-hover:opacity-100 transition-all">
+                            <button onClick={() => { setEditingId(a.id); setEditData({name: a.name, notes: a.notes}); }} className="text-stone-300 hover:text-emerald-500 p-1"><Edit2 size={16}/></button>
+                            <button onClick={() => deleteDoc(doc(db, 'animals', a.id))} className="text-stone-300 hover:text-red-500 p-1"><Trash2 size={16}/></button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         )}
 
-        {/* --- REGISTRO PARTI (Punto 2: Layout e Specie) --- */}
+        {/* --- REGISTRO PARTI --- */}
         {activeTab === 'births' && (
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-3xl border shadow-sm">
+              <h3 className="font-bold mb-6 text-emerald-900 uppercase text-xs tracking-widest flex items-center gap-2"><Baby size={18}/> Nuovo Evento Riproduttivo</h3>
               <div className="flex flex-col md:flex-row gap-4 items-end">
-                <div className="flex-1 w-full"><label className="text-[10px] font-black text-stone-400 mb-1 block uppercase">Nome Madre</label><input className="ui-input w-full" value={newBirth.idCode} onChange={e => setNewBirth({...newBirth, idCode: e.target.value})} /></div>
+                <div className="flex-1 w-full"><label className="text-[10px] font-black text-stone-400 mb-1 block uppercase">Madre</label><input className="ui-input w-full" value={newBirth.idCode} onChange={e => setNewBirth({...newBirth, idCode: e.target.value})} /></div>
                 <div className="w-full md:w-44"><label className="text-[10px] font-black text-stone-400 mb-1 block uppercase">Specie</label><select className="ui-input w-full" value={newBirth.species} onChange={e => setNewBirth({...newBirth, species: e.target.value as Species})}>{speciesList.map(s => <option key={s}>{s}</option>)}</select></div>
                 <div className="w-full md:w-24"><label className="text-[10px] font-black text-stone-400 mb-1 block uppercase">Q.tà Nati</label><input type="number" className="ui-input w-full" value={newBirth.count} onChange={e => setNewBirth({...newBirth, count: parseInt(e.target.value)})} /></div>
-                <div className="w-full md:w-44"><label className="text-[10px] font-black text-stone-400 mb-1 block uppercase">Data</label><input type="date" className="ui-input w-full" value={newBirth.birthDate} onChange={e => setNewBirth({...newBirth, birthDate: e.target.value})} /></div>
-                <button onClick={async () => { if(!newBirth.idCode) return; await addDoc(collection(db, 'births'), { animalName: newBirth.idCode, species: newBirth.species, offspringCount: newBirth.count, birthDate: newBirth.birthDate, ownerId: user.uid }); setNewBirth({idCode:'', species:'Maiali', count:1, birthDate:''}); }} className="bg-emerald-600 text-white px-8 h-12 rounded-xl font-bold">Salva</button>
+                <div className="w-full md:w-44"><label className="text-[10px] font-black text-stone-400 mb-1 block uppercase">Data Nascita</label><input type="date" className="ui-input w-full" value={newBirth.birthDate} onChange={e => setNewBirth({...newBirth, birthDate: e.target.value})} /></div>
+                <button onClick={handleSaveBirth} className="bg-emerald-600 text-white px-8 h-12 rounded-xl font-bold hover:shadow-lg transition">Registra e Genera</button>
               </div>
             </div>
-            <div className="bg-white rounded-2xl border divide-y shadow-sm">
+            <div className="bg-white rounded-2xl border divide-y shadow-sm overflow-hidden">
               {births.map(b => (
-                <div key={b.id} className="p-4 flex justify-between items-center group">
+                <div key={b.id} className="p-4 flex justify-between items-center group hover:bg-stone-50 transition">
                   <div><p className="font-bold">{b.animalName} <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 ml-2 font-black uppercase">{b.species}</span></p><p className="text-xs text-stone-400">{b.offspringCount} nati il {b.birthDate}</p></div>
-                  <button onClick={() => deleteDoc(doc(db, 'births', b.id))} className="text-red-300 hover:text-red-500"><Trash2 size={18}/></button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* --- PRODUZIONE (Punto 3: Aggiunta/Modifica) --- */}
-        {activeTab === 'production' && (
-          <div className="space-y-6">
-            <div className="bg-white p-6 rounded-3xl border shadow-sm">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <input placeholder="Prodotto" className="ui-input" value={newProd.item} onChange={e => setNewProd({...newProd, item: e.target.value})} />
-                <input type="number" className="ui-input" value={newProd.quantity} onChange={e => setNewProd({...newProd, quantity: parseFloat(e.target.value)})} />
-                <select className="ui-input" value={newProd.species} onChange={e => setNewProd({...newProd, species: e.target.value as Species})}>{speciesList.map(s => <option key={s}>{s}</option>)}</select>
-                <button onClick={async () => { if(!newProd.item) return; await addDoc(collection(db, 'production'), { ...newProd, date: new Date().toLocaleDateString('it-IT'), ownerId: user.uid }); setNewProd({item:'', quantity:1, species:'Maiali'}); }} className="bg-emerald-600 text-white font-bold rounded-xl py-3">Registra</button>
-              </div>
-            </div>
-            <div className="bg-white rounded-2xl border divide-y shadow-sm">
-              {production.map(p => (
-                <div key={p.id} className="p-4 flex justify-between items-center group">
-                  <div><p className="font-bold">{p.item} ({p.species})</p><p className="text-xs text-stone-500">Q.tà: {p.quantity} - {p.date}</p></div>
-                  <button onClick={() => deleteDoc(doc(db, 'production', p.id))} className="text-red-300 hover:text-red-500"><Trash2 size={18}/></button>
+                  <button onClick={() => deleteDoc(doc(db, 'births', b.id))} className="text-red-300 hover:text-red-500 p-2 transition"><Trash2 size={18}/></button>
                 </div>
               ))}
             </div>
@@ -248,8 +260,8 @@ export default function App() {
           <div className="space-y-6">
             {speciesList.map(species => (
               <div key={species} className="bg-white p-6 md:p-8 rounded-3xl border shadow-sm">
-                <h3 className="text-2xl font-black text-emerald-950 mb-6 border-b pb-4 uppercase tracking-tighter">{species}</h3>
-                {animals.filter(a => a.species === species && !a.sire).map(founder => (
+                <h3 className="text-2xl font-black text-emerald-950 mb-6 border-b pb-4 uppercase tracking-tighter italic">{species}</h3>
+                {animals.filter(a => a.species === species && !a.sire && !a.dam).map(founder => (
                   <div key={founder.id} className="mb-6 last:mb-0"><DynastyBranch animal={founder} allAnimals={animals} level={0} /></div>
                 ))}
               </div>
@@ -257,18 +269,17 @@ export default function App() {
           </div>
         )}
 
-        {/* --- PRODOTTI (Punto 4: Somma Automatica) --- */}
+        {/* --- PRODOTTI --- */}
         {activeTab === 'products' && (
           <div className="space-y-8">
             <div className="bg-white p-8 rounded-3xl border shadow-sm">
-              <h3 className="text-xl font-bold mb-6">Gestione Scorte Smart</h3>
+              <h3 className="text-xl font-bold mb-6">Magazzino Scorte</h3>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <input placeholder="Nome Prodotto" className="ui-input" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
+                <input placeholder="Prodotto" className="ui-input" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
                 <input placeholder="Q.tà" type="number" className="ui-input" value={newProduct.quantity || ''} onChange={e => setNewProduct({...newProduct, quantity: parseFloat(e.target.value)})} />
                 <select className="ui-input" value={newProduct.unit} onChange={e => setNewProduct({...newProduct, unit: e.target.value})}><option>kg</option><option>litri</option><option>unità</option></select>
-                <button onClick={handleAddProduct} className="bg-emerald-600 text-white font-bold rounded-xl py-3">Carica</button>
+                <button onClick={handleAddProduct} className="bg-emerald-600 text-white font-bold rounded-xl py-3 shadow-lg">Carica</button>
               </div>
-              <p className="text-[10px] text-stone-400 mt-4 uppercase font-bold italic">* Prodotti con lo stesso nome verranno sommati automaticamente.</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               {products.map(p => (
@@ -286,7 +297,7 @@ export default function App() {
           </div>
         )}
 
-        {/* --- ECONOMIA (Punto 5: Specie Movimento) --- */}
+        {/* --- ECONOMIA --- */}
         {activeTab === 'finance' && (
           <div className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4 bg-white p-6 rounded-3xl border shadow-sm">
@@ -294,32 +305,34 @@ export default function App() {
               <input placeholder="Costo €" type="number" className="ui-input" value={newTrans.amount || ''} onChange={e => setNewTrans({...newTrans, amount: parseFloat(e.target.value)})} />
               <select className="ui-input font-bold" value={newTrans.type} onChange={e => setNewTrans({...newTrans, type: e.target.value as any})}><option>Entrata</option><option>Uscita</option></select>
               <select className="ui-input" value={newTrans.species} onChange={e => setNewTrans({...newTrans, species: e.target.value as Species})}>{speciesList.map(s => <option key={s}>{s}</option>)}</select>
-              <button onClick={async () => { if(!newTrans.desc) return; await addDoc(collection(db, 'transactions'), { ...newTrans, date: new Date().toLocaleDateString('it-IT'), ownerId: user.uid }); setNewTrans({desc:'', amount:0, type:'Entrata', species:'Maiali'}); }} className="bg-emerald-600 text-white font-bold rounded-xl py-3">Registra</button>
+              <button onClick={async () => { if(!newTrans.desc) return; await addDoc(collection(db, 'transactions'), { ...newTrans, date: new Date().toLocaleDateString('it-IT'), ownerId: user.uid }); setNewTrans({desc:'', amount:0, type:'Entrata', species:'Maiali'}); }} className="bg-emerald-600 text-white font-bold rounded-xl py-3 hover:shadow-lg transition">Registra</button>
             </div>
-            {speciesList.map(s => (
-              <div key={s} className="bg-white p-4 rounded-xl border flex justify-between items-center">
-                <h4 className="font-black uppercase text-xs text-stone-400 tracking-widest">{s}</h4>
-                <span className={`text-xl font-black ${transactions.filter(t => t.species === s).reduce((acc, t) => acc + (t.type === 'Entrata' ? t.amount : -t.amount), 0) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                  € {transactions.filter(t => t.species === s).reduce((acc, t) => acc + (t.type === 'Entrata' ? t.amount : -t.amount), 0).toFixed(2)}
-                </span>
-              </div>
-            ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {speciesList.map(s => (
+                <div key={s} className="bg-white p-4 rounded-xl border flex justify-between items-center shadow-sm">
+                  <h4 className="font-black uppercase text-xs text-stone-400 tracking-widest italic">{s}</h4>
+                  <span className={`text-xl font-black ${transactions.filter(t => t.species === s).reduce((acc, t) => acc + (t.type === 'Entrata' ? t.amount : -t.amount), 0) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                    € {transactions.filter(t => t.species === s).reduce((acc, t) => acc + (t.type === 'Entrata' ? t.amount : -t.amount), 0).toFixed(2)}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
-        {/* --- ATTIVITÀ (Punto 6: Storico e Ricerca) --- */}
+        {/* --- ATTIVITÀ --- */}
         {activeTab === 'tasks' && (
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-10 pb-20">
             <div className="bg-white p-6 md:p-8 rounded-3xl border shadow-sm">
-              <h3 className="text-xl font-bold mb-6 text-emerald-950 uppercase text-xs tracking-widest">Agenda Oggi</h3>
+              <h3 className="text-xl font-bold mb-6 text-emerald-950 uppercase text-xs tracking-widest">Agenda Operativa</h3>
               <div className="flex gap-3 mb-8">
                 <input className="ui-input flex-1" value={newTask} onChange={e => setNewTask(e.target.value)} placeholder="Aggiungi impegno..." />
                 <button onClick={async () => { if(newTask) { await addDoc(collection(db, 'tasks'), { text: newTask, done: false, ownerId: user.uid }); setNewTask(''); } }} className="bg-emerald-600 text-white px-6 rounded-xl font-bold">Aggiungi</button>
               </div>
               <div className="space-y-2">
                 {tasks.filter(t => !t.done).map(t => (
-                  <div key={t.id} className="flex items-center justify-between p-4 bg-stone-50 rounded-xl group hover:bg-emerald-50">
-                    <div className="flex items-center gap-4"><button onClick={() => completeTask(t)} className="text-stone-300 hover:text-emerald-500"><CheckCircle2 size={24}/></button><span className="font-bold text-stone-700">{t.text}</span></div>
+                  <div key={t.id} className="flex items-center justify-between p-4 bg-stone-50 rounded-xl group transition-all hover:bg-emerald-50">
+                    <div className="flex items-center gap-4"><button onClick={async () => await updateDoc(doc(db, 'tasks', t.id), { done: true, dateCompleted: new Date().toLocaleDateString('it-IT') })} className="text-stone-300 hover:text-emerald-500"><CheckCircle2 size={24}/></button><span className="font-bold text-stone-700">{t.text}</span></div>
                     <button onClick={() => deleteDoc(doc(db, 'tasks', t.id))} className="text-red-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={18}/></button>
                   </div>
                 ))}
@@ -328,14 +341,14 @@ export default function App() {
             <div className="bg-white p-6 md:p-8 rounded-3xl border shadow-sm flex flex-col max-h-[600px]">
               <div className="flex justify-between items-center mb-6 border-b pb-4">
                 <h3 className="text-xs font-black text-stone-400 uppercase tracking-widest flex items-center gap-2"><History size={16}/> Storico Lavori</h3>
-                <div className="relative"><Search className="absolute left-3 top-2.5 text-stone-300" size={14}/><input className="ui-input pl-9 py-2 text-xs w-44" placeholder="Cerca nel passato..." value={searchTask} onChange={e => setSearchTask(e.target.value)} /></div>
+                <div className="relative w-44"><Search className="absolute left-3 top-2.5 text-stone-300" size={14}/><input className="ui-input pl-9 py-2 text-xs" placeholder="Cerca..." value={searchTask} onChange={e => setSearchTask(e.target.value)} /></div>
               </div>
               <div className="space-y-6 overflow-y-auto pr-2">
-                {Object.entries(getGroupedHistory()).sort((a,b) => b[0].localeCompare(a[0])).map(([date, items]) => (
+                {Array.from(new Set(tasks.filter(t => t.done).map(t => t.dateCompleted))).sort().reverse().map(date => (
                   <div key={date}>
                     <p className="text-[10px] font-black text-emerald-600 uppercase mb-3 bg-emerald-50 inline-block px-2 py-1 rounded">{date}</p>
                     <div className="space-y-1">
-                      {items.map(i => (
+                      {tasks.filter(t => t.done && t.dateCompleted === date && t.text.toLowerCase().includes(searchTask.toLowerCase())).map(i => (
                         <div key={i.id} className="flex justify-between items-center group p-1">
                           <p className="text-sm text-stone-400 line-through">• {i.text}</p>
                           <button onClick={() => deleteDoc(doc(db, 'tasks', i.id))} className="text-red-200 hover:text-red-500 opacity-0 group-hover:opacity-100"><Trash2 size={14}/></button>
