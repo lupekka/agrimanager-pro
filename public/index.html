@@ -2,19 +2,179 @@
 <html lang="it">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
+    <!-- VIEWPORT OTTIMIZZATO -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes, viewport-fit=cover" />
+    
+    <!-- PWA / iOS MIGLIORATO -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#F8F9FA" />
+    <meta name="apple-mobile-web-app-title" content="AgriManage">
+    <meta name="theme-color" content="#059669" />
     
-    <title>AgriManage</title>
+    <!-- META PER SOCIAL -->
+    <meta name="description" content="Gestione agricola professionale">
+    <meta name="format-detection" content="telephone=no">
+    
+    <title>AgriManage Pro</title>
+    
+    <!-- FONT OTTIMIZZATI -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,800;1,800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Plus+Jakarta+Sans:ital,wght@0,800;1,800&display=swap" rel="stylesheet">
+    
+    <!-- TAILWIND CON CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- CONFIGURAZIONE TAILWIND PERSONALIZZATA -->
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              emerald: {
+                50: '#ecfdf5',
+                100: '#d1fae5',
+                200: '#a7f3d0',
+                300: '#6ee7b7',
+                400: '#34d399',
+                500: '#10b981',
+                600: '#059669',
+                700: '#047857',
+                800: '#065f46',
+                900: '#064e3b',
+                950: '#022c22',
+              }
+            },
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              display: ['Plus Jakarta Sans', 'sans-serif'],
+            },
+            animation: {
+              'fade-in': 'fadeIn 0.3s ease-out',
+              'slide-up': 'slideUp 0.3s ease-out',
+              'bounce-slow': 'bounce 2s infinite',
+            },
+            keyframes: {
+              fadeIn: {
+                '0%': { opacity: '0', transform: 'translateY(10px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              },
+              slideUp: {
+                '0%': { opacity: '0', transform: 'translateY(20px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              }
+            }
+          }
+        }
+      }
+    </script>
+    
+    <!-- STILI PERSONALIZZATI PER SAFE AREA -->
+    <style>
+      /* Reset margin/padding per body */
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Inter', sans-serif;
+        background-color: #F8F9FA;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      
+      /* Utility per safe area */
+      .pt-safe {
+        padding-top: env(safe-area-inset-top);
+      }
+      .pb-safe {
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+      .pl-safe {
+        padding-left: env(safe-area-inset-left);
+      }
+      .pr-safe {
+        padding-right: env(safe-area-inset-right);
+      }
+      
+      /* Safe area combinate */
+      .safe-inset {
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+      }
+      
+      /* Scrollbar personalizzata */
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+        height: 4px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 20px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #059669;
+        border-radius: 20px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #047857;
+      }
+      
+      /* Nascondi scrollbar mobile */
+      .hide-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      .hide-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      
+      /* Animazioni */
+      .animate-in {
+        animation: fadeIn 0.3s ease-out;
+      }
+      
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      
+      /* Utilità per text balancing */
+      .text-balance {
+        text-wrap: balance;
+      }
+      
+      /* Miglioramenti tap target per mobile */
+      @media (max-width: 768px) {
+        button, 
+        [role="button"],
+        a {
+          min-height: 44px;
+          min-width: 44px;
+        }
+      }
+      
+      /* Prevenire selezione testo su UI elements */
+      .no-select {
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+    </style>
   </head>
-  <body>
-    <noscript>Abilita JS per usare l'app.</noscript>
+  
+  <body class="bg-[#F8F9FA] antialiased no-select">
+    <noscript>
+      <div style="text-align: center; padding: 20px; font-family: system-ui; background: #F8F9FA; min-height: 100vh; display: flex; align-items: center; justify-content: center;">
+        <div style="max-width: 300px; padding: 30px; background: white; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
+          <h1 style="font-size: 24px; font-weight: 800; color: #059669; margin-bottom: 10px;">AgriManage Pro</h1>
+          <p style="color: #4b5563; margin-bottom: 20px;">⚠️ Abilita JavaScript per utilizzare l'applicazione.</p>
+          <p style="font-size: 12px; color: #9ca3af;">Gestione agricola professionale</p>
+        </div>
+      </div>
+    </noscript>
+    
     <div id="root"></div>
   </body>
 </html>
