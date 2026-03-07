@@ -6,7 +6,8 @@ import {
   MinusCircle, Activity, ListChecks, Wallet,
   ArrowUpRight, ArrowDownLeft, Ghost, UserPlus, Stethoscope, 
   UploadCloud, AlertTriangle, FileDown, Store, ShoppingBag, 
-  MessageCircle, Mail, Bot, Info, Send, Save, ArrowRightLeft, Plus, ChevronDown, ChevronRight
+  MessageCircle, Mail, Bot, Info, Send, Save, ArrowRightLeft, Plus, ChevronDown, ChevronRight,
+  Camera
 } from 'lucide-react';
 
 import jsPDF from 'jspdf';
@@ -16,6 +17,7 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, query, where, getDocs, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, setDoc, getDoc, orderBy, limit } from "firebase/firestore";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, User } from "firebase/auth";
 
+// TensorFlow per AI locale (gratuita)
 import * as tf from '@tensorflow/tfjs';
 import * as cocoSsd from '@tensorflow-models/coco-ssd';
 
@@ -59,7 +61,8 @@ const DynastyBranch = ({ animal, allAnimals, level = 0 }: { animal: Animal, allA
 export default function App() {
   // STATO ASSISTENTE
   const [showAssistant, setShowAssistant] = useState(false);
-
+  
+  // STATO MODELLO TENSORFLOW
   const [model, setModel] = useState(null);
   const [modelLoading, setModelLoading] = useState(false);
   
@@ -164,24 +167,27 @@ export default function App() {
     return () => unsubs.forEach(u => u());
   }, [user?.uid, userRole]);
 
-  // 🆕 TENSORFLOW (da aggiungere ORA)
+  // Caricamento modello TensorFlow per il Vet IA
   useEffect(() => {
     const loadModel = async () => {
       if (activeTab === 'vet' && !model && !modelLoading) {
         setModelLoading(true);
         try {
+          console.log("Caricamento modello AI in corso...");
           const loadedModel = await cocoSsd.load();
           setModel(loadedModel);
+          console.log("✅ Modello AI caricato con successo!");
         } catch (error) {
-          console.error(error);
+          console.error("❌ Errore caricamento modello:", error);
         } finally {
           setModelLoading(false);
         }
       }
     };
+    
     loadModel();
   }, [activeTab, model, modelLoading]);
-  
+
   // FUNZIONI
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -197,7 +203,6 @@ export default function App() {
   const handleSaveAnimal = async () => {
     if (!newAnimal.name.trim()) return alert("Codice Capo richiesto.");
     
-    // Verifica che i genitori esistano (se specificati)
     if (newAnimal.sire) {
       const sireExists = animals.some(a => a.name === newAnimal.sire || a.id === newAnimal.sire);
       if (!sireExists) {
@@ -234,10 +239,6 @@ export default function App() {
   const handleUpdateNotes = async (id: string) => {
     await updateDoc(doc(db, 'animals', id), { notes: editNote });
     setEditingAnimalId(null);
-  };
-
-  const handleUpdateParents = async (id: string, sire: string, dam: string) => {
-    await updateDoc(doc(db, 'animals', id), { sire, dam });
   };
 
   const handleSaveTransaction = async () => {
@@ -323,14 +324,12 @@ export default function App() {
     if (!newBirth.birthDate) return alert("Inserisci la data di nascita.");
     
     try {
-      // Trova la madre
       const mother = animals.find(a => a.name === newBirth.idCode || a.id === newBirth.idCode);
       
       if (!mother) {
         return alert("Madre non trovata. Verifica il codice.");
       }
       
-      // Crea i nuovi capi
       for (let i = 0; i < newBirth.count; i++) {
         const birthDate = new Date(newBirth.birthDate);
         const defaultName = `${newBirth.species.substring(0, 3)}-${birthDate.getFullYear()}-${String(i + 1).padStart(2, '0')}`;
@@ -345,7 +344,6 @@ export default function App() {
         });
       }
       
-      // Registra evento nella cronologia (opzionale)
       await addDoc(collection(db, 'stock_logs'), {
         productName: `Nascita ${newBirth.species}`,
         change: newBirth.count,
@@ -359,6 +357,26 @@ export default function App() {
     } catch (error) {
       console.error("Errore nel salvataggio:", error);
       alert("Errore durante la registrazione dei parti.");
+    }
+  };
+
+  // Funzione per analizzare l'immagine con TensorFlow.js
+  const analyzeImageWithTensorFlow = async (imageElement) => {
+    if (!model) return [];
+    
+    try {
+      const predictions = await model.detect(imageElement);
+      
+      const animalKeywords = ['animal', 'dog', 'cat', 'cow', 'horse', 'sheep', 'pig', 'chicken', 'bird', 'leg', 'head', 'ear', 'eye', 'nose', 'mouth', 'hoof', 'tail'];
+      
+      const relevantPredictions = predictions.filter(p => 
+        animalKeywords.some(keyword => p.class.toLowerCase().includes(keyword))
+      );
+      
+      return relevantPredictions.length > 0 ? relevantPredictions : predictions;
+    } catch (error) {
+      console.error("Errore analisi:", error);
+      return [];
     }
   };
 
@@ -761,50 +779,262 @@ export default function App() {
           </div>
         )}
 
-        {/* 6. VET IA */}
+        {/* 6. VET IA - VERSIONE TENSORFLOW.JS (100% GRATUITA) */}
         {activeTab === 'vet' && userRole === 'farmer' && (
-          <div className="bg-white p-6 rounded-3xl border shadow-xl max-w-lg mx-auto animate-in zoom-in-95 border-t-8 border-blue-600">
-            <div className="bg-blue-600 p-6 rounded-2xl text-white mb-6 flex items-center gap-4 shadow-lg shadow-blue-200">
-               <Stethoscope size={40} strokeWidth={1} />
-               <div>
-                  <h3 className="text-xl font-black uppercase italic leading-none mb-1 tracking-tighter">Diagnosi IA</h3>
-                  <p className="text-blue-100 font-bold opacity-90 text-[10px] uppercase tracking-[0.2em] italic leading-none">Triage clinico 2026</p>
-               </div>
+          <div className="bg-white p-6 rounded-3xl border shadow-xl max-w-lg mx-auto border-t-8 border-blue-600">
+            <div className="bg-blue-600 p-6 rounded-2xl text-white mb-6 flex items-center gap-4 shadow-lg">
+              <Stethoscope size={40} strokeWidth={1} />
+              <div>
+                <h3 className="text-xl font-black uppercase italic leading-none mb-1">Diagnosi IA</h3>
+                <p className="text-blue-100 text-[10px] uppercase tracking-widest">
+                  {modelLoading ? "⏳ Caricamento AI..." : model ? "✓ AI Pronta" : "Clicca per caricare AI"}
+                </p>
+              </div>
             </div>
 
             <div className="space-y-4 mb-6">
-                <div className="space-y-1.5">
-                    <p className="text-[10px] font-black text-stone-700 uppercase tracking-widest italic ml-2">Foto Sintomo</p>
-                    <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-stone-300 rounded-2xl cursor-pointer hover:bg-blue-50 hover:border-blue-400 transition-all relative overflow-hidden bg-stone-50 shadow-inner">
-                        {vetImage ? (
-                            <img src={vetImage} alt="Analisi" className="w-full h-full object-cover animate-in fade-in" />
-                        ) : (
-                            <div className="flex flex-col items-center justify-center text-center">
-                                <UploadCloud size={32} className="text-stone-500 mb-2" />
-                                <p className="text-[9px] font-black text-stone-600 uppercase tracking-widest">Carica Allegato</p>
-                            </div>
-                        )}
-                        <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                    </label>
+              {/* Sezione Foto */}
+              <div>
+                <p className="text-[10px] font-black text-stone-700 uppercase mb-2 flex items-center gap-2">
+                  <Camera size={14} /> Foto del sintomo
+                </p>
+                <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-2xl cursor-pointer hover:bg-blue-50 transition-all bg-stone-50">
+                  {vetImage ? (
+                    <div className="relative w-full h-full">
+                      <img 
+                        src={vetImage} 
+                        alt="Sintomo" 
+                        className="w-full h-full object-cover rounded-2xl"
+                        id="vet-analysis-image"
+                      />
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setVetImage(null);
+                        }}
+                        className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="text-center p-4">
+                      <UploadCloud size={32} className="text-stone-400 mx-auto mb-2" />
+                      <p className="text-[9px] font-bold text-stone-600">CLICCA PER CARICARE</p>
+                      <p className="text-[7px] text-stone-400 mt-1">(foto dell'animale o del sintomo)</p>
+                    </div>
+                  )}
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden" 
+                    onChange={handleImageUpload}
+                  />
+                </label>
+              </div>
+
+              {/* Sezione Sintomi */}
+              <div>
+                <p className="text-[10px] font-black text-stone-700 uppercase mb-2 flex items-center gap-2">
+                  <MessageCircle size={14} /> Sintomi
+                </p>
+                
+                <div className="flex flex-wrap gap-1 mb-3">
+                  {['Febbre', 'Tosse', 'Diarrea', 'Zoppia', 'Gonfiore', 'Ferita', 'Inappetenza', 'Letargia'].map(s => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setVetSymptom(prev => prev ? `${prev}, ${s.toLowerCase()}` : s.toLowerCase())}
+                      className="text-[8px] bg-stone-100 hover:bg-blue-100 px-2 py-1 rounded-full font-bold"
+                    >
+                      + {s}
+                    </button>
+                  ))}
                 </div>
-                <div className="space-y-1.5">
-                    <p className="text-[10px] font-black text-stone-700 uppercase tracking-widest italic ml-2 leading-none">Sintomi</p>
-                    <textarea className="w-full p-4 bg-stone-50 border-none rounded-2xl font-black text-sm h-32 shadow-inner italic placeholder:text-stone-400 text-stone-800 focus:ring-2 focus:ring-blue-100 transition-all" placeholder="Descrivi il problema..." value={vetSymptom} onChange={e=>setVetSymptom(e.target.value)}></textarea>
-                </div>
+
+                <textarea
+                  className="w-full p-4 bg-stone-50 rounded-2xl font-bold text-sm h-32 shadow-inner"
+                  placeholder="Descrivi i sintomi in dettaglio..."
+                  value={vetSymptom}
+                  onChange={e => setVetSymptom(e.target.value)}
+                />
+              </div>
             </div>
 
-            <button onClick={()=>{setIsAnalyzing(true); setTimeout(()=>{setVetResult({title:"Esito Preliminare", desc:"I sintomi potrebbero indicare un inizio di infezione o stress termico elevato.", action:"ISOLARE IL CAPO E MONITORARE LA TEMPERATURA"}); setIsAnalyzing(false);},3000)}} className="w-full bg-stone-950 text-white py-4 rounded-xl font-black uppercase tracking-[0.2em] text-[11px] shadow-lg active:scale-95 transition-all">
-              {isAnalyzing ? <><Activity className="animate-spin inline mr-2" size={14}/> Elaborazione...</> : "Avvia Analisi"}
+            {/* Pulsante Analisi */}
+            <button
+              onClick={async () => {
+                if (!vetSymptom.trim() && !vetImage) {
+                  alert("Inserisci almeno un sintomo o carica una foto");
+                  return;
+                }
+                
+                setIsAnalyzing(true);
+                
+                try {
+                  let aiPredictions = [];
+                  
+                  // Analizza la foto con TensorFlow.js se presente
+                  if (vetImage && model) {
+                    const img = document.getElementById('vet-analysis-image');
+                    if (img && img.complete) {
+                      aiPredictions = await analyzeImageWithTensorFlow(img);
+                    }
+                  }
+                  
+                  // Logica di diagnosi
+                  const symptoms = vetSymptom.toLowerCase();
+                  
+                  // Costruisci il risultato
+                  let title = "Analisi in corso";
+                  let possibleCauses = [];
+                  let action = "";
+                  let severity = "medium";
+                  let visualDesc = "";
+                  
+                  if (aiPredictions.length > 0) {
+                    // Cosa ha visto l'AI
+                    const detectedItems = aiPredictions.map(p => 
+                      `${p.class} (${Math.round(p.score*100)}%)`
+                    ).join(', ');
+                    
+                    visualDesc = `Nell'immagine ho rilevato: ${detectedItems}. `;
+                    
+                    // Diagnosi basata su quello che l'AI ha visto
+                    if (aiPredictions.some(p => p.class.includes('cow') || p.class.includes('horse') || p.class.includes('sheep') || p.class.includes('pig'))) {
+                      const animal = aiPredictions.find(p => p.class.includes('cow') || p.class.includes('horse') || p.class.includes('sheep') || p.class.includes('pig'))?.class;
+                      
+                      if (symptoms.includes('zoppia')) {
+                        title = `Problema locomotorio in ${animal}`;
+                        possibleCauses = ["Trauma", "Artrite", "Ascesso podale", "Corpo estraneo"];
+                        action = "ISPEZIONARE L'ARTO, VERIFICARE PRESENZA DI CORPI ESTRANEI, CONTATTARE VETERINARIO";
+                      } else if (symptoms.includes('tosse') || symptoms.includes('febbre')) {
+                        title = `Possibile infezione respiratoria in ${animal}`;
+                        possibleCauses = ["Influenza", "Bronchite", "Polmonite"];
+                        action = "ISOLARE IL CAPO, MONITORARE TEMPERATURA, CONTATTARE VETERINARIO";
+                        severity = "high";
+                      } else if (symptoms.includes('diarrea')) {
+                        title = `Problema gastrointestinale in ${animal}`;
+                        possibleCauses = ["Parassiti", "Infezione batterica", "Alimentazione"];
+                        action = "SOSPENDERE ALIMENTAZIONE PER 12H, GARANTIRE ACQUA, CONTATTARE VETERINARIO";
+                        severity = "high";
+                      }
+                    }
+                  }
+                  
+                  // Se non c'è diagnosi specifica
+                  if (!title || title === "Analisi in corso") {
+                    if (symptoms.includes('febbre') || symptoms.includes('tosse')) {
+                      title = "Possibile infezione respiratoria";
+                      possibleCauses = ["Influenza", "Bronchite", "Polmonite"];
+                      action = "ISOLARE IL CAPO, MONITORARE TEMPERATURA, CONTATTARE VETERINARIO";
+                      severity = "high";
+                    } else if (symptoms.includes('diarrea')) {
+                      title = "Problema gastrointestinale";
+                      possibleCauses = ["Parassiti", "Infezione batterica", "Alimentazione"];
+                      action = "SOSPENDERE ALIMENTAZIONE PER 12H, GARANTIRE ACQUA, CONTATTARE VETERINARIO";
+                      severity = "high";
+                    } else {
+                      title = "Sintomi aspecifici";
+                      possibleCauses = ["Stress", "Malessere generale", "Infezione in fase iniziale"];
+                      action = "MONITORARE L'EVOLUZIONE, RACCOGLIERE PIÙ INFORMAZIONI";
+                      severity = "low";
+                    }
+                  }
+                  
+                  setVetResult({
+                    title: title,
+                    desc: `${visualDesc}Sintomi descritti: ${vetSymptom || 'non specificati'}.`,
+                    action: action,
+                    possibleCauses: possibleCauses,
+                    severity: severity,
+                    visualFindings: aiPredictions.map(p => `${p.class} (${Math.round(p.score*100)}%)`),
+                    confidence: aiPredictions.length > 0 ? "alta (foto analizzata)" : "media (solo sintomi)"
+                  });
+                } catch (error) {
+                  console.error("Errore analisi:", error);
+                  alert("Errore durante l'analisi. Riprova.");
+                } finally {
+                  setIsAnalyzing(false);
+                }
+              }}
+              disabled={isAnalyzing || (modelLoading && !model)}
+              className="w-full bg-stone-900 text-white py-4 rounded-xl font-black uppercase text-sm shadow-lg hover:bg-stone-800 disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {modelLoading ? (
+                <><Activity className="animate-spin" size={16}/> CARICAMENTO AI...</>
+              ) : isAnalyzing ? (
+                <><Activity className="animate-spin" size={16}/> ANALISI IN CORSO...</>
+              ) : (
+                <><Camera size={16}/> ANALIZZA CON AI</>
+              )}
             </button>
 
+            {/* Risultato */}
             {vetResult && (
-              <div className="mt-8 p-5 bg-emerald-50 border-4 border-white rounded-[2rem] shadow-xl animate-in slide-in-from-bottom-8">
-                 <div className="flex items-center gap-4 mb-3">
-                    <AlertTriangle size={24} className="text-emerald-700" />
-                    <h4 className="text-sm font-black uppercase text-emerald-950 italic">{vetResult.title}</h4>
-                 </div>
-                 <p className="text-emerald-900 font-bold text-xs mb-4 italic leading-relaxed uppercase tracking-tighter">"{vetResult.desc}"</p>
-                 <div className="bg-emerald-600 text-white p-3 rounded-xl text-center text-[9px] font-black uppercase tracking-widest shadow-md border-b-4 border-emerald-800">{vetResult.action}</div>
+              <div className="mt-8 space-y-4 animate-in slide-in-from-bottom-8">
+                <div className={`p-5 rounded-2xl border-l-8 ${
+                  vetResult.severity === 'high' ? 'border-l-red-600 bg-red-50' :
+                  vetResult.severity === 'medium' ? 'border-l-amber-500 bg-amber-50' :
+                  'border-l-emerald-600 bg-emerald-50'
+                }`}>
+                  
+                  <div className="flex justify-between items-start mb-3">
+                    <h4 className="text-sm font-black uppercase">{vetResult.title}</h4>
+                    <span className="bg-green-500 text-white text-[8px] px-2 py-1 rounded-full">
+                      AI Locale ✓
+                    </span>
+                  </div>
+
+                  <p className="text-xs mb-4 italic">{vetResult.desc}</p>
+
+                  {vetResult.visualFindings?.length > 0 && (
+                    <div className="mb-4 bg-blue-50 p-3 rounded-xl">
+                      <p className="text-[8px] font-black mb-2">🔍 COSA HA VISTO L'AI:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {vetResult.visualFindings.map((f, i) => (
+                          <span key={i} className="text-[8px] bg-white px-2 py-1 rounded-full border border-blue-200">
+                            {f}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mb-4">
+                    <p className="text-[8px] font-black mb-2">POSSIBILI CAUSE:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {vetResult.possibleCauses.map((c, i) => (
+                        <span key={i} className="text-[8px] bg-white px-2 py-1 rounded-full border">
+                          {c}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className={`p-3 rounded-xl text-center text-[9px] font-black uppercase ${
+                    vetResult.severity === 'high' ? 'bg-red-600 text-white' :
+                    vetResult.severity === 'medium' ? 'bg-amber-500 text-white' :
+                    'bg-emerald-600 text-white'
+                  }`}>
+                    {vetResult.action}
+                  </div>
+                </div>
+
+                <p className="text-[6px] text-stone-400 text-center">
+                  🤖 AI eseguita localmente nel browser - 100% gratuita - Privacy garantita
+                </p>
+
+                <button
+                  onClick={() => {
+                    setVetResult(null);
+                    setVetSymptom('');
+                    setVetImage(null);
+                  }}
+                  className="w-full bg-stone-200 py-3 rounded-xl text-[9px] font-black uppercase hover:bg-stone-300"
+                >
+                  NUOVA ANALISI
+                </button>
               </div>
             )}
           </div>
