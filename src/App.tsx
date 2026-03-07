@@ -43,6 +43,15 @@ interface Product { id: string; name: string; quantity: number; unit: string; ow
 interface StockLog { id: string; productName: string; change: number; date: string; ownerId: string; }
 interface MarketItem { id: string; name: string; price: number; quantity: number; unit: string; sellerId: string; sellerName: string; contactEmail: string; contactPhone: string; createdAt: string; }
 
+// Interfaccia per il modello TensorFlow
+interface ObjectDetectionModel {
+  detect: (image: HTMLImageElement) => Promise<Array<{
+    bbox: number[];
+    class: string;
+    score: number;
+  }>>;
+}
+
 const DynastyBranch = ({ animal, allAnimals, level = 0 }: { animal: Animal, allAnimals: Animal[], level?: number }) => {
   const children = allAnimals.filter(a => a.dam === animal.name || a.sire === animal.name || a.dam === animal.id || a.sire === animal.id);
   return (
@@ -63,7 +72,7 @@ export default function App() {
   const [showAssistant, setShowAssistant] = useState(false);
   
   // STATO MODELLO TENSORFLOW
-  const [model, setModel] = useState(null);
+  const [model, setModel] = useState<ObjectDetectionModel | null>(null);
   const [modelLoading, setModelLoading] = useState(false);
   
   const [user, setUser] = useState<User | null>(null);
@@ -155,14 +164,14 @@ export default function App() {
   useEffect(() => {
     if (!user?.uid || !userRole) return;
     const unsubs: any[] = [];
-    unsubs.push(onSnapshot(collection(db, 'market_items'), s => setMarketItems(s.docs.map(d => ({ id: d.id, ...d.data() } as MarketItem)))));
+    unsubs.push(onSnapshot(collection(db, 'market_items'), (s) => setMarketItems(s.docs.map(d => ({ id: d.id, ...d.data() } as MarketItem)))));
     if (userRole === 'farmer') {
       const q = (coll: string) => query(collection(db, coll), where("ownerId", "==", user.uid));
-      unsubs.push(onSnapshot(q('animals'), s => setAnimals(s.docs.map(d => ({ id: d.id, ...d.data() } as Animal)))));
-      unsubs.push(onSnapshot(q('transactions'), s => setTransactions(s.docs.map(d => ({ id: d.id, ...d.data() } as Transaction)))));
-      unsubs.push(onSnapshot(q('tasks'), s => setTasks(s.docs.map(d => ({ id: d.id, ...d.data() } as Task)))));
-      unsubs.push(onSnapshot(q('products'), s => setProducts(s.docs.map(d => ({ id: d.id, ...d.data() } as Product)))));
-      unsubs.push(onSnapshot(query(collection(db, 'stock_logs'), where("ownerId", "==", user.uid), orderBy('date', 'desc'), limit(15)), s => setStockLogs(s.docs.map(d => ({ id: d.id, ...d.data() } as StockLog)))));
+      unsubs.push(onSnapshot(q('animals'), (s) => setAnimals(s.docs.map(d => ({ id: d.id, ...d.data() } as Animal)))));
+      unsubs.push(onSnapshot(q('transactions'), (s) => setTransactions(s.docs.map(d => ({ id: d.id, ...d.data() } as Transaction)))));
+      unsubs.push(onSnapshot(q('tasks'), (s) => setTasks(s.docs.map(d => ({ id: d.id, ...d.data() } as Task)))));
+      unsubs.push(onSnapshot(q('products'), (s) => setProducts(s.docs.map(d => ({ id: d.id, ...d.data() } as Product)))));
+      unsubs.push(onSnapshot(query(collection(db, 'stock_logs'), where("ownerId", "==", user.uid), orderBy('date', 'desc'), limit(15)), (s) => setStockLogs(s.docs.map(d => ({ id: d.id, ...d.data() } as StockLog)))));
     }
     return () => unsubs.forEach(u => u());
   }, [user?.uid, userRole]);
@@ -175,7 +184,7 @@ export default function App() {
         try {
           console.log("Caricamento modello AI in corso...");
           const loadedModel = await cocoSsd.load();
-          setModel(loadedModel);
+          setModel(loadedModel as ObjectDetectionModel);
           console.log("✅ Modello AI caricato con successo!");
         } catch (error) {
           console.error("❌ Errore caricamento modello:", error);
@@ -361,7 +370,7 @@ export default function App() {
   };
 
   // Funzione per analizzare l'immagine con TensorFlow.js
-  const analyzeImageWithTensorFlow = async (imageElement) => {
+  const analyzeImageWithTensorFlow = async (imageElement: HTMLImageElement) => {
     if (!model) return [];
     
     try {
@@ -462,7 +471,7 @@ export default function App() {
           <div className="mb-6 bg-white p-4 rounded-2xl border-2 border-blue-100 shadow-xl animate-in slide-in-from-top-4">
             <h3 className="text-blue-900 font-bold text-xs uppercase mb-3 flex items-center gap-2 italic"><Bot size={16}/> Comandi Rapidi</h3>
             <div className="flex gap-2">
-              <input className="flex-1 p-2 bg-stone-50 border-none rounded-xl text-sm font-bold" placeholder="Es: Venduto maiale a 100€" value={aiInput} onChange={e => setAiInput(e.target.value)} onKeyDown={e=>e.key==='Enter' && handleAICommand()} />
+              <input className="flex-1 p-2 bg-stone-50 border-none rounded-xl text-sm font-bold" placeholder="Es: Venduto maiale a 100€" value={aiInput} onChange={e => setAiInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAICommand()} />
               <button onClick={handleAICommand} className="bg-blue-600 text-white px-5 rounded-xl font-bold text-xs shadow-md">OK</button>
             </div>
             {aiLogs.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{aiLogs.map((l, i) => <span key={i} className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-lg text-[10px] font-bold animate-in zoom-in">{l}</span>)}</div>}
@@ -489,7 +498,7 @@ export default function App() {
           </div>
         )}
 
-        {/* 2. INVENTARIO - MODIFICATO CON ACCORDION */}
+        {/* 2. INVENTARIO */}
         {activeTab === 'inventory' && userRole === 'farmer' && (
           <div className="space-y-6 animate-in slide-in-from-bottom-4">
             <div className="bg-white p-4 rounded-2xl border shadow-sm space-y-3">
@@ -502,13 +511,13 @@ export default function App() {
                   placeholder="Codice Capo *" 
                   className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner" 
                   value={newAnimal.name} 
-                  onChange={e=>setNewAnimal({...newAnimal, name:e.target.value})} 
+                  onChange={(e)=>setNewAnimal({...newAnimal, name:e.target.value})} 
                 />
                 
                 <select 
                   className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner uppercase" 
                   value={newAnimal.species} 
-                  onChange={e=>setNewAnimal({...newAnimal, species:e.target.value as Species})}
+                  onChange={(e)=>setNewAnimal({...newAnimal, species:e.target.value as Species})}
                 >
                   {speciesList.map(s=><option key={s}>{s}</option>)}
                 </select>
@@ -517,28 +526,28 @@ export default function App() {
                   type="date" 
                   className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner text-emerald-700" 
                   value={newAnimal.birthDate} 
-                  onChange={e=>setNewAnimal({...newAnimal, birthDate:e.target.value})} 
+                  onChange={(e)=>setNewAnimal({...newAnimal, birthDate:e.target.value})} 
                 />
                 
                 <input 
                   placeholder="Padre (Codice)" 
                   className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner uppercase" 
                   value={newAnimal.sire} 
-                  onChange={e=>setNewAnimal({...newAnimal, sire:e.target.value})} 
+                  onChange={(e)=>setNewAnimal({...newAnimal, sire:e.target.value})} 
                 />
                 
                 <input 
                   placeholder="Madre (Codice)" 
                   className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner uppercase" 
                   value={newAnimal.dam} 
-                  onChange={e=>setNewAnimal({...newAnimal, dam:e.target.value})} 
+                  onChange={(e)=>setNewAnimal({...newAnimal, dam:e.target.value})} 
                 />
                 
                 <input 
                   placeholder="Note (Cure, Salute)" 
                   className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner col-span-2" 
                   value={newAnimal.notes} 
-                  onChange={e=>setNewAnimal({...newAnimal, notes:e.target.value})} 
+                  onChange={(e)=>setNewAnimal({...newAnimal, notes:e.target.value})} 
                 />
                 
                 <button 
@@ -559,7 +568,7 @@ export default function App() {
                 
                 return (
                   <div key={specie} className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-sm">
-                    {/* Header della specie - sempre visibile */}
+                    {/* Header della specie */}
                     <div 
                       onClick={() => toggleSpecies(specie)}
                       className="flex items-center justify-between p-4 cursor-pointer hover:bg-stone-50 transition-colors"
@@ -595,7 +604,6 @@ export default function App() {
                                 </div>
                               </div>
                               
-                              {/* Visualizzazione genitori */}
                               <div className="mb-2 text-[8px] font-bold text-stone-500 uppercase">
                                 {a.sire && <div>Padre: {a.sire}</div>}
                                 {a.dam && <div>Madre: {a.dam}</div>}
@@ -607,7 +615,7 @@ export default function App() {
                                   <textarea 
                                     className="w-full p-2 bg-stone-50 rounded-lg text-[10px] border-none font-bold italic shadow-inner" 
                                     value={editNote} 
-                                    onChange={e=>setEditNote(e.target.value)} 
+                                    onChange={(e)=>setEditNote(e.target.value)} 
                                     placeholder="Modifica note..."
                                   />
                                   <button 
@@ -639,16 +647,16 @@ export default function App() {
         {activeTab === 'finance' && userRole === 'farmer' && (
           <div className="space-y-6 animate-in slide-in-from-right-4">
             <div className="bg-white p-4 rounded-2xl border shadow-sm grid grid-cols-1 md:grid-cols-5 gap-2">
-              <input placeholder="Causale Spesa/Incasso" className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner col-span-1 md:col-span-2 uppercase" value={newTrans.desc} onChange={e=>setNewTrans({...newTrans, desc:e.target.value})} />
+              <input placeholder="Causale Spesa/Incasso" className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner col-span-1 md:col-span-2 uppercase" value={newTrans.desc} onChange={(e)=>setNewTrans({...newTrans, desc:e.target.value})} />
               <div className="flex items-center bg-stone-50 rounded-xl px-4 shadow-inner">
                 <span className="text-emerald-600 font-black text-xs mr-1 italic">€</span>
-                <input type="number" placeholder="0" className="w-full bg-transparent border-none font-black text-sm" value={newTrans.amount || ''} onChange={e=>setNewTrans({...newTrans, amount:Number(e.target.value)})} />
+                <input type="number" placeholder="0" className="w-full bg-transparent border-none font-black text-sm" value={newTrans.amount || ''} onChange={(e)=>setNewTrans({...newTrans, amount:Number(e.target.value)})} />
               </div>
-              <select className={`p-2 rounded-lg font-black text-[10px] border-none shadow-sm uppercase ${newTrans.type === 'Entrata' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}`} value={newTrans.type} onChange={e=>setNewTrans({...newTrans, type:e.target.value as any})}>
+              <select className={`p-2 rounded-lg font-black text-[10px] border-none shadow-sm uppercase ${newTrans.type === 'Entrata' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}`} value={newTrans.type} onChange={(e)=>setNewTrans({...newTrans, type:e.target.value as any})}>
                   <option value="Entrata">📈 ENTRATA</option>
                   <option value="Uscita">📉 USCITA</option>
               </select>
-              <select className="p-2 bg-stone-50 rounded-lg text-[10px] font-black border-none uppercase shadow-inner" value={newTrans.species} onChange={e=>setNewTrans({...newTrans, species:e.target.value as Species})}>
+              <select className="p-2 bg-stone-50 rounded-lg text-[10px] font-black border-none uppercase shadow-inner" value={newTrans.species} onChange={(e)=>setNewTrans({...newTrans, species:e.target.value as Species})}>
                 {speciesList.map(s=><option key={s}>{s}</option>)}
               </select>
               <button onClick={handleSaveTransaction} className="bg-emerald-950 text-white rounded-lg py-3 text-[10px] font-black uppercase col-span-full shadow-lg mt-1 active:scale-95 transition-all">Registra Movimento</button>
@@ -691,8 +699,8 @@ export default function App() {
               <div className="bg-amber-50 p-5 rounded-2xl border-2 border-amber-300 shadow-xl mb-6 animate-in zoom-in-95 max-w-lg mx-auto">
                 <h3 className="text-sm font-black text-amber-950 uppercase mb-4 italic leading-none">Vetrina Km 0: {sellingProduct.name}</h3>
                 <div className="grid grid-cols-2 gap-3 mb-4">
-                  <input type="number" className="p-2 rounded-lg text-xs font-bold border-none shadow-md text-emerald-700" placeholder="Prezzo (€)" onChange={e=>setSellPrice(Number(e.target.value))} />
-                  <input className="p-2 rounded-lg text-xs font-bold border-none shadow-md" placeholder="WhatsApp" onChange={e=>setSellPhone(e.target.value)} />
+                  <input type="number" className="p-2 rounded-lg text-xs font-bold border-none shadow-md text-emerald-700" placeholder="Prezzo (€)" onChange={(e)=>setSellPrice(Number(e.target.value))} />
+                  <input className="p-2 rounded-lg text-xs font-bold border-none shadow-md" placeholder="WhatsApp" onChange={(e)=>setSellPhone(e.target.value)} />
                 </div>
                 <div className="flex gap-2">
                   <button onClick={handlePublishToMarket} className="flex-1 bg-amber-500 text-white font-bold py-2 rounded-lg text-[10px] uppercase shadow-md active:scale-95">Pubblica</button>
@@ -703,10 +711,10 @@ export default function App() {
             <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-sm border-t-4 border-emerald-600">
               <h3 className="text-[10px] font-black uppercase text-stone-600 mb-4 tracking-widest italic flex items-center gap-2"><Package size={14} className="text-emerald-600"/> Aggiornamento Magazzino</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                <input placeholder="Articolo (Fieno, Mais...)" className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner uppercase" value={newProduct.name} onChange={e=>setNewProduct({...newProduct, name:e.target.value})} />
+                <input placeholder="Articolo (Fieno, Mais...)" className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner uppercase" value={newProduct.name} onChange={(e)=>setNewProduct({...newProduct, name:e.target.value})} />
                 <div className="flex gap-2">
-                  <input type="number" placeholder="QTY" className="flex-1 p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner" value={newProduct.quantity || ''} onChange={e=>setNewProduct({...newProduct, quantity:Number(e.target.value)})} />
-                  <select className="p-2 bg-stone-50 rounded-lg text-[10px] uppercase font-bold border-none shadow-inner" value={newProduct.unit} onChange={e=>setNewProduct({...newProduct, unit:e.target.value})}><option>kg</option><option>balle</option><option>unità</option></select>
+                  <input type="number" placeholder="QTY" className="flex-1 p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner" value={newProduct.quantity || ''} onChange={(e)=>setNewProduct({...newProduct, quantity:Number(e.target.value)})} />
+                  <select className="p-2 bg-stone-50 rounded-lg text-[10px] uppercase font-bold border-none shadow-inner" value={newProduct.unit} onChange={(e)=>setNewProduct({...newProduct, unit:e.target.value})}><option>kg</option><option>balle</option><option>unità</option></select>
                 </div>
                 <button onClick={handleAddProduct} className="bg-emerald-600 text-white rounded-lg font-black uppercase text-[10px] py-2 shadow-md">Carica</button>
               </div>
@@ -749,15 +757,15 @@ export default function App() {
             <div className="bg-white p-4 rounded-2xl border shadow-sm space-y-3 border-t-4 border-stone-900">
                <h3 className="text-[10px] font-black uppercase text-stone-600 italic">Programmazione</h3>
                <div className="flex flex-col gap-2">
-                 <input className="p-2 bg-stone-50 rounded-lg font-bold text-xs border-none shadow-inner uppercase" placeholder="Descrizione attività..." value={newTask} onChange={e=>setNewTask(e.target.value)} />
+                 <input className="p-2 bg-stone-50 rounded-lg font-bold text-xs border-none shadow-inner uppercase" placeholder="Descrizione attività..." value={newTask} onChange={(e)=>setNewTask(e.target.value)} />
                  <div className="flex gap-2">
-                    <input type="date" className="flex-1 p-2 bg-stone-50 rounded-lg font-bold text-[10px] text-emerald-700 border-none shadow-inner" value={newTaskDate} onChange={e=>setNewTaskDate(e.target.value)} />
+                    <input type="date" className="flex-1 p-2 bg-stone-50 rounded-lg font-bold text-[10px] text-emerald-700 border-none shadow-inner" value={newTaskDate} onChange={(e)=>setNewTaskDate(e.target.value)} />
                     <button onClick={handleAddTask} className="bg-emerald-950 text-white px-6 rounded-lg font-black text-[10px] uppercase shadow-md active:scale-95">Add</button>
                  </div>
                </div>
                <div className="relative pt-2 border-t mt-2">
                   <Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-stone-500" />
-                  <input className="w-full p-2 pl-8 bg-stone-100 border-none rounded-lg text-[10px] font-black italic shadow-inner tracking-widest text-stone-700" placeholder="Filtra lavori..." value={taskSearch} onChange={e=>setTaskSearch(e.target.value)} />
+                  <input className="w-full p-2 pl-8 bg-stone-100 border-none rounded-lg text-[10px] font-black italic shadow-inner tracking-widest text-stone-700" placeholder="Filtra lavori..." value={taskSearch} onChange={(e)=>setTaskSearch(e.target.value)} />
                </div>
             </div>
             <div className="space-y-2">
@@ -779,7 +787,7 @@ export default function App() {
           </div>
         )}
 
-        {/* 6. VET IA - VERSIONE TENSORFLOW.JS (100% GRATUITA) */}
+        {/* 6. VET IA */}
         {activeTab === 'vet' && userRole === 'farmer' && (
           <div className="bg-white p-6 rounded-3xl border shadow-xl max-w-lg mx-auto border-t-8 border-blue-600">
             <div className="bg-blue-600 p-6 rounded-2xl text-white mb-6 flex items-center gap-4 shadow-lg">
@@ -876,7 +884,7 @@ export default function App() {
                   
                   // Analizza la foto con TensorFlow.js se presente
                   if (vetImage && model) {
-                    const img = document.getElementById('vet-analysis-image');
+                    const img = document.getElementById('vet-analysis-image') as HTMLImageElement;
                     if (img && img.complete) {
                       aiPredictions = await analyzeImageWithTensorFlow(img);
                     }
@@ -887,7 +895,7 @@ export default function App() {
                   
                   // Costruisci il risultato
                   let title = "Analisi in corso";
-                  let possibleCauses = [];
+                  let possibleCauses: string[] = [];
                   let action = "";
                   let severity = "medium";
                   let visualDesc = "";
@@ -923,7 +931,7 @@ export default function App() {
                   }
                   
                   // Se non c'è diagnosi specifica
-                  if (!title || title === "Analisi in corso") {
+                  if (title === "Analisi in corso") {
                     if (symptoms.includes('febbre') || symptoms.includes('tosse')) {
                       title = "Possibile infezione respiratoria";
                       possibleCauses = ["Influenza", "Bronchite", "Polmonite"];
@@ -992,7 +1000,7 @@ export default function App() {
                     <div className="mb-4 bg-blue-50 p-3 rounded-xl">
                       <p className="text-[8px] font-black mb-2">🔍 COSA HA VISTO L'AI:</p>
                       <div className="flex flex-wrap gap-1">
-                        {vetResult.visualFindings.map((f, i) => (
+                        {vetResult.visualFindings.map((f: string, i: number) => (
                           <span key={i} className="text-[8px] bg-white px-2 py-1 rounded-full border border-blue-200">
                             {f}
                           </span>
@@ -1004,7 +1012,7 @@ export default function App() {
                   <div className="mb-4">
                     <p className="text-[8px] font-black mb-2">POSSIBILI CAUSE:</p>
                     <div className="flex flex-wrap gap-1">
-                      {vetResult.possibleCauses.map((c, i) => (
+                      {vetResult.possibleCauses.map((c: string, i: number) => (
                         <span key={i} className="text-[8px] bg-white px-2 py-1 rounded-full border">
                           {c}
                         </span>
@@ -1099,12 +1107,12 @@ export default function App() {
                <p className="text-[10px] font-black italic uppercase tracking-tighter leading-relaxed text-amber-950 uppercase tracking-widest">Registrazione Nascite</p>
              </div>
              <div className="space-y-6">
-                <input className="w-full p-3 bg-stone-50 rounded-xl font-black text-sm shadow-inner border-none uppercase" placeholder="Codice Madre" value={newBirth.idCode} onChange={e=>setNewBirth({...newBirth, idCode:e.target.value})} />
+                <input className="w-full p-3 bg-stone-50 rounded-xl font-black text-sm shadow-inner border-none uppercase" placeholder="Codice Madre" value={newBirth.idCode} onChange={(e)=>setNewBirth({...newBirth, idCode:e.target.value})} />
                 <div className="flex gap-2">
-                  <input type="number" min="1" max="20" className="flex-1 p-3 bg-stone-50 rounded-xl font-black text-sm shadow-inner border-none" placeholder="N. Nati" value={newBirth.count} onChange={e=>setNewBirth({...newBirth, count:Number(e.target.value)})} />
-                  <select className="flex-1 p-3 bg-stone-50 rounded-xl font-bold text-[10px] border-none shadow-inner uppercase" value={newBirth.species} onChange={e=>setNewBirth({...newBirth, species:e.target.value as Species})}>{speciesList.map(s=><option key={s}>{s}</option>)}</select>
+                  <input type="number" min="1" max="20" className="flex-1 p-3 bg-stone-50 rounded-xl font-black text-sm shadow-inner border-none" placeholder="N. Nati" value={newBirth.count} onChange={(e)=>setNewBirth({...newBirth, count:Number(e.target.value)})} />
+                  <select className="flex-1 p-3 bg-stone-50 rounded-xl font-bold text-[10px] border-none shadow-inner uppercase" value={newBirth.species} onChange={(e)=>setNewBirth({...newBirth, species:e.target.value as Species})}>{speciesList.map(s=><option key={s}>{s}</option>)}</select>
                 </div>
-                <input type="date" className="w-full p-3 bg-stone-50 rounded-xl font-bold text-sm shadow-inner border-none text-emerald-700 font-black uppercase tracking-widest" value={newBirth.birthDate} onChange={e=>setNewBirth({...newBirth, birthDate:e.target.value})} />
+                <input type="date" className="w-full p-3 bg-stone-50 rounded-xl font-bold text-sm shadow-inner border-none text-emerald-700 font-black uppercase tracking-widest" value={newBirth.birthDate} onChange={(e)=>setNewBirth({...newBirth, birthDate:e.target.value})} />
                 <button onClick={handleSaveBirth} className="w-full bg-emerald-950 text-white py-4 rounded-xl font-black uppercase text-xs shadow-lg active:scale-95 transition-all">Registra Ora</button>
              </div>
           </div>
