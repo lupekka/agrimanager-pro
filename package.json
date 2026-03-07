@@ -18,7 +18,7 @@
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.8.2",
     "@tensorflow/tfjs": "^4.10.0",
-  "@tensorflow-models/coco-ssd": "^2.2.2"
+    "@tensorflow-models/coco-ssd": "^2.2.2",
     "@tensorflow-models/mobilenet": "^2.1.1"
   },
   "devDependencies": {
