@@ -347,7 +347,7 @@ export default function App() {
         ))}
       </nav>
 
-      <main className="flex-1 md:ml-64 p-4 md:p-8 pb-24">
+      <main className="flex-1 md:ml-64 p-4 md:p-8 pb-24 pt-[env(safe-area-inset-top)]">
         <div className="mb-6 flex justify-between items-center">
             <h2 className="text-xl font-black text-stone-900 uppercase italic tracking-tight">{activeTab}</h2>
             {userRole === 'farmer' && (
