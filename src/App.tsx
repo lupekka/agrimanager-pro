@@ -9,12 +9,12 @@ import {
 
 // --- CONFIGURAZIONE FIREBASE (METTI LE TUE CHIAVI QUI) ---
 const firebaseConfig = {
-  apiKey: "IL_TUO_API_KEY",
-  authDomain: "IL_TUO_PROGETTO.firebaseapp.com",
-  projectId: "IL_TUO_PROGETTO",
-  storageBucket: "IL_TUO_PROGETTO.firebasestorage.app",
-  messagingSenderId: "IL_TUO_SENDER_ID",
-  appId: "IL_TUO_APP_ID"
+  apiKey: "AIzaSyD6ZxCO6BvGLKfsF235GSsLh-7GQm84Vdk",
+  authDomain: "agrimanager-pro-e3cf7.firebaseapp.com",
+  projectId: "agrimanager-pro-e3cf7",
+  storageBucket: "agrimanager-pro-e3cf7.firebasestorage.app",
+  messagingSenderId: "415553695665",
+  appId: "1:415553695665:web:6e9ddd9f5241424afad790"
 };
 
 const app = initializeApp(firebaseConfig);
