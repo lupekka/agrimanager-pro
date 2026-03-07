@@ -92,12 +92,11 @@ export default function App() {
     return () => { unsubA(); unsubB(); unsubP(); unsubT(); unsubTk(); unsubPr(); };
   }, [user]);
 
-  // LOGICA AUTOMATIZZATA PARTI -> INVENTARIO
+  // FUNZIONI AZIONE
   const handleSaveBirth = async () => {
     if (!newBirth.idCode || newBirth.count <= 0) return;
-    await addDoc(collection(db, 'births'), { animalName: newBirth.idCode, species: newBirth.species, offspringCount: newBirth.count, birthDate: newBirth.birthDate, ownerId: user?.uid });
+    await addDoc(collection(db, 'births'), { animalName: newBirth.idCode, species: newBirth.species, date: new Date().toLocaleDateString(), offspringCount: newBirth.count, birthDate: newBirth.birthDate, ownerId: user?.uid });
     
-    // Creazione automatica di N capi nell'inventario
     for (let i = 0; i < newBirth.count; i++) {
       await addDoc(collection(db, 'animals'), {
         name: `Figlio di ${newBirth.idCode} #${i + 1}`,
@@ -111,7 +110,6 @@ export default function App() {
     setNewBirth({ idCode: '', species: 'Maiali', count: 1, birthDate: '' });
   };
 
-  // LOGICA INVENTARIO PRODOTTI (SOMMA SMART)
   const handleAddProduct = async () => {
     if (!newProduct.name || newProduct.quantity <= 0) return;
     const existing = products.find(p => p.name.toLowerCase() === newProduct.name.toLowerCase());
@@ -123,7 +121,15 @@ export default function App() {
     setNewProduct({ name: '', quantity: 0, unit: 'kg' });
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-emerald-800 bg-stone-50 italic">Caricamento AgriManage Pro...</div>;
+  // FISSA ERRORE IMMAGINE 8: Definizione funzione reduceProduct
+  const reduceProduct = async (id: string, amount: number) => {
+    const p = products.find(prod => prod.id === id);
+    if (p && p.quantity >= amount) {
+      await updateDoc(doc(db, 'products', id), { quantity: p.quantity - amount });
+    }
+  };
+
+  if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-emerald-800 bg-stone-50 italic">AgriManage Pro...</div>;
 
   if (!user) {
     return (
@@ -145,7 +151,7 @@ export default function App() {
       <style>{`.ui-input { background: white; padding: 0.75rem 1rem; border-radius: 0.75rem; border: 1px solid #e7e5e4; outline: none; } .ui-input:focus { border-color: #059669; }`}</style>
 
       {/* SIDEBAR */}
-      <aside className={`fixed md:static inset-y-0 left-0 z-40 w-72 bg-white border-r border-stone-200 p-6 flex flex-col transform transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+      <aside className={`fixed md:static inset-y-0 left-0 z-40 w-72 bg-white md:border-r border-stone-200 p-6 flex flex-col transform transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         <div className="flex items-center gap-3 mb-10 pb-4 border-b">
           <div className="bg-emerald-600 p-2.5 rounded-xl text-white"><DollarSign size={20} /></div>
           <h1 className="text-xl font-black tracking-tighter text-emerald-950 uppercase italic">AgriManage</h1>
@@ -161,7 +167,7 @@ export default function App() {
             { id: 'finance', label: 'Economia', icon: TrendingUp },
             { id: 'tasks', label: 'Attività', icon: CalendarDays }
           ].map(item => (
-            <button key={item.id} onClick={() => { setActiveTab(item.id); setIsMobileMenuOpen(false); }} className={`flex items-center gap-3 w-full p-3.5 rounded-xl font-bold text-sm transition-all ${activeTab === item.id ? 'bg-emerald-50 text-emerald-700' : 'text-stone-500 hover:bg-stone-50'}`}>
+            <button key={item.id} onClick={() => { setActiveTab(item.id); setIsMobileMenuOpen(false); }} className={`flex items-center gap-3 w-full p-3.5 rounded-xl font-bold text-sm transition-all ${activeTab === item.id ? 'bg-emerald-50 text-emerald-700 shadow-inner' : 'text-stone-500 hover:bg-stone-50'}`}>
               <item.icon size={20} /> {item.label}
             </button>
           ))}
@@ -184,19 +190,22 @@ export default function App() {
                 <input placeholder="Codice/Nome" className="ui-input" value={newAnimal.name} onChange={e => setNewAnimal({...newAnimal, name: e.target.value})} />
                 <select className="ui-input" value={newAnimal.species} onChange={e => setNewAnimal({...newAnimal, species: e.target.value as Species})}>{speciesList.map(s => <option key={s}>{s}</option>)}</select>
                 <input type="date" className="ui-input" value={newAnimal.birthDate} onChange={e => setNewAnimal({...newAnimal, birthDate: e.target.value})} />
-                <select className="ui-input text-xs" value={newAnimal.sire} onChange={e => setNewAnimal({...newAnimal, sire: e.target.value})}><option value="">Padre (Ignoto)</option>{animals.filter(a => a.species === newAnimal.species).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
+                <select className="ui-input text-xs" value={newAnimal.sire} onChange={e => setNewAnimal({...newAnimal, sire: e.target.value})}>
+                    <option value="">Padre (Ignoto)</option>
+                    {animals.filter(a => a.species === newAnimal.species).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </select>
               </div>
               <textarea placeholder="Note e trattamenti..." className="ui-input w-full mb-4 h-20 resize-none" value={newAnimal.notes} onChange={e => setNewAnimal({...newAnimal, notes: e.target.value})}></textarea>
               <button onClick={async () => { if(!newAnimal.name) return; await addDoc(collection(db, 'animals'), { ...newAnimal, ownerId: user.uid }); setNewAnimal({name:'', species:'Maiali', birthDate:'', sire:'', dam:'', notes:''}); }} className="bg-emerald-600 text-white font-bold rounded-xl py-3 px-10">Salva</button>
             </div>
 
             {speciesList.map(species => {
-              const count = animals.filter(a => a.species === species).length;
+              const capi = animals.filter(a => a.species === species);
               return (
                 <div key={species} className="space-y-4">
-                  <h3 className="text-2xl font-black text-emerald-950 uppercase italic border-b pb-2">{species} <span className="text-xs font-normal text-stone-400 normal-case ml-2">({count} individui)</span></h3>
+                  <h3 className="text-2xl font-black text-emerald-950 uppercase italic border-b pb-2">{species} <span className="text-xs font-normal text-stone-400 normal-case ml-2">({capi.length} individui)</span></h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {animals.filter(a => a.species === species).map(a => (
+                    {capi.map(a => (
                       <div key={a.id} className="bg-white p-6 rounded-2xl border relative group shadow-sm">
                         {editingId === a.id ? (
                           <div className="space-y-3">
@@ -224,7 +233,7 @@ export default function App() {
           </div>
         )}
 
-        {/* --- REGISTRO PARTI (Con automazione) --- */}
+        {/* --- REGISTRO PARTI --- */}
         {activeTab === 'births' && (
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-3xl border shadow-sm">
@@ -238,9 +247,31 @@ export default function App() {
             </div>
             <div className="bg-white rounded-2xl border divide-y">
               {births.map(b => (
-                <div key={b.id} className="p-4 flex justify-between items-center group hover:bg-stone-50 transition">
+                <div key={b.id} className="p-4 flex justify-between items-center group">
                   <div><p className="font-bold">{b.animalName} <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 ml-2 font-black uppercase">{b.species}</span></p><p className="text-xs text-stone-400">{b.offspringCount} nati il {b.birthDate}</p></div>
                   <button onClick={() => deleteDoc(doc(db, 'births', b.id))} className="text-red-300 hover:text-red-500 p-2"><Trash2 size={18}/></button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* --- PRODUZIONE --- */}
+        {activeTab === 'production' && (
+          <div className="space-y-6">
+            <div className="bg-white p-6 rounded-3xl border shadow-sm">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <input placeholder="Prodotto" className="ui-input" value={newProd.item} onChange={e => setNewProd({...newProd, item: e.target.value})} />
+                <input type="number" className="ui-input" value={newProd.quantity} onChange={e => setNewProd({...newProd, quantity: parseFloat(e.target.value)})} />
+                <select className="ui-input" value={newProd.species} onChange={e => setNewProd({...newProd, species: e.target.value as Species})}>{speciesList.map(s => <option key={s}>{s}</option>)}</select>
+                <button onClick={async () => { if(!newProd.item) return; await addDoc(collection(db, 'production'), { ...newProd, date: new Date().toLocaleDateString('it-IT'), ownerId: user.uid }); setNewProd({item:'', quantity:1, species:'Maiali'}); }} className="bg-emerald-600 text-white font-bold rounded-xl py-3 shadow-lg">Registra</button>
+              </div>
+            </div>
+            <div className="bg-white rounded-2xl border divide-y shadow-sm">
+              {production.map(p => (
+                <div key={p.id} className="p-4 flex justify-between items-center group">
+                  <div><p className="font-bold">{p.item} ({p.species})</p><p className="text-xs text-stone-500">Q.tà: {p.quantity} - {p.date}</p></div>
+                  <button onClick={() => deleteDoc(doc(db, 'production', p.id))} className="text-red-300 hover:text-red-500 p-2"><Trash2 size={18}/></button>
                 </div>
               ))}
             </div>
@@ -265,9 +296,9 @@ export default function App() {
         {activeTab === 'products' && (
           <div className="space-y-8">
             <div className="bg-white p-8 rounded-3xl border shadow-sm">
-              <h3 className="text-xl font-bold mb-6">Magazzino</h3>
+              <h3 className="text-xl font-bold mb-6">Gestione Scorte Smart</h3>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <input placeholder="Prodotto" className="ui-input" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
+                <input placeholder="Nome Prodotto" className="ui-input" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
                 <input placeholder="Q.tà" type="number" className="ui-input" value={newProduct.quantity || ''} onChange={e => setNewProduct({...newProduct, quantity: parseFloat(e.target.value)})} />
                 <select className="ui-input" value={newProduct.unit} onChange={e => setNewProduct({...newProduct, unit: e.target.value})}><option>kg</option><option>litri</option><option>unità</option></select>
                 <button onClick={handleAddProduct} className="bg-emerald-600 text-white font-bold rounded-xl py-3 shadow-lg">Carica</button>
@@ -276,7 +307,7 @@ export default function App() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               {products.map(p => (
                 <div key={p.id} className="bg-white p-6 rounded-2xl border text-center shadow-sm">
-                  <Package className="mx-auto text-emerald-600 mb-3" size={24}/>
+                  <div className="bg-emerald-50 w-10 h-10 rounded-lg flex items-center justify-center text-emerald-600 mx-auto mb-3"><Package size={20}/></div>
                   <h4 className="font-black text-stone-800 uppercase tracking-tight">{p.name}</h4>
                   <p className="text-3xl font-black text-emerald-600 my-1">{p.quantity} <span className="text-xs text-stone-400 uppercase">{p.unit}</span></p>
                   <div className="flex gap-2 justify-center mt-4 border-t pt-4">
@@ -313,7 +344,7 @@ export default function App() {
           </div>
         )}
 
-        {/* --- ATTIVITÀ (Storico e Ricerca) --- */}
+        {/* --- ATTIVITÀ --- */}
         {activeTab === 'tasks' && (
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-10 pb-20">
             <div className="bg-white p-6 md:p-8 rounded-3xl border shadow-sm">
@@ -351,28 +382,6 @@ export default function App() {
                   </div>
                 ))}
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* --- PRODUZIONE --- */}
-        {activeTab === 'production' && (
-          <div className="space-y-6">
-            <div className="bg-white p-6 rounded-3xl border shadow-sm">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <input placeholder="Prodotto" className="ui-input" value={newProd.item} onChange={e => setNewProd({...newProd, item: e.target.value})} />
-                <input type="number" className="ui-input" value={newProd.quantity} onChange={e => setNewProd({...newProd, quantity: parseFloat(e.target.value)})} />
-                <select className="ui-input" value={newProd.species} onChange={e => setNewProd({...newProd, species: e.target.value as Species})}>{speciesList.map(s => <option key={s}>{s}</option>)}</select>
-                <button onClick={async () => { if(!newProd.item) return; await addDoc(collection(db, 'production'), { ...newProd, date: new Date().toLocaleDateString('it-IT'), ownerId: user.uid }); setNewProd({item:'', quantity:1, species:'Maiali'}); }} className="bg-emerald-600 text-white font-bold rounded-xl py-3 shadow-lg">Registra</button>
-              </div>
-            </div>
-            <div className="bg-white rounded-2xl border divide-y shadow-sm">
-              {production.map(p => (
-                <div key={p.id} className="p-4 flex justify-between items-center group hover:bg-stone-50 transition">
-                  <div><p className="font-bold">{p.item} ({p.species})</p><p className="text-xs text-stone-500">Q.tà: {p.quantity} - {p.date}</p></div>
-                  <button onClick={() => deleteDoc(doc(db, 'production', p.id))} className="text-red-300 hover:text-red-500 p-2 transition"><Trash2 size={18}/></button>
-                </div>
-              ))}
             </div>
           </div>
         )}
