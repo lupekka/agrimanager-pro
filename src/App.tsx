@@ -16,7 +16,6 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, query, where, getDocs, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, setDoc, getDoc } from "firebase/firestore";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, User } from "firebase/auth";
 
-// --- CONFIGURAZIONE FIREBASE ---
 const firebaseConfig = {
   apiKey: "AIzaSyD6ZxCO6BvGLKfsF235GSsLh-7GQm84Vdk",
   authDomain: "agrimanager-pro-e3cf7.firebaseapp.com",
@@ -30,23 +29,22 @@ const app = initializeApp(firebaseConfig);
 const db = initializeFirestore(app, { localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()}) });
 const auth = getAuth(app);
 
-// --- INTERFACCE ---
+// --- DEFINIZIONE TIPI ---
 type Species = 'Maiali' | 'Cavalli' | 'Mucche' | 'Galline' | 'Oche';
 interface Animal { id: string; name: string; species: Species; notes: string; sire?: string; dam?: string; birthDate?: string; ownerId: string; }
-interface BirthRecord { id: string; animalName: string; species: Species; date: string; offspringCount: number; birthDate: string; ownerId: string; }
 interface Transaction { id: string; type: 'Entrata' | 'Uscita'; amount: number; desc: string; species: Species; date: string; ownerId: string; }
-interface Task { id: string; text: string; done: boolean; dateCompleted?: string; dueDate?: string; ownerId: string; }
+interface Task { id: string; text: string; done: boolean; dueDate?: string; ownerId: string; }
 interface Product { id: string; name: string; quantity: number; unit: string; ownerId: string; }
 interface MarketItem { id: string; name: string; price: number; quantity: number; unit: string; sellerId: string; sellerName: string; contactEmail: string; contactPhone: string; createdAt: string; }
 
-// --- COMPONENTE DINASTIA ---
+// --- COMPONENTE GENEALOGIA ---
 const DynastyBranch = ({ animal, allAnimals, level = 0 }: { animal: Animal, allAnimals: Animal[], level?: number }) => {
   const children = allAnimals.filter(a => a.dam === animal.name || a.sire === animal.name || a.dam === animal.id || a.sire === animal.id);
   return (
-    <div className={level > 0 ? "ml-4 border-l border-stone-200 pl-4 mt-2" : ""}>
-      <div className={`p-3 rounded-xl border mb-2 bg-white shadow-sm ${level === 0 ? 'border-l-4 border-l-emerald-500' : ''}`}>
+    <div className={level > 0 ? "ml-4 border-l border-stone-200 pl-4 mt-2" : "mt-2"}>
+      <div className={`p-3 rounded-xl border bg-white shadow-sm ${level === 0 ? 'border-l-4 border-l-emerald-500' : ''}`}>
         <p className="font-bold text-stone-800 text-sm">{animal.name}</p>
-        <p className="text-[10px] text-stone-400 uppercase font-bold">{animal.species} • GENERAZIONE {level}</p>
+        <p className="text-[10px] text-stone-400 uppercase font-black">{animal.species} • GEN {level}</p>
       </div>
       {children.map(child => <DynastyBranch key={child.id} animal={child} allAnimals={allAnimals} level={level + 1} />)}
     </div>
@@ -61,19 +59,19 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isRegistering, setIsRegistering] = useState(false);
 
-  // DATI
+  // --- STATI DATI ---
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [marketItems, setMarketItems] = useState<MarketItem[]>([]);
 
-  // INPUT
+  // --- STATI INPUT ---
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [regRole, setRegRole] = useState<'farmer' | 'consumer'>('farmer');
   const [regName, setRegName] = useState('');
-  const [newAnimal, setNewAnimal] = useState({ name: '', species: 'Maiali' as Species, birthDate: '', dam: '', sire: '', notes: '' });
+  const [newAnimal, setNewAnimal] = useState({ name: '', species: 'Maiali' as Species, birthDate: '', dam: '', notes: '' });
   const [newBirth, setNewBirth] = useState({ idCode: '', species: 'Maiali' as Species, count: 1, birthDate: '' });
   const [newTrans, setNewTrans] = useState({ desc: '', amount: 0, type: 'Entrata' as any, species: 'Maiali' as Species });
   const [newProduct, setNewProduct] = useState({ name: '', quantity: 0, unit: 'kg' });
@@ -81,7 +79,7 @@ export default function App() {
   const [taskSearch, setTaskSearch] = useState('');
   const [newTaskDate, setNewTaskDate] = useState(new Date().toISOString().split('T')[0]);
 
-  // IA & MARKET
+  // --- IA & MARKET ---
   const [showAssistant, setShowAssistant] = useState(false);
   const [aiInput, setAiInput] = useState('');
   const [aiLogs, setAiLogs] = useState<string[]>([]);
@@ -94,7 +92,7 @@ export default function App() {
 
   const speciesList: Species[] = ['Maiali', 'Cavalli', 'Mucche', 'Galline', 'Oche'];
 
-  // --- LOGICA ACCESSO ---
+  // --- ACCESSO ---
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (u) {
@@ -114,7 +112,7 @@ export default function App() {
     return () => unsub();
   }, []);
 
-  // --- SINCRONIZZAZIONE DATI ---
+  // --- SYNC DATI ---
   useEffect(() => {
     if (!user?.uid || !userRole) return;
     const unsubs: any[] = [];
@@ -129,7 +127,7 @@ export default function App() {
     return () => unsubs.forEach(u => u());
   }, [user?.uid, userRole]);
 
-  // --- FUNZIONI AZIONI ---
+  // --- FUNZIONI ---
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -137,27 +135,33 @@ export default function App() {
         const uc = await createUserWithEmailAndPassword(auth, email, password);
         await setDoc(doc(db, 'users', uc.user.uid), { role: regRole, name: regName, email });
       } else { await signInWithEmailAndPassword(auth, email, password); }
-    } catch (e) { alert("Errore credenziali o connessione."); }
+    } catch (e) { alert("Errore di accesso o registrazione."); }
   };
 
   const handleSaveAnimal = async () => {
-    if (!newAnimal.name.trim()) return alert("Nome o ID obbligatorio.");
+    if (!newAnimal.name.trim()) return alert("Nome o ID richiesto.");
     await addDoc(collection(db, 'animals'), { ...newAnimal, ownerId: user!.uid });
-    setNewAnimal({ name: '', species: 'Maiali', birthDate: '', dam: '', sire: '', notes: '' });
+    setNewAnimal({ name: '', species: 'Maiali', birthDate: '', dam: '', notes: '' });
   };
 
   const handleSaveBirth = async () => {
-    if (!newBirth.idCode.trim()) return alert("Indica l'ID della madre.");
+    if (!newBirth.idCode.trim()) return alert("Codice madre richiesto.");
     await addDoc(collection(db, 'births'), { ...newBirth, date: new Date().toLocaleDateString('it-IT'), ownerId: user!.uid });
     for (let i = 0; i < newBirth.count; i++) {
       await addDoc(collection(db, 'animals'), {
         name: `FIGLIO_${newBirth.idCode}_${Math.floor(Math.random()*1000)}`,
         species: newBirth.species, birthDate: newBirth.birthDate, dam: newBirth.idCode,
-        notes: 'Nascita registrata', ownerId: user!.uid
+        notes: 'Nato da registro parti', ownerId: user!.uid
       });
     }
     setNewBirth({ idCode: '', species: 'Maiali', count: 1, birthDate: '' });
-    alert("Parto salvato e capi generati!");
+    alert("Parto e nuovi capi registrati!");
+  };
+
+  const handleSaveTransaction = async () => {
+    if (newTrans.amount <= 0 || !newTrans.desc) return alert("Inserisci dati validi.");
+    await addDoc(collection(db, 'transactions'), { ...newTrans, date: new Date().toLocaleDateString('it-IT'), ownerId: user!.uid });
+    setNewTrans({ desc: '', amount: 0, type: 'Entrata', species: 'Maiali' });
   };
 
   const handleAICommand = async () => {
@@ -168,38 +172,29 @@ export default function App() {
       if (f.includes('venduto') && num) {
         await addDoc(collection(db, 'transactions'), { desc: `IA: ${f}`, amount: Number(num), type: 'Entrata', species: 'Maiali', date: new Date().toLocaleDateString('it-IT'), ownerId: user!.uid });
         logs.push(`✅ Vendita: ${num}€`);
-      } else if ((f.includes('speso') || f.includes('comprato')) && num) {
+      } else if (f.includes('speso') && num) {
         await addDoc(collection(db, 'transactions'), { desc: `IA: ${f}`, amount: Number(num), type: 'Uscita', species: 'Maiali', date: new Date().toLocaleDateString('it-IT'), ownerId: user!.uid });
         logs.push(`✅ Spesa: ${num}€`);
-      } else if (f.includes('ho') && num) {
-        const prod = f.replace(/ho|(\d+)/g, '').trim().toUpperCase();
-        await addDoc(collection(db, 'products'), { name: prod, quantity: Number(num), unit: 'unità', ownerId: user!.uid });
-        logs.push(`✅ Scorta: ${num} ${prod}`);
       }
     }
     setAiLogs(logs); setAiInput('');
   };
 
   const exportASLReport = () => {
-    const d = new jsPDF();
-    const nomeAz = window.prompt("Nome Azienda Agricola:") || "Azienda";
-    d.text(nomeAz, 14, 20);
-    const capiOrdinati = [...animals].sort((a,b) => a.species.localeCompare(b.species));
-    autoTable(d, { 
-      head: [['ID', 'Specie', 'Data Nascita', 'Madre']], 
-      body: capiOrdinati.map(a => [a.name, a.species, a.birthDate || '', a.dam || '']),
-      startY: 30 
-    });
-    d.save('Registro_Capi.pdf');
+    const d = new jsPDF(); const n = window.prompt("Nome Azienda:") || "Azienda";
+    d.text(n, 14, 20);
+    const sorted = [...animals].sort((a,b) => a.species.localeCompare(b.species));
+    autoTable(d, { head: [['ID', 'Specie', 'Data', 'Madre']], body: sorted.map(a => [a.name, a.species, a.birthDate || '', a.dam || '']), startY: 30 });
+    d.save('Registro_ASL.pdf');
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-emerald-800 bg-stone-50">Caricamento in corso...</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-emerald-800">Sincronizzazione in corso...</div>;
 
   if (!user) {
     return (
       <div className="min-h-screen bg-stone-100 flex items-center justify-center p-4">
         <div className="bg-white p-6 rounded-3xl shadow-xl w-full max-w-sm border">
-          <h1 className="text-2xl font-black text-center mb-6 text-emerald-950 italic">AgriManage Pro</h1>
+          <h1 className="text-2xl font-black text-center mb-6 text-emerald-900 italic">AgriManage Pro</h1>
           <form onSubmit={handleAuth} className="space-y-4">
             {isRegistering && (
               <div className="space-y-3 bg-stone-50 p-4 rounded-2xl border">
@@ -207,13 +202,13 @@ export default function App() {
                   <button type="button" onClick={() => setRegRole('farmer')} className={`flex-1 p-2 rounded-xl text-[10px] font-bold border transition-all ${regRole === 'farmer' ? 'bg-emerald-600 text-white' : 'bg-white text-stone-400'}`}>AZIENDA</button>
                   <button type="button" onClick={() => setRegRole('consumer')} className={`flex-1 p-2 rounded-xl text-[10px] font-bold border transition-all ${regRole === 'consumer' ? 'bg-amber-500 text-white' : 'bg-white text-stone-400'}`}>CLIENTE</button>
                 </div>
-                <input placeholder="Nome Azienda o Tuo Nome" className="w-full p-3 rounded-xl border text-sm" value={regName} onChange={e => setRegName(e.target.value)} required />
+                <input placeholder="Nome o Azienda" className="w-full p-3 rounded-xl border text-sm" value={regName} onChange={e => setRegName(e.target.value)} required />
               </div>
             )}
             <input type="email" placeholder="Email" className="w-full p-3 rounded-xl border text-sm" value={email} onChange={e => setEmail(e.target.value)} required />
             <input type="password" placeholder="Password" className="w-full p-3 rounded-xl border text-sm" value={password} onChange={e => setPassword(e.target.value)} required />
             <button type="submit" className="w-full bg-emerald-700 text-white py-3 rounded-xl font-bold uppercase shadow-md">{isRegistering ? "Crea Account" : "Entra"}</button>
-            <button type="button" onClick={() => setIsRegistering(!isRegistering)} className="w-full text-xs font-bold text-stone-400 uppercase mt-2">{isRegistering ? "Torna al Login" : "Nuovo Utente? Registrati"}</button>
+            <button type="button" onClick={() => setIsRegistering(!isRegistering)} className="w-full text-xs font-bold text-stone-400 uppercase mt-4">{isRegistering ? "Accedi" : "Registrati qui"}</button>
           </form>
         </div>
       </div>
@@ -231,83 +226,86 @@ export default function App() {
     { id: 'vet', label: 'Vet IA', icon: Stethoscope },
     { id: 'market', label: 'Mercato', icon: Store }
   ] : [
-    { id: 'market', label: 'Negozio', icon: ShoppingBag }
+    { id: 'market', label: 'Acquista', icon: ShoppingBag }
   ];
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] flex flex-col md:flex-row relative">
       
-      {/* BOTTONE IA */}
+      {/* ASSISTENTE IA */}
       {userRole === 'farmer' && (
-        <button onClick={() => setShowAssistant(!showAssistant)} className="fixed bottom-20 right-4 md:bottom-8 md:right-8 bg-blue-600 text-white p-4 rounded-full shadow-lg z-50 animate-bounce">
+        <button onClick={() => setShowAssistant(!showAssistant)} className="fixed bottom-20 right-4 md:bottom-8 md:right-8 bg-blue-600 text-white p-4 rounded-full shadow-lg z-50 transition-transform active:scale-90">
           <Bot size={24} />
         </button>
       )}
 
       {/* SIDEBAR DESKTOP */}
       <aside className="hidden md:flex flex-col w-64 bg-white border-r p-6 fixed h-full shadow-sm z-40">
-        <h1 className="text-xl font-black mb-8 text-emerald-900 italic">AgriPro</h1>
+        <h1 className="text-xl font-black mb-8 text-emerald-900 italic">AgriManage</h1>
         <nav className="space-y-1 flex-1">
           {menuItems.map(item => (
-            <button key={item.id} onClick={() => setActiveTab(item.id)} className={`flex items-center gap-3 w-full p-3 rounded-xl font-bold text-sm transition-all ${activeTab === item.id ? 'bg-emerald-600 text-white shadow-md' : 'text-stone-500 hover:bg-stone-50'}`}>
+            <button key={item.id} onClick={() => setActiveTab(item.id)} className={`flex items-center gap-3 w-full p-3 rounded-xl font-bold text-sm transition-all ${activeTab === item.id ? 'bg-emerald-600 text-white' : 'text-stone-500 hover:bg-stone-50'}`}>
               <item.icon size={18} /> {item.label}
             </button>
           ))}
         </nav>
-        <button onClick={() => signOut(auth)} className="mt-4 flex items-center gap-2 text-red-500 font-bold p-2 text-sm"><LogOut size={18} /> Esci</button>
+        <button onClick={() => signOut(auth)} className="mt-4 flex items-center gap-2 text-red-500 font-bold p-2 text-sm hover:bg-red-50 rounded-xl transition-colors"><LogOut size={18} /> Esci</button>
       </aside>
 
-      {/* MOBILE NAV BOTTOM */}
-      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-white border-t flex justify-around p-2 z-50 shadow-lg">
-        {menuItems.slice(0, 5).map(item => (
-          <button key={item.id} onClick={() => setActiveTab(item.id)} className={`flex flex-col items-center p-2 ${activeTab === item.id ? 'text-emerald-600' : 'text-stone-300'}`}>
+      {/* NAV MOBILE */}
+      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-white border-t flex justify-around p-2 z-50 shadow-lg overflow-x-auto">
+        {menuItems.map(item => (
+          <button key={item.id} onClick={() => setActiveTab(item.id)} className={`flex flex-col items-center min-w-[65px] p-2 ${activeTab === item.id ? 'text-emerald-600' : 'text-stone-400'}`}>
             <item.icon size={20} />
             <span className="text-[9px] font-bold uppercase mt-1">{item.label}</span>
           </button>
         ))}
       </nav>
 
-      {/* CONTENUTO */}
+      {/* CONTENUTO MAIN */}
       <main className="flex-1 md:ml-64 p-4 md:p-10 pb-24">
-        <h2 className="text-2xl font-black mb-6 text-stone-900 uppercase tracking-tight italic">{activeTab}</h2>
+        <div className="mb-6 flex justify-between items-center">
+            <h2 className="text-2xl font-black text-stone-900 uppercase italic">{activeTab}</h2>
+            <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest bg-white px-3 py-1 rounded-full border shadow-sm">Utente: {userName}</p>
+        </div>
 
-        {/* MODALE ASSISTENTE */}
+        {/* MODALE ASSISTENTE IA */}
         {showAssistant && (
-          <div className="mb-6 bg-white p-5 rounded-2xl border-2 border-blue-100 shadow-lg animate-in slide-in-from-top-4">
-            <h3 className="text-blue-900 font-bold text-xs uppercase mb-3 flex items-center gap-2"><Bot size={16}/> Assistente Rapido</h3>
+          <div className="mb-6 bg-white p-5 rounded-2xl border-2 border-blue-100 shadow-xl animate-in slide-in-from-top-4">
+            <h3 className="text-blue-900 font-bold text-xs uppercase mb-3 flex items-center gap-2"><Bot size={16}/> Assistente Vocale</h3>
             <div className="flex gap-2">
-              <input className="flex-1 p-3 bg-blue-50 border-none rounded-xl text-sm font-bold" placeholder="Es: Venduto maiale a 100€" value={aiInput} onChange={e => setAiInput(e.target.value)} onKeyDown={e=>e.key==='Enter' && handleAICommand()} />
+              <input className="flex-1 p-3 bg-blue-50 border-none rounded-xl text-sm font-bold placeholder:text-blue-200" placeholder="Es: 'Venduto maiale a 100€'" value={aiInput} onChange={e => setAiInput(e.target.value)} onKeyDown={e=>e.key==='Enter' && handleAICommand()} />
               <button onClick={handleAICommand} className="bg-blue-600 text-white px-5 rounded-xl font-bold text-xs">OK</button>
             </div>
             {aiLogs.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{aiLogs.map((l, i) => <span key={i} className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-lg text-[10px] font-bold">{l}</span>)}</div>}
           </div>
         )}
 
-        {/* --- DASHBOARD --- */}
-        {activeTab === 'dashboard' && (
+        {/* --- 1. DASHBOARD --- */}
+        {activeTab === 'dashboard' && userRole === 'farmer' && (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <div onClick={()=>setActiveTab('inventory')} className="bg-emerald-600 p-5 rounded-3xl text-white shadow-lg cursor-pointer">
-              <p className="text-[10px] font-bold uppercase opacity-60">Capi Attivi</p>
+            <div onClick={()=>setActiveTab('inventory')} className="bg-emerald-600 p-5 rounded-3xl text-white shadow-lg cursor-pointer hover:scale-[1.02] transition-transform">
+              <p className="text-[10px] font-bold uppercase opacity-60 mb-1">Capi in Stalla</p>
               <h4 className="text-4xl font-black">{animals.length}</h4>
             </div>
-            <div onClick={()=>setActiveTab('finance')} className="bg-white p-5 rounded-3xl border shadow-sm cursor-pointer">
-               <p className="text-[10px] font-bold text-stone-400 uppercase">Bilancio Netto</p>
+            <div onClick={()=>setActiveTab('finance')} className="bg-white p-5 rounded-3xl border shadow-sm cursor-pointer hover:border-emerald-300 transition-all">
+               <p className="text-[10px] font-bold text-stone-400 uppercase mb-1">Bilancio Netto</p>
                <h4 className="text-2xl font-black">€{transactions.reduce((acc,t)=>acc+(t.type==='Entrata'?t.amount:-t.amount),0)}</h4>
             </div>
             <div onClick={()=>setActiveTab('tasks')} className="bg-stone-900 p-5 rounded-3xl text-white shadow-lg cursor-pointer">
-               <p className="text-[10px] font-bold text-emerald-400 uppercase">Impegni</p>
+               <p className="text-[10px] font-bold text-emerald-400 uppercase mb-1">Attività</p>
                <h4 className="text-2xl font-black">{tasks.filter(t=>!t.done).length}</h4>
             </div>
           </div>
         )}
 
-        {/* --- INVENTARIO CAPI DIVISO PER SPECIE --- */}
-        {activeTab === 'inventory' && (
+        {/* --- 2. INVENTARIO (ORDINATO PER SPECIE) --- */}
+        {activeTab === 'inventory' && userRole === 'farmer' && (
           <div className="space-y-6">
             <div className="bg-white p-5 rounded-2xl border shadow-sm">
-              <div className="flex justify-between mb-4">
-                <h3 className="text-xs font-bold uppercase text-stone-400 italic">Nuovo Capo</h3>
-                <button onClick={exportASLReport} className="text-[10px] font-bold bg-stone-100 px-3 py-1 rounded-lg flex items-center gap-1 uppercase"><FileDown size={14}/> PDF</button>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xs font-bold uppercase text-stone-400 italic">Inserimento Rapido</h3>
+                <button onClick={exportASLReport} className="text-[10px] font-bold bg-stone-100 px-3 py-1 rounded-lg flex items-center gap-1 uppercase hover:bg-emerald-600 hover:text-white transition-all"><FileDown size={14}/> Scarica PDF</button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <input placeholder="Codice Capo" className="p-3 bg-stone-50 rounded-xl text-sm border-none shadow-inner" value={newAnimal.name} onChange={e=>setNewAnimal({...newAnimal, name:e.target.value})} />
@@ -321,14 +319,14 @@ export default function App() {
               const capi = animals.filter(a => a.species === specie);
               if (capi.length === 0) return null;
               return (
-                <div key={specie} className="space-y-3">
-                  <h4 className="text-sm font-black text-emerald-800 uppercase px-2">{specie} ({capi.length})</h4>
+                <div key={specie} className="space-y-2">
+                  <h4 className="text-sm font-black text-emerald-800 uppercase px-2 bg-emerald-50 w-fit py-1 rounded-md">{specie} ({capi.length})</h4>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     {capi.map(a => (
-                      <div key={a.id} className="bg-white p-4 rounded-2xl border shadow-sm relative group">
-                        <button onClick={()=>deleteDoc(doc(db,'animals',a.id))} className="absolute top-2 right-2 text-stone-200 hover:text-red-500"><Trash2 size={16}/></button>
+                      <div key={a.id} className="bg-white p-4 rounded-2xl border border-stone-100 shadow-sm relative group hover:border-emerald-500 transition-all">
+                        <button onClick={()=>deleteDoc(doc(db,'animals',a.id))} className="absolute top-3 right-3 text-stone-200 hover:text-red-500 transition-colors"><Trash2 size={16}/></button>
                         <h4 className="font-bold text-stone-800">{a.name}</h4>
-                        <p className="text-[10px] text-stone-400 font-bold">{a.birthDate || 'DATA MANCANTE'}</p>
+                        <p className="text-[10px] text-stone-400 font-bold italic">{a.birthDate || 'DATA IGNOTA'}</p>
                       </div>
                     ))}
                   </div>
@@ -338,37 +336,37 @@ export default function App() {
           </div>
         )}
 
-        {/* --- REGISTRO PARTI --- */}
-        {activeTab === 'births' && (
-          <div className="bg-white p-6 rounded-3xl border shadow-sm max-w-lg mx-auto">
+        {/* --- 3. REGISTRO PARTI --- */}
+        {activeTab === 'births' && userRole === 'farmer' && (
+          <div className="bg-white p-6 rounded-3xl border shadow-sm max-w-lg mx-auto animate-in zoom-in-95">
              <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 text-amber-700 mb-6 flex items-center gap-3">
                <Baby size={32} />
-               <p className="text-[11px] font-bold italic">Registra un parto: i nuovi nati verranno inseriti automaticamente in anagrafica.</p>
+               <p className="text-[11px] font-bold italic uppercase tracking-tighter">Registra il parto: i nuovi capi verranno aggiunti automaticamente all'anagrafica stalla.</p>
              </div>
              <div className="space-y-4">
-                <input className="w-full p-3 bg-stone-50 rounded-xl font-bold text-sm shadow-inner" placeholder="Codice ID Madre" value={newBirth.idCode} onChange={e=>setNewBirth({...newBirth, idCode:e.target.value})} />
+                <input className="w-full p-3 bg-stone-50 rounded-xl font-bold text-sm shadow-inner border-none" placeholder="Codice Madre (Dam)" value={newBirth.idCode} onChange={e=>setNewBirth({...newBirth, idCode:e.target.value})} />
                 <div className="flex gap-2">
-                  <input type="number" className="flex-1 p-3 bg-stone-50 rounded-xl font-bold text-sm shadow-inner" placeholder="N. Nati" value={newBirth.count} onChange={e=>setNewBirth({...newBirth, count:Number(e.target.value)})} />
-                  <select className="flex-1 p-3 bg-stone-50 rounded-xl font-bold text-sm shadow-inner" value={newBirth.species} onChange={e=>setNewBirth({...newBirth, species:e.target.value as Species})}>{speciesList.map(s=><option key={s}>{s}</option>)}</select>
+                  <input type="number" className="flex-1 p-3 bg-stone-50 rounded-xl font-bold text-sm shadow-inner border-none" placeholder="N. Nati" value={newBirth.count} onChange={e=>setNewBirth({...newBirth, count:Number(e.target.value)})} />
+                  <select className="flex-1 p-3 bg-stone-50 rounded-xl font-bold text-sm shadow-inner border-none" value={newBirth.species} onChange={e=>setNewBirth({...newBirth, species:e.target.value as Species})}>{speciesList.map(s=><option key={s}>{s}</option>)}</select>
                 </div>
-                <input type="date" className="w-full p-3 bg-stone-50 rounded-xl font-bold text-sm shadow-inner" value={newBirth.birthDate} onChange={e=>setNewBirth({...newBirth, birthDate:e.target.value})} />
-                <button onClick={handleSaveBirth} className="w-full bg-emerald-700 text-white py-4 rounded-xl font-bold uppercase text-xs">Registra Parto</button>
+                <input type="date" className="w-full p-3 bg-stone-50 rounded-xl font-bold text-sm shadow-inner border-none text-emerald-700" value={newBirth.birthDate} onChange={e=>setNewBirth({...newBirth, birthDate:e.target.value})} />
+                <button onClick={handleSaveBirth} className="w-full bg-emerald-700 text-white py-4 rounded-xl font-black uppercase text-xs shadow-lg">Registra Parto Ora</button>
              </div>
           </div>
         )}
 
-        {/* --- BILANCIO DIVISO PER SPECIE --- */}
-        {activeTab === 'finance' && (
+        {/* --- 4. BILANCIO (ORDINATO PER SPECIE) --- */}
+        {activeTab === 'finance' && userRole === 'farmer' && (
           <div className="space-y-6">
-            <div className="bg-stone-900 p-8 rounded-3xl text-white shadow-lg text-center">
-               <p className="text-xs font-bold text-emerald-400 uppercase mb-2">Totale Netto</p>
-               <h3 className="text-4xl font-black">€ {transactions.reduce((acc, t) => acc + (t.type === 'Entrata' ? t.amount : -t.amount), 0).toFixed(0)}</h3>
+            <div className="bg-stone-900 p-8 rounded-[2rem] text-white shadow-xl text-center">
+               <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-[0.2em] mb-2">Netto Aziendale Totale</p>
+               <h3 className="text-5xl font-black italic">€ {transactions.reduce((acc, t) => acc + (t.type === 'Entrata' ? t.amount : -t.amount), 0).toFixed(0)}</h3>
             </div>
 
-            <div className="bg-white p-5 rounded-2xl border grid grid-cols-1 md:grid-cols-4 gap-3">
-              <input placeholder="Descrizione" className="p-3 bg-stone-50 rounded-xl font-bold text-sm shadow-inner col-span-1 md:col-span-2" value={newTrans.desc} onChange={e=>setNewTrans({...newTrans, desc:e.target.value})} />
-              <input type="number" placeholder="€" className="p-3 bg-stone-50 rounded-xl font-bold text-sm shadow-inner" value={newTrans.amount || ''} onChange={e=>setNewTrans({...newTrans, amount:Number(e.target.value)})} />
-              <button onClick={handleSaveTransaction} className="bg-emerald-600 text-white rounded-xl font-bold text-xs uppercase">Salva</button>
+            <div className="bg-white p-5 rounded-2xl border grid grid-cols-1 md:grid-cols-4 gap-3 shadow-sm">
+              <input placeholder="Causale Spesa/Incasso" className="p-3 bg-stone-50 rounded-xl font-bold text-sm shadow-inner border-none col-span-1 md:col-span-2" value={newTrans.desc} onChange={e=>setNewTrans({...newTrans, desc:e.target.value})} />
+              <input type="number" placeholder="Importo €" className="p-3 bg-stone-50 rounded-xl font-bold text-sm shadow-inner border-none" value={newTrans.amount || ''} onChange={e=>setNewTrans({...newTrans, amount:Number(e.target.value)})} />
+              <button onClick={handleSaveTransaction} className="bg-emerald-600 text-white rounded-xl font-bold text-xs uppercase shadow-md transition-all active:scale-95">Salva</button>
             </div>
 
             {speciesList.map(specie => {
@@ -377,18 +375,18 @@ export default function App() {
               const bilancioSpecie = transSpecie.reduce((acc,t)=>acc+(t.type==='Entrata'?t.amount:-t.amount), 0);
               return (
                 <div key={specie} className="space-y-2">
-                  <div className="flex justify-between items-center px-2">
-                    <h4 className="text-sm font-black text-stone-500 uppercase">{specie}</h4>
-                    <span className={`text-sm font-black ${bilancioSpecie >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>€{bilancioSpecie}</span>
+                  <div className="flex justify-between items-center px-4 py-1 bg-stone-50 rounded-lg">
+                    <h4 className="text-xs font-black text-stone-500 uppercase italic">{specie}</h4>
+                    <span className={`text-xs font-black ${bilancioSpecie >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>Bilancio: €{bilancioSpecie}</span>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     {transSpecie.map(t => (
-                      <div key={t.id} className="bg-white p-4 rounded-xl border flex justify-between items-center">
-                        <div>
-                          <p className="font-bold text-xs text-stone-800 uppercase">{t.desc}</p>
-                          <p className="text-[9px] text-stone-400 font-bold">{t.date}</p>
+                      <div key={t.id} className="bg-white p-4 rounded-xl border border-stone-100 flex justify-between items-center shadow-sm">
+                        <div><p className="font-bold text-xs text-stone-800 uppercase tracking-tight">{t.desc}</p><p className="text-[9px] text-stone-400 font-bold">{t.date}</p></div>
+                        <div className="flex items-center gap-4">
+                            <span className={`font-black text-sm italic ${t.type==='Entrata' ? 'text-emerald-600' : 'text-red-500'}`}>{t.type==='Entrata' ? '+' : '-'}€{t.amount}</span>
+                            <button onClick={()=>deleteDoc(doc(db,'transactions',t.id))} className="text-stone-100 hover:text-red-500 transition-colors"><Trash2 size={16}/></button>
                         </div>
-                        <span className={`font-black text-sm ${t.type==='Entrata' ? 'text-emerald-600' : 'text-red-500'}`}>{t.type==='Entrata' ? '+' : '-'}€{t.amount}</span>
                       </div>
                     ))}
                   </div>
@@ -398,71 +396,89 @@ export default function App() {
           </div>
         )}
 
-        {/* --- SCORTE --- */}
-        {activeTab === 'products' && (
+        {/* --- 5. SCORTE MAGAZZINO --- */}
+        {activeTab === 'products' && userRole === 'farmer' && (
           <div className="space-y-6">
+            {sellingProduct && (
+              <div className="bg-amber-50 p-6 rounded-3xl border-2 border-amber-300 shadow-xl animate-in zoom-in-95">
+                <h3 className="text-lg font-black text-amber-950 italic mb-4 uppercase">Metti in Vetrina: {sellingProduct.name}</h3>
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <input type="number" className="p-3 rounded-xl border-none shadow-md font-bold text-sm" placeholder="Prezzo (€)" onChange={e=>setSellPrice(Number(e.target.value))} />
+                  <input className="p-3 rounded-xl border-none shadow-md font-bold text-sm" placeholder="WhatsApp (Es: 340...)" onChange={e=>setSellPhone(e.target.value)} />
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={handlePublishToMarket} className="flex-1 bg-amber-500 text-white font-bold py-3 rounded-xl uppercase text-xs">Conferma Pubblicazione</button>
+                  <button onClick={()=>setSellingProduct(null)} className="px-6 bg-white text-amber-500 font-bold rounded-xl uppercase text-xs border border-amber-200">Annulla</button>
+                </div>
+              </div>
+            )}
             <div className="bg-white p-5 rounded-2xl border shadow-sm">
-              <h3 className="text-xs font-bold uppercase text-stone-400 mb-4 italic">Aggiorna Magazzino</h3>
+              <h3 className="text-[10px] font-black uppercase text-stone-400 mb-4 tracking-widest flex items-center gap-2 italic"><Package size={14}/> Aggiornamento Magazzino Fisico</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <input placeholder="Articolo" className="p-3 bg-stone-50 rounded-xl font-bold text-sm shadow-inner uppercase" value={newProduct.name} onChange={e=>setNewProduct({...newProduct, name:e.target.value})} />
-                <input type="number" placeholder="Quantità" className="p-3 bg-stone-50 rounded-xl font-bold text-sm shadow-inner" value={newProduct.quantity || ''} onChange={e=>setNewProduct({...newProduct, quantity:Number(e.target.value)})} />
-                <button onClick={handleAddProduct} className="bg-emerald-600 text-white rounded-xl font-bold text-xs uppercase">Carica</button>
+                <input placeholder="ARTICOLO (ES: FIENO)" className="p-3 bg-stone-50 rounded-xl font-bold text-sm border-none shadow-inner uppercase" value={newProduct.name} onChange={e=>setNewProduct({...newProduct, name:e.target.value})} />
+                <div className="flex gap-2">
+                  <input type="number" placeholder="QTY" className="flex-1 p-3 bg-stone-50 rounded-xl font-bold text-sm border-none shadow-inner" value={newProduct.quantity || ''} onChange={e=>setNewProduct({...newProduct, quantity:Number(e.target.value)})} />
+                  <select className="p-3 bg-stone-50 rounded-xl font-bold border-none shadow-inner text-xs uppercase" value={newProduct.unit} onChange={e=>setNewProduct({...newProduct, unit:e.target.value})}><option>kg</option><option>balle</option><option>unità</option></select>
+                </div>
+                <button onClick={handleAddProduct} className="bg-emerald-600 text-white rounded-xl font-bold uppercase text-xs shadow-md">Carica</button>
               </div>
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               {products.map(p => (
-                <div key={p.id} className="bg-white p-4 rounded-2xl border shadow-sm text-center flex flex-col items-center">
-                  <Package size={24} className="text-emerald-600 mb-2" />
-                  <h4 className="font-bold text-stone-800 text-xs mb-1 uppercase">{p.name}</h4>
-                  <p className="text-2xl font-black text-emerald-600 italic leading-none">{p.quantity}</p>
-                  <button onClick={()=>setSellingProduct(p)} className="mt-3 w-full bg-amber-100 text-amber-700 font-bold py-2 rounded-lg text-[9px] uppercase hover:bg-amber-500 hover:text-white transition-all">Metti in Vetrina</button>
-                  <button onClick={()=>deleteDoc(doc(db,'products',p.id))} className="mt-3 text-stone-200 hover:text-red-500 transition-colors"><Trash2 size={16}/></button>
+                <div key={p.id} className="bg-white p-4 rounded-3xl border border-stone-100 shadow-sm text-center flex flex-col group hover:border-emerald-200 transition-all">
+                  <div className="bg-emerald-50 text-emerald-600 p-3 rounded-2xl w-fit mx-auto mb-3"><Package size={24}/></div>
+                  <h4 className="font-bold text-stone-800 uppercase text-[10px] mb-1 tracking-tighter">{p.name}</h4>
+                  <p className="text-2xl font-black text-emerald-600 italic leading-none mb-3">{p.quantity} <span className="text-[9px] uppercase not-italic opacity-40">{p.unit}</span></p>
+                  <button onClick={()=>setSellingProduct(p)} className="w-full bg-amber-100 text-amber-700 font-bold py-2 rounded-xl text-[9px] uppercase hover:bg-amber-500 hover:text-white transition-all flex items-center justify-center gap-2"><Store size={14}/> Vendi Km 0</button>
+                  <button onClick={()=>deleteDoc(doc(db,'products',p.id))} className="text-stone-200 hover:text-red-500 transition-colors mt-3 pt-3 border-t"><Trash2 size={16} className="mx-auto"/></button>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* --- AGENDA CON RICERCA --- */}
-        {activeTab === 'tasks' && (
+        {/* --- 6. AGENDA (CON RICERCA) --- */}
+        {activeTab === 'tasks' && userRole === 'farmer' && (
           <div className="space-y-6 max-w-xl mx-auto">
-            <div className="bg-white p-5 rounded-2xl border shadow-sm">
-               <div className="flex gap-2 mb-4">
-                  <input className="flex-1 p-3 bg-stone-50 rounded-xl font-bold text-sm shadow-inner" placeholder="Nuovo Lavoro..." value={newTask} onChange={e=>setNewTask(e.target.value)} />
-                  <button onClick={handleAddTask} className="bg-emerald-600 text-white px-5 rounded-xl font-bold text-xs">OK</button>
+            <div className="bg-white p-5 rounded-2xl border shadow-sm space-y-4">
+               <div className="flex gap-2">
+                  <input className="flex-1 p-3 bg-stone-50 border-none rounded-xl font-bold text-sm shadow-inner" placeholder="Pianifica Lavoro..." value={newTask} onChange={e=>setNewTask(e.target.value)} />
+                  <input type="date" className="p-3 bg-stone-50 border-none rounded-xl font-bold text-xs uppercase shadow-inner" value={newTaskDate} onChange={e=>setNewTaskDate(e.target.value)} />
+                  <button onClick={handleAddTask} className="bg-emerald-600 text-white px-5 rounded-xl font-bold text-xs shadow-md">OK</button>
                </div>
                {/* BARRA DI RICERCA ATTIVITÀ */}
                <div className="relative">
-                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
-                  <input className="w-full p-2 pl-10 bg-stone-100 border-none rounded-lg text-xs font-bold" placeholder="Cerca un'attività specifica..." value={taskSearch} onChange={e=>setTaskSearch(e.target.value)} />
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-300" />
+                  <input className="w-full p-2.5 pl-10 bg-stone-100 border-none rounded-xl text-xs font-bold italic" placeholder="Cerca un'attività specifica tra quelle salvate..." value={taskSearch} onChange={e=>setTaskSearch(e.target.value)} />
                </div>
             </div>
             <div className="space-y-2">
               {tasks.filter(t => t.text.toLowerCase().includes(taskSearch.toLowerCase()))
                 .sort((a,b) => (a.dueDate || '').localeCompare(b.dueDate || ''))
                 .map(t => (
-                <div key={t.id} className={`bg-white p-4 rounded-xl border flex justify-between items-center ${t.done ? 'opacity-30' : 'shadow-sm border-l-4 border-l-emerald-500'}`}>
+                <div key={t.id} className={`bg-white p-4 rounded-2xl border flex justify-between items-center transition-all ${t.done ? 'opacity-30 grayscale' : 'shadow-sm border-l-4 border-l-emerald-500'}`}>
                   <div>
-                    <p className={`font-bold text-sm ${t.done ? 'line-through text-stone-400' : 'text-stone-800'}`}>{t.text}</p>
-                    <p className="text-[9px] font-bold text-stone-400 uppercase mt-1">📅 {t.dueDate}</p>
+                    <p className={`font-black text-stone-800 text-sm tracking-tight leading-none uppercase mb-1 ${t.done ? 'line-through' : ''}`}>{t.text}</p>
+                    <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Scadenza: {t.dueDate || 'N/D'}</p>
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={()=>updateDoc(doc(db,'tasks',t.id),{done:!t.done})} className="p-2 bg-emerald-50 text-emerald-600 rounded-lg"><CheckCircle2 size={18}/></button>
-                    <button onClick={()=>deleteDoc(doc(db,'tasks',t.id))} className="p-2 bg-red-50 text-red-400 rounded-lg"><Trash2 size={18}/></button>
+                    <button onClick={()=>updateDoc(doc(db,'tasks',t.id),{done:!t.done})} className={`p-2 rounded-xl transition-all ${t.done ? 'bg-stone-100 text-stone-400' : 'bg-emerald-50 text-emerald-600'}`}><CheckCircle2 size={20}/></button>
+                    <button onClick={()=>deleteDoc(doc(db,'tasks',t.id))} className="p-2 bg-red-50 text-red-400 rounded-xl hover:bg-red-500 hover:text-white transition-colors"><Trash2 size={20}/></button>
                   </div>
                 </div>
               ))}
+              {tasks.length === 0 && <p className="text-center py-10 text-stone-300 font-bold uppercase italic text-xs tracking-widest">Nessun impegno in agenda.</p>}
             </div>
           </div>
         )}
 
-        {/* --- DINASTIA --- */}
-        {activeTab === 'dinastia' && (
-          <div className="bg-white p-6 rounded-3xl border shadow-sm overflow-x-auto">
-            <h3 className="text-lg font-black uppercase tracking-tighter mb-6 italic">Albero Genealogico</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* --- 7. DINASTIA --- */}
+        {activeTab === 'dinastia' && userRole === 'farmer' && (
+          <div className="bg-white p-6 rounded-3xl border shadow-sm animate-in fade-in overflow-x-auto">
+            <h3 className="text-lg font-black italic uppercase tracking-tighter mb-8 flex items-center gap-2"><Network className="text-emerald-500"/> Albero Genealogico Aziendale</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
               {animals.filter(a => !a.dam && !a.sire).map(root => (
-                <div key={root.id} className="bg-stone-50 p-4 rounded-2xl">
+                <div key={root.id} className="bg-stone-50 p-4 rounded-2xl border border-stone-100">
                   <DynastyBranch animal={root} allAnimals={animals} />
                 </div>
               ))}
@@ -470,56 +486,60 @@ export default function App() {
           </div>
         )}
 
-        {/* --- VETERINARIO IA --- */}
-        {activeTab === 'vet' && (
-          <div className="bg-white p-6 rounded-3xl border shadow-sm max-w-lg mx-auto">
-            <div className="bg-blue-600 p-6 rounded-2xl text-white mb-6 flex items-center gap-4">
-               <Stethoscope size={40} />
-               <div><h3 className="font-black uppercase text-sm italic">Diagnosi IA</h3><p className="text-[10px] font-bold opacity-80 uppercase tracking-tighter">Supporto decisionale rapido</p></div>
+        {/* --- 8. VETERINARIO IA --- */}
+        {activeTab === 'vet' && userRole === 'farmer' && (
+          <div className="bg-white p-8 rounded-[2rem] border shadow-sm max-w-xl mx-auto animate-in zoom-in-95">
+            <div className="bg-blue-600 p-6 rounded-2xl text-white mb-8 flex items-center gap-4 shadow-lg shadow-blue-100">
+               <Stethoscope size={48} strokeWidth={1} />
+               <div><h3 className="text-xl font-black uppercase italic tracking-tighter leading-none mb-1">Diagnosi IA</h3><p className="text-blue-50 font-bold text-[10px] opacity-80 uppercase tracking-widest">Supporto Diagnostico 2026</p></div>
             </div>
-            <textarea className="w-full p-4 bg-stone-50 border-none rounded-2xl font-bold text-sm h-32 mb-4 shadow-inner" placeholder="Descrivi il comportamento dell'animale..." value={vetSymptom} onChange={e=>setVetSymptom(e.target.value)}></textarea>
-            <button onClick={()=>{setIsAnalyzing(true); setTimeout(()=>{setVetResult({title:"Esito Preliminare", desc:"Sintomi compatibili con spossatezza o infezione lieve.", action:"ISOLA IL CAPO E CHIAMA VETERINARIO"}); setIsAnalyzing(false);},2000)}} className="w-full bg-stone-900 text-white py-4 rounded-xl font-bold uppercase text-xs">
-              {isAnalyzing ? "Analisi..." : "Analizza con IA"}
+            <textarea className="w-full p-6 bg-stone-50 border-none rounded-3xl font-bold text-stone-800 h-48 mb-6 shadow-inner italic placeholder:text-stone-300" placeholder="Descrivi il comportamento anomalo (es: 'Il vitello non mangia e ha febbre'...)" value={vetSymptom} onChange={e=>setVetSymptom(e.target.value)}></textarea>
+            <button onClick={()=>{setIsAnalyzing(true); setTimeout(()=>{setVetResult({title:"Analisi IA Completata", desc:"Sintomi indicativi di spossatezza o infezione respiratoria.", action:"ISOLA IL CAPO E CHIAMA VETERINARIO DI ZONA"}); setIsAnalyzing(false);},2000)}} className="w-full bg-stone-900 text-white py-5 rounded-2xl font-black uppercase tracking-[0.2em] shadow-xl hover:bg-blue-600 transition-all">
+              {isAnalyzing ? "Analisi Dati Clinici..." : "Avvia Analisi IA"}
             </button>
             {vetResult && (
-              <div className="mt-6 p-5 bg-emerald-50 border border-emerald-100 rounded-2xl">
-                 <h4 className="text-emerald-900 font-bold uppercase text-xs mb-1">{vetResult.title}</h4>
-                 <p className="text-emerald-800 text-xs mb-3 italic">"{vetResult.desc}"</p>
-                 <div className="bg-emerald-600 text-white p-3 rounded-lg text-center text-[9px] font-bold uppercase">{vetResult.action}</div>
+              <div className="mt-8 p-6 bg-emerald-50 border-2 border-emerald-100 rounded-3xl animate-in slide-in-from-bottom-6">
+                 <h4 className="text-emerald-950 font-black uppercase text-sm mb-2 italic flex items-center gap-2 tracking-tighter"><Info size={18}/> {vetResult.title}</h4>
+                 <p className="text-emerald-800 font-bold mb-6 text-sm leading-relaxed">"{vetResult.desc}"</p>
+                 <div className="bg-emerald-600 text-white p-4 rounded-xl text-center text-[10px] font-black uppercase tracking-widest shadow-lg">{vetResult.action}</div>
               </div>
             )}
           </div>
         )}
 
-        {/* --- MERCATO --- */}
+        {/* --- 9. MERCATO KM 0 --- */}
         {activeTab === 'market' && (
-          <div className="space-y-6">
-            <div className="bg-amber-500 p-8 rounded-3xl text-white shadow-lg relative overflow-hidden">
-               <h3 className="text-3xl font-black italic mb-2 uppercase">Mercato Locale</h3>
-               <p className="text-amber-100 font-bold text-sm">Prodotti genuini direttamente dal campo.</p>
+          <div className="space-y-10 animate-in slide-in-from-bottom-8">
+            <div className="bg-amber-500 p-10 rounded-[3rem] text-white shadow-2xl relative overflow-hidden">
+               <ShoppingBag size={200} className="absolute -bottom-10 -right-10 opacity-10 rotate-12" />
+               <div className="relative z-10 max-w-xl text-center md:text-left">
+                 <h3 className="text-4xl font-black italic tracking-tighter uppercase mb-4 leading-none">Piazza Mercato</h3>
+                 <p className="text-amber-100 font-bold text-sm italic uppercase tracking-wider">Prodotti genuini direttamente dal campo, senza intermediari.</p>
+               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {marketItems.map(item => (
-                <div key={item.id} className="bg-white rounded-2xl border shadow-sm overflow-hidden flex flex-col">
-                  <div className="h-40 bg-stone-100 flex items-center justify-center relative">
-                     <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full font-black text-emerald-600 text-sm italic shadow-sm">€{item.price}</div>
-                     <ShoppingBag size={40} className="text-stone-300" />
+                <div key={item.id} className="bg-white rounded-[2.5rem] border shadow-sm overflow-hidden flex flex-col group hover:shadow-xl transition-all">
+                  <div className="h-48 bg-stone-50 flex items-center justify-center relative shadow-inner overflow-hidden">
+                     <div className="absolute top-6 right-6 bg-white/90 backdrop-blur px-5 py-2 rounded-2xl font-black text-2xl text-emerald-600 shadow-xl italic tracking-tighter">€{item.price.toFixed(0)}</div>
+                     <ShoppingBag size={80} className="text-stone-100 group-hover:scale-125 transition-transform duration-700" />
                   </div>
-                  <div className="p-5 flex flex-col flex-1">
-                    <p className="text-[10px] font-bold text-amber-500 uppercase mb-1">{item.sellerName}</p>
-                    <h4 className="text-lg font-black text-stone-900 uppercase leading-none mb-4">{item.name}</h4>
-                    <div className="flex justify-between items-center mb-4 bg-stone-50 p-3 rounded-xl">
-                       <span className="text-[10px] font-bold text-stone-400 uppercase">Disp.</span>
-                       <span className="font-bold text-stone-700 text-xs">{item.quantity} {item.unit}</span>
+                  <div className="p-8 flex flex-col flex-1">
+                    <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-2 italic leading-none">{item.sellerName}</p>
+                    <h4 className="text-3xl font-black text-stone-900 tracking-tighter mb-6 uppercase leading-[0.85]">{item.name}</h4>
+                    <div className="flex justify-between items-center mb-8 bg-stone-50 p-6 rounded-2xl border border-white shadow-inner">
+                       <span className="text-[10px] font-black text-stone-400 uppercase italic">Disp.</span>
+                       <span className="font-black text-stone-700 text-lg uppercase tracking-tight">{item.quantity} {item.unit}</span>
                     </div>
                     {item.contactPhone ? (
-                       <a href={`https://wa.me/39${item.contactPhone}`} target="_blank" className="w-full bg-[#25D366] text-white py-3 rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-2"><MessageCircle size={18}/> WhatsApp</a>
+                       <a href={`https://wa.me/39${item.contactPhone}?text=Salve ${item.sellerName}, vorrei ordinare ${item.name} visto su AgriManage.`} target="_blank" rel="noreferrer" className="w-full bg-[#25D366] text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 hover:scale-105 transition-transform"><MessageCircle size={20}/> WhatsApp</a>
                     ) : (
-                       <a href={`mailto:${item.contactEmail}`} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-2"><Mail size={18}/> Email</a>
+                       <a href={`mailto:${item.contactEmail}`} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 hover:scale-105 transition-transform"><Mail size={20}/> Email</a>
                     )}
                   </div>
                 </div>
               ))}
+              {marketItems.length === 0 && <p className="text-center col-span-full py-20 text-stone-300 font-bold uppercase italic tracking-widest">Nessun prodotto disponibile in zona.</p>}
             </div>
           </div>
         )}
