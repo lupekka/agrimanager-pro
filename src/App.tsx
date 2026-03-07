@@ -4,12 +4,16 @@ import {
   PlusCircle, LogOut, Lock, Menu, X, Search, LayoutDashboard,
   History, Package, Edit2, CheckCircle2,
   MinusCircle, Activity, ListChecks, Wallet,
-  ArrowUpRight, ArrowDownLeft, Ghost, UserPlus, Stethoscope, UploadCloud, AlertTriangle
+  ArrowUpRight, ArrowDownLeft, Ghost, UserPlus, Stethoscope, UploadCloud, AlertTriangle, FileDown
 } from 'lucide-react';
 
-// Firebase
+// Librerie per il PDF Premium
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+
+// Firebase (Aggiornato per l'OFFLINE MODE)
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, query, where, getDocs } from "firebase/firestore";
+import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, query, where, getDocs, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, User } from "firebase/auth";
 
 const firebaseConfig = {
@@ -22,7 +26,11 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+
+// IL SEGRETO DELL'OFFLINE MODE: Diciamo a Firebase di usare la memoria cache del telefono!
+const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()})
+});
 const auth = getAuth(app);
 
 type Species = 'Maiali' | 'Cavalli' | 'Mucche' | 'Galline' | 'Oche';
@@ -71,7 +79,6 @@ export default function App() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState({ name: '', notes: '' });
 
-  // STATI PER IL VETERINARIO INTELLIGENTE
   const [vetSymptom, setVetSymptom] = useState('');
   const [vetImage, setVetImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -156,10 +163,9 @@ export default function App() {
     try {
       await addDoc(collection(db, 'tasks'), { text: newTask, done: false, dueDate: newTaskDate, ownerId: user!.uid });
       setNewTask('');
-    } catch (err) { alert("Errore di rete. Riprova."); }
+    } catch (err) { alert("Errore. Sei offline? Il dato verrà salvato appena tornerà la rete!"); }
   };
 
-  // GESTIONE SIMULATA VETERINARIO IA
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -170,19 +176,64 @@ export default function App() {
   };
 
   const analyzeWithAI = () => {
-    if (!vetImage && !vetSymptom) return alert("Inserisci una foto o descrivi il sintomo prima di analizzare.");
+    if (!vetImage && !vetSymptom) return alert("Inserisci una foto o descrivi il sintomo.");
     setIsAnalyzing(true);
     setVetResult(null);
-    
-    // Simulazione di chiamata API
     setTimeout(() => {
       setIsAnalyzing(false);
       setVetResult({
         title: "Possibile Dermatite o Lieve Infezione Cutanea",
-        desc: "L'intelligenza artificiale ha rilevato arrossamenti e possibile desquamazione compatibili con una dermatite o un lieve trauma infetto. L'animale necessita di controllo visivo.",
-        action: "Pulisci l'area con soluzione fisiologica o disinfettante a base di iodio. Se il rossore persiste o l'animale presenta febbre/inappetenza entro 24h, contatta immediatamente il veterinario di zona."
+        desc: "L'intelligenza artificiale ha rilevato arrossamenti compatibili con una lieve infezione.",
+        action: "Pulisci l'area con disinfettante. Se il rossore persiste contatta il veterinario."
       });
     }, 2500);
+  };
+
+  // --- LA MAGIA DELLA BUROCRAZIA: FUNZIONE ESPORTA PDF ASL ---
+  const exportASLReport = () => {
+    if (validAnimals.length === 0) return alert("Non ci sono capi nell'inventario da esportare!");
+    
+    const doc = new jsPDF();
+    
+    // Intestazione
+    doc.setFontSize(18);
+    doc.setTextColor(5, 150, 105); // Verde smeraldo
+    doc.text('Registro Aziendale Capi', 14, 22);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Generato il: ${new Date().toLocaleDateString('it-IT')}`, 14, 30);
+    doc.text(`Totale Capi Effettivi: ${validAnimals.length}`, 14, 35);
+
+    // Preparazione Dati Tabella
+    const tableColumn = ["ID / Codice", "Specie", "Data Nascita", "Madre", "Padre", "Note/Trattamenti"];
+    const tableRows = validAnimals.map(animal => {
+      const madre = animal.dam ? validAnimals.find(a => a.id === animal.dam)?.name || 'Ignota' : 'Ignota';
+      const padre = animal.sire ? validAnimals.find(a => a.id === animal.sire)?.name || 'Ignoto' : 'Ignoto';
+      
+      return [
+        animal.name,
+        animal.species,
+        animal.birthDate || 'N/D',
+        madre,
+        padre,
+        animal.notes || '-'
+      ];
+    });
+
+    // Disegna la Tabella
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 45,
+      theme: 'grid',
+      styles: { fontSize: 8, cellPadding: 3 },
+      headStyles: { fillColor: [5, 150, 105], textColor: [255, 255, 255], fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [248, 249, 250] }
+    });
+
+    // Salva il PDF nel telefono/PC
+    doc.save(`Registro_ASL_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center font-black text-emerald-800 bg-stone-50 italic animate-pulse">Caricamento in corso...</div>;
@@ -220,8 +271,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex text-stone-900 bg-[#F4F5F7]">
-      
-      {/* HEADER MOBILE */}
       <header className="md:hidden fixed top-0 w-full bg-white/80 backdrop-blur-xl z-40 border-b border-stone-200/50 px-5 pb-4 pt-safe flex justify-between items-center shadow-sm">
         <div className="flex items-center gap-2">
           <div className="bg-emerald-600 p-1.5 rounded-lg text-white"><TrendingUp size={20} strokeWidth={3} /></div>
@@ -230,7 +279,6 @@ export default function App() {
         <button onClick={() => signOut(auth)} className="bg-red-50 text-red-500 p-2 rounded-full hover:bg-red-100 transition-colors"><LogOut size={18} strokeWidth={2.5}/></button>
       </header>
 
-      {/* SIDEBAR DESKTOP */}
       <aside className="hidden md:flex flex-col w-72 bg-white border-r border-stone-200/60 p-6 fixed h-full z-40">
         <div className="flex items-center gap-3 mb-10">
           <div className="bg-emerald-600 p-3 rounded-2xl text-white shadow-lg"><TrendingUp size={24} strokeWidth={3} /></div>
@@ -256,13 +304,28 @@ export default function App() {
         <button onClick={() => signOut(auth)} className="mt-4 flex items-center gap-3 text-red-500 font-bold p-4 hover:bg-red-50 rounded-2xl transition-colors"><LogOut size={20} /> Disconnetti</button>
       </aside>
 
-      {/* CONTENUTO PRINCIPALE */}
       <main className="flex-1 w-full md:ml-72 px-4 pb-28 pt-main-safe md:pt-10 md:p-10 max-w-6xl mx-auto">
         
-        <h2 className="text-3xl md:text-4xl font-black text-emerald-950 capitalize tracking-tighter italic mb-6 ml-1 flex items-center gap-3">
-          {tabTitles[activeTab]}
-          {activeTab === 'vet' && <span className="bg-blue-100 text-blue-600 text-[10px] font-black uppercase px-3 py-1.5 rounded-full tracking-widest not-italic">Beta</span>}
-        </h2>
+        <div className="flex justify-between items-center mb-6 ml-1">
+          <h2 className="text-3xl md:text-4xl font-black text-emerald-950 capitalize tracking-tighter italic flex items-center gap-3">
+            {tabTitles[activeTab]}
+            {activeTab === 'vet' && <span className="bg-blue-100 text-blue-600 text-[10px] font-black uppercase px-3 py-1.5 rounded-full tracking-widest not-italic">Beta</span>}
+          </h2>
+          
+          {/* IL BOTTONE MAGICO PER SCARICARE IL PDF NELLA SCHEDA INVENTARIO */}
+          {activeTab === 'inventory' && (
+            <button onClick={exportASLReport} className="hidden md:flex bg-emerald-100 text-emerald-700 hover:bg-emerald-200 hover:text-emerald-800 transition-colors px-4 py-2 rounded-xl font-bold text-xs uppercase items-center gap-2">
+              <FileDown size={16} /> Esporta Registro
+            </button>
+          )}
+        </div>
+
+        {/* TASTO PDF MOBILE */}
+        {activeTab === 'inventory' && (
+          <button onClick={exportASLReport} className="md:hidden w-full mb-6 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 active:scale-95 transition-all px-4 py-3 rounded-xl font-bold text-xs uppercase flex justify-center items-center gap-2 shadow-sm border border-emerald-200">
+            <FileDown size={18} /> Scarica Registro per ASL (PDF)
+          </button>
+        )}
 
         {/* --- DASHBOARD --- */}
         {activeTab === 'dashboard' && (
@@ -293,7 +356,6 @@ export default function App() {
               </div>
             )}
 
-            {/* Widget: Lavori in Sospeso */}
             <div className="bg-white p-6 rounded-[2rem] border border-stone-100 shadow-sm">
               <div className="flex justify-between items-center mb-5">
                 <h3 className="text-lg font-black text-stone-800 flex items-center gap-2"><ListChecks className="text-emerald-500" size={20}/> Attività in Sospeso</h3>
@@ -309,9 +371,6 @@ export default function App() {
                     <button onClick={async () => await updateDoc(doc(db, 'tasks', t.id), { done: true, dateCompleted: new Date().toLocaleDateString('it-IT') })} className="text-stone-300 hover:text-emerald-500 transition-colors"><CheckCircle2 size={24}/></button>
                   </div>
                 ))}
-                {tasks.filter(t => !t.done).length === 0 && (
-                  <p className="text-stone-400 text-sm italic py-4 text-center">Nessun lavoro in sospeso. Ottimo lavoro!</p>
-                )}
               </div>
             </div>
           </div>
@@ -537,7 +596,7 @@ export default function App() {
           </div>
         )}
 
-        {/* --- AGENDA LAVORI (CON CALENDARIO) --- */}
+        {/* --- AGENDA LAVORI --- */}
         {activeTab === 'tasks' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fade-in">
             <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-stone-100 shadow-sm">
@@ -564,9 +623,6 @@ export default function App() {
                     <button onClick={() => deleteDoc(doc(db, 'tasks', t.id))} className="text-stone-300 hover:text-red-500 bg-stone-50 p-2 rounded-xl"><Trash2 size={16}/></button>
                   </div>
                 ))}
-                {tasks.filter(t => !t.done).length === 0 && (
-                  <p className="text-stone-400 text-sm text-center py-6 italic border-2 border-dashed border-stone-200 rounded-2xl">L'agenda è vuota. Nessuna scadenza in vista!</p>
-                )}
               </div>
             </div>
 
@@ -598,7 +654,7 @@ export default function App() {
               <AlertTriangle className="text-amber-500 shrink-0 mt-1" size={24} />
               <div>
                 <h4 className="font-black text-amber-800 text-sm uppercase tracking-widest mb-1">Avvertenza Medica</h4>
-                <p className="text-xs text-amber-700 leading-relaxed font-medium">Questa funzione utilizza l'Intelligenza Artificiale per fornire un pre-triage indicativo. <strong className="font-black">Non sostituisce in alcun modo il parere di un medico veterinario.</strong> In caso di urgenze o sintomi gravi, contatta immediatamente il tuo veterinario di fiducia.</p>
+                <p className="text-xs text-amber-700 leading-relaxed font-medium">Questa funzione utilizza l'Intelligenza Artificiale per fornire un pre-triage indicativo. <strong className="font-black">Non sostituisce in alcun modo il parere di un medico veterinario.</strong></p>
               </div>
             </div>
 
@@ -623,7 +679,7 @@ export default function App() {
                 <div>
                   <label className="text-xs font-black text-stone-400 uppercase ml-2 mb-2 block">2. Descrivi i sintomi</label>
                   <textarea 
-                    placeholder="Es. Il vitello non mangia da ieri mattina e ha una leggera zoppia all'anteriore destro..." 
+                    placeholder="Es. Il vitello non mangia da ieri mattina..." 
                     className="ui-input h-28 resize-none"
                     value={vetSymptom}
                     onChange={(e) => setVetSymptom(e.target.value)}
@@ -635,11 +691,7 @@ export default function App() {
                   disabled={isAnalyzing}
                   className={`w-full font-black py-4 rounded-xl text-xs uppercase shadow-md flex justify-center items-center gap-2 transition-all ${isAnalyzing ? 'bg-blue-300 text-white cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
                 >
-                  {isAnalyzing ? (
-                    <><Activity className="animate-pulse" size={18}/> Analisi IA in corso...</>
-                  ) : (
-                    <><Stethoscope size={18}/> Analizza con Intelligenza Artificiale</>
-                  )}
+                  {isAnalyzing ? <><Activity className="animate-pulse" size={18}/> Analisi IA in corso...</> : <><Stethoscope size={18}/> Analizza con IA</>}
                 </button>
               </div>
             </div>
@@ -649,7 +701,6 @@ export default function App() {
                 <div className="absolute top-0 left-0 w-2 h-full bg-blue-500"></div>
                 <h3 className="text-lg font-black text-blue-900 mb-2 pl-4">Diagnosi Preliminare Stimata</h3>
                 <h4 className="text-xl font-bold text-stone-800 italic mb-4 pl-4">{vetResult.title}</h4>
-                
                 <div className="space-y-4 pl-4">
                   <div>
                     <h5 className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">Rilevamenti IA</h5>
@@ -667,7 +718,6 @@ export default function App() {
 
       </main>
 
-      {/* BOTTOM NAVIGATION MOBILE */}
       <nav className="md:hidden fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-xl border-t border-stone-200 flex justify-between px-1 pb-safe pt-2 z-50 overflow-x-auto hide-scrollbar">
         {[
           { id: 'dashboard', icon: LayoutDashboard, label: 'Home' },
