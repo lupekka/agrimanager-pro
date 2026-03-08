@@ -1208,7 +1208,9 @@ useEffect(() => {
                     <Bell size={16} />
                   </div>
                   <div className="flex-1">
-                    <h4 className="text-xs font-black text-amber-900 mb-1">Non perdere le scadenze dei trattamenti</h4>
+                   <h4 className="text-xs font-black text-amber-900 mb-1">
+  Non perdere le scadenze dei trattamenti
+</h4>
                     <p className="text-[10px] text-amber-800 mb-2">
                       Attivando le notifiche riceverai un avviso quando:
                       • Un trattamento sta per scadere (promemoria giornaliero negli ultimi 7 giorni)
