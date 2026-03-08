@@ -1,14 +1,70 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState, useEffect } from 'react';
 import {
-  PawPrint, Network, Baby, Trash2,
-  PlusCircle, LogOut, Menu, X, Search, LayoutDashboard,
-  History, Package, Edit2, CheckCircle2,
-  MinusCircle, Activity, ListChecks, Wallet,
-  ArrowUpRight, ArrowDownLeft, UserPlus, Stethoscope, 
-  UploadCloud, AlertTriangle, FileDown, Store, ShoppingBag, 
-  MessageCircle, Mail, Bot, Info, Send, Save, ArrowRightLeft, Plus, ChevronDown, ChevronRight,
-  Camera, Bell, MapPin, Syringe, ClipboardList, CalendarClock, AlertCircle
+  // Navigazione e UI principali
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  X,
+  Search,
+  Plus,
+  Edit2,
+  Trash2,
+  Save,
+  Send,
+  Info,
+  CheckCircle2,
+  AlertCircle,
+  AlertTriangle,
+  Activity,
+  
+  // Icone specifiche per sezioni
+  PawPrint,           // Inventario Capi
+  Baby,               // Parti
+  Wallet,             // Finanza/Bilancio
+  Package,            // Prodotti/Magazzino
+  ListChecks,         // Tasks/Agenda
+  Network,            // Albero genealogico
+  Stethoscope,        // Vet IA
+  Store,              // Market
+  ShoppingBag,        // Market items
+  
+  // Icone per azioni finanziarie
+  ArrowUpRight,       // Entrate
+  ArrowDownLeft,      // Uscite
+  ArrowRightLeft,     // Scambio/Transferimenti
+  
+  // Icone per gestione utenti
+  UserPlus,           // Registrazione
+  
+  // Icone per file e upload
+  FileDown,           // Download PDF
+  UploadCloud,        // Upload foto
+  
+  // Icone per comunicazione
+  MessageCircle,      // WhatsApp
+  Mail,               // Email
+  
+  // Icone per assistente e AI
+  Bot,                // Assistente rapido
+  
+  // Icone per accordion
+  ChevronDown,
+  ChevronRight,
+  
+  // Icone per notifiche e meteo
+  Bell,               // Notifiche
+  MapPin,             // Posizione meteo
+  Camera,             // Foto per Vet IA
+  
+  // Icone per libretto sanitario
+  Syringe,            // Libretto sanitario
+  ClipboardList,      // Storico trattamenti
+  CalendarClock,      // Scadenziario
+  
+  // Icone per azioni prodotto
+  MinusCircle,
+  PlusCircle
 } from 'lucide-react';
 
 import jsPDF from 'jspdf';
