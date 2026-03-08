@@ -15,7 +15,7 @@
     "typescript",
     "firebase",
     "tensorflow",
-    "pwa"
+    pwa"
   ],
   "author": "Luca Pezza",
   "license": "MIT",
