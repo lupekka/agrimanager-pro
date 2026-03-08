@@ -3,40 +3,247 @@
 @tailwind utilities;
 
 @layer base {
+  /* Miglioramenti per la tipografia e accessibilità */
+  * {
+    @apply box-border;
+  }
+  
+  html {
+    @apply scroll-smooth;
+  }
+  
   body {
     @apply bg-[#F4F5F7] text-stone-900 antialiased;
     -webkit-tap-highlight-color: transparent;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* Migliora la leggibilità su mobile */
+  @media (max-width: 640px) {
+    html {
+      font-size: 14px;
+    }
+  }
+  
+  /* Stili per selezione testo */
+  ::selection {
+    @apply bg-emerald-200 text-emerald-900;
   }
 }
 
 @layer components {
+  /* Input più versatili */
   .ui-input {
-    @apply w-full p-4 bg-stone-50 border-none rounded-2xl font-bold text-sm shadow-inner focus:ring-4 focus:ring-emerald-100 transition-all outline-none;
+    @apply w-full p-4 bg-stone-50 border-none rounded-2xl font-bold text-sm shadow-inner 
+           focus:ring-4 focus:ring-emerald-100 focus:bg-white 
+           transition-all duration-200 outline-none
+           placeholder:text-stone-400 placeholder:font-normal;
+  }
+  
+  .ui-input-error {
+    @apply ring-2 ring-red-300 bg-red-50 focus:ring-red-200;
+  }
+  
+  .ui-input-success {
+    @apply ring-2 ring-emerald-300 bg-emerald-50 focus:ring-emerald-200;
+  }
+  
+  /* Bottoni uniformi */
+  .ui-button {
+    @apply font-black uppercase tracking-wider text-xs py-3 px-6 rounded-xl 
+           transition-all duration-200 active:scale-95 disabled:opacity-50 
+           disabled:cursor-not-allowed shadow-md hover:shadow-lg;
+  }
+  
+  .ui-button-primary {
+    @apply ui-button bg-emerald-600 text-white hover:bg-emerald-700;
+  }
+  
+  .ui-button-secondary {
+    @apply ui-button bg-stone-900 text-white hover:bg-stone-800;
+  }
+  
+  .ui-button-outline {
+    @apply ui-button bg-white text-stone-900 border-2 border-stone-200 
+           hover:border-emerald-600 hover:text-emerald-600;
+  }
+  
+  /* Card standard */
+  .ui-card {
+    @apply bg-white rounded-2xl border border-stone-200 shadow-sm 
+           hover:shadow-md transition-shadow duration-300;
+  }
+  
+  /* Badge per conteggi */
+  .ui-badge {
+    @apply text-[10px] font-black px-2 py-1 rounded-full;
+  }
+  
+  .ui-badge-primary {
+    @apply ui-badge bg-emerald-100 text-emerald-800;
+  }
+  
+  .ui-badge-warning {
+    @apply ui-badge bg-amber-100 text-amber-800;
   }
 }
 
-/* Scrollbar personalizzata per la sidebar */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  @apply bg-stone-200 rounded-full;
-}
-
-/* Fix per la visualizzazione su iPhone (Area sicura) */
-.pt-safe {
-  padding-top: env(safe-area-inset-top);
-}
-.pb-safe {
-  padding-bottom: env(safe-area-inset-bottom);
-}
-
-/* Animazioni fluide per il cambio tab */
-.animate-fade-in {
-  animation: fadeIn 0.4s ease-out forwards;
+@layer utilities {
+  /* Animazioni personalizzate */
+  .animate-fade-in {
+    animation: fadeIn 0.4s ease-out forwards;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out forwards;
+  }
+  
+  .animate-slide-down {
+    animation: slideDown 0.3s ease-out forwards;
+  }
+  
+  .animate-scale-in {
+    animation: scaleIn 0.2s ease-out forwards;
+  }
+  
+  .animate-pulse-slow {
+    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  /* Safe area per dispositivi moderni */
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .pl-safe {
+    padding-left: env(safe-area-inset-left);
+  }
+  
+  .pr-safe {
+    padding-right: env(safe-area-inset-right);
+  }
+  
+  /* Scrollbar personalizzata */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-stone-300 rounded-full hover:bg-stone-400 transition-colors;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-stone-400;
+  }
+  
+  /* Nascondi scrollbar ma mantieni funzionalità */
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Effetti glassmorphism */
+  .glass-effect {
+    @apply bg-white/80 backdrop-blur-lg border border-white/20;
+  }
+  
+  .glass-effect-dark {
+    @apply bg-stone-900/80 backdrop-blur-lg border border-stone-700/20;
+  }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { 
+    opacity: 0; 
+    transform: translateY(10px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0; 
+    transform: translateY(20px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+@keyframes slideDown {
+  from { 
+    opacity: 0; 
+    transform: translateY(-20px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+@keyframes scaleIn {
+  from { 
+    opacity: 0; 
+    transform: scale(0.95); 
+  }
+  to { 
+    opacity: 1; 
+    transform: scale(1); 
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Media queries per dispositivi specifici */
+@supports (padding: max(0px)) {
+  .pt-safe {
+    padding-top: max(env(safe-area-inset-top), 1rem);
+  }
+  
+  .pb-safe {
+    padding-bottom: max(env(safe-area-inset-bottom), 1rem);
+  }
+}
+
+/* Stili per stampa */
+@media print {
+  .no-print {
+    display: none;
+  }
+  
+  body {
+    @apply bg-white text-black;
+  }
+}
+
+/* Tema scuro (opzionale, se vuoi supportarlo in futuro) */
+@media (prefers-color-scheme: dark) {
+  .dark-mode-ready {
+    @apply bg-stone-900 text-stone-100;
+  }
 }
