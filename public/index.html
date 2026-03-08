@@ -17,6 +17,22 @@
     
     <title>AgriManage Pro</title>
     
+    <!-- ONESIGNAL NOTIFICHE - AGGIUNTO ORA -->
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.init({
+          appId: "feed9c1e-90cc-468f-a2b5-2dad2c0350ac",
+          safari_web_id: "web.onesignal.auto.3cd6b41f-0715-4da8-9807-02ca4af2dc44",
+          notifyButton: {
+            enable: true,
+          },
+        });
+      });
+    </script>
+    <!-- FINE ONESIGNAL -->
+    
     <!-- FONT OTTIMIZZATI -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
