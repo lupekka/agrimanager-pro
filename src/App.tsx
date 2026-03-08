@@ -14,7 +14,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, query, where, getDocs, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, setDoc, getDoc, orderBy, limit, arrayUnion } from "firebase/firestore";
+import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, query, where, getDocs, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, setDoc, getDoc, orderBy, limit } from "firebase/firestore";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, User } from "firebase/auth";
 
 // TensorFlow per AI locale
@@ -360,10 +360,8 @@ export default function App() {
   const sendOneSignalNotification = (title: string, message: string, data?: any) => {
     if (!window.OneSignal || !oneSignalId) return;
     
-    // Invia notifica a tutti gli utenti o a uno specifico
     window.OneSignal.sendTag("lastNotification", new Date().toDateString());
     
-    // Notifica in-app se l'app è aperta
     if (Notification.permission === 'granted') {
       new Notification(title, { 
         body: message,
@@ -377,29 +375,38 @@ export default function App() {
     if (!selectedAnimal) return alert("Seleziona un animale");
     if (!newTreatment.dataSomministrazione) return alert("Inserisci la data di somministrazione");
     
-    const treatment: Treatment = {
-      id: Date.now().toString(),
-      tipo: newTreatment.tipo,
-      dataSomministrazione: newTreatment.dataSomministrazione,
-      dataScadenza: newTreatment.dataScadenza || undefined,
-      note: newTreatment.note,
-      completed: false,
-      notified: false
-    };
-    
-    await updateDoc(doc(db, 'animals', selectedAnimal.id), {
-      treatments: arrayUnion(treatment)
-    });
-    
-    setNewTreatment({
-      tipo: 'Vaccino',
-      dataSomministrazione: new Date().toISOString().split('T')[0],
-      dataScadenza: '',
-      note: ''
-    });
-    
-    setShowTreatmentForm(false);
-    alert("✅ Trattamento registrato con successo!");
+    try {
+      const treatment: Treatment = {
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+        tipo: newTreatment.tipo,
+        dataSomministrazione: newTreatment.dataSomministrazione,
+        dataScadenza: newTreatment.dataScadenza || undefined,
+        note: newTreatment.note || '',
+        completed: false
+      };
+      
+      const animalRef = doc(db, 'animals', selectedAnimal.id);
+      const animalSnap = await getDoc(animalRef);
+      const currentTreatments = animalSnap.data()?.treatments || [];
+      
+      await updateDoc(animalRef, {
+        treatments: [...currentTreatments, treatment]
+      });
+      
+      setNewTreatment({
+        tipo: 'Vaccino',
+        dataSomministrazione: new Date().toISOString().split('T')[0],
+        dataScadenza: '',
+        note: ''
+      });
+      
+      setShowTreatmentForm(false);
+      alert("✅ Trattamento registrato con successo!");
+      
+    } catch (error) {
+      console.error("Errore salvataggio trattamento:", error);
+      alert("Errore durante il salvataggio");
+    }
   };
 
   const handleCompleteTreatment = async (animalId: string, treatmentId: string) => {
@@ -459,7 +466,6 @@ export default function App() {
             });
           }
           
-          // Logica notifiche 'fiato sul collo' - ogni giorno negli ultimi 7 giorni
           if (oneSignalInitialized && treatment.dataScadenza && !treatment.completed && !isExpired && diffDays <= 7 && diffDays >= 0) {
             const todayStr = today.toDateString();
             const notificationKey = `${animal.id}_${treatment.id}_${diffDays}`;
@@ -484,7 +490,6 @@ export default function App() {
       });
     });
     
-    // Invia notifiche accumulate
     notificationsToSend.forEach(notif => {
       sendOneSignalNotification(notif.title, notif.message, notif.data);
     });
@@ -778,8 +783,20 @@ export default function App() {
   };
 
   const handleUpdateNotes = async (id: string) => {
-    await updateDoc(doc(db, 'animals', id), { notes: editNote });
-    setEditingAnimalId(null);
+    if (!editNote.trim()) {
+      alert("Inserisci una nota");
+      return;
+    }
+    
+    try {
+      await updateDoc(doc(db, 'animals', id), { notes: editNote });
+      setEditingAnimalId(null);
+      setEditNote('');
+      alert("✅ Note aggiornate con successo!");
+    } catch (error) {
+      console.error("Errore aggiornamento note:", error);
+      alert("Errore durante l'aggiornamento");
+    }
   };
 
   const handleSaveTransaction = async () => {
@@ -1554,7 +1571,7 @@ export default function App() {
           </div>
         )}
 
-        {/* 2. INVENTARIO */}
+        {/* INVENTARIO */}
         {activeTab === 'inventory' && userRole === 'farmer' && (
           <div className="space-y-6 animate-in slide-in-from-bottom-4">
             <div className="bg-white p-4 rounded-2xl border shadow-sm space-y-3">
@@ -1618,25 +1635,53 @@ export default function App() {
                                 </p>
                               )}
                               
-                              {a.notes && (
-                                <p className="text-[10px] text-stone-700 bg-stone-50 p-2 rounded-lg italic">
-                                  "{a.notes}"
-                                </p>
-                              )}
-
-                              {a.treatments && a.treatments.length > 0 && (
-                                <div className="mt-2 pt-2 border-t border-stone-100">
-                                  <p className="text-[8px] font-bold text-stone-600 uppercase mb-1">
-                                    Ultimi trattamenti:
-                                  </p>
-                                  <div className="flex flex-wrap gap-1">
-                                    {a.treatments.slice(0, 2).map(t => (
-                                      <span key={t.id} className="text-[7px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-full">
-                                        {t.tipo}
-                                      </span>
-                                    ))}
+                              {editingAnimalId === a.id ? (
+                                <div className="mt-2 space-y-2">
+                                  <textarea 
+                                    className="w-full p-2 bg-stone-50 rounded-lg text-[10px] border-none font-bold italic shadow-inner text-stone-800" 
+                                    value={editNote} 
+                                    onChange={(e) => setEditNote(e.target.value)} 
+                                    placeholder="Nuove note..."
+                                    rows={3}
+                                  />
+                                  <div className="flex gap-2">
+                                    <button 
+                                      onClick={() => handleUpdateNotes(a.id)} 
+                                      className="flex-1 bg-emerald-600 text-white py-1.5 rounded-lg text-[9px] font-black uppercase hover:bg-emerald-700"
+                                    >
+                                      Salva
+                                    </button>
+                                    <button 
+                                      onClick={() => {
+                                        setEditingAnimalId(null);
+                                        setEditNote('');
+                                      }} 
+                                      className="flex-1 bg-stone-300 text-stone-700 py-1.5 rounded-lg text-[9px] font-black uppercase hover:bg-stone-400"
+                                    >
+                                      Annulla
+                                    </button>
                                   </div>
                                 </div>
+                              ) : (
+                                <>
+                                  <p className="text-[10px] text-stone-700 bg-stone-50 p-2 rounded-lg italic leading-relaxed font-medium">
+                                    "{a.notes || 'Nessuna nota presente.'}"
+                                  </p>
+                                  {a.treatments && a.treatments.length > 0 && (
+                                    <div className="mt-2 pt-2 border-t border-stone-100">
+                                      <p className="text-[8px] font-bold text-stone-500 uppercase mb-1">
+                                        Trattamenti: {a.treatments.length}
+                                      </p>
+                                      <div className="flex flex-wrap gap-1">
+                                        {a.treatments.slice(0, 2).map(t => (
+                                          <span key={t.id} className="text-[7px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-full">
+                                            {t.tipo}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </>
                               )}
                             </div>
                           ))}
@@ -1650,7 +1695,7 @@ export default function App() {
           </div>
         )}
 
-        {/* 3. FINANCE */}
+        {/* FINANCE */}
         {activeTab === 'finance' && userRole === 'farmer' && (
           <div className="space-y-6 animate-in slide-in-from-right-4">
             <div className="bg-white p-4 rounded-2xl border shadow-sm grid grid-cols-1 md:grid-cols-5 gap-2">
@@ -1710,7 +1755,7 @@ export default function App() {
           </div>
         )}
 
-        {/* 4. PRODOTTI */}
+        {/* PRODOTTI */}
         {activeTab === 'products' && userRole === 'farmer' && (
           <div className="space-y-6 animate-in fade-in">
             {sellingProduct && (
@@ -1850,11 +1895,16 @@ export default function App() {
               <div className="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar">
                 {stockLogs.map(log => (
                   <div key={log.id} className="flex justify-between items-center text-[10px] p-2 bg-stone-50 rounded-xl border border-stone-100">
-                    <span className="font-black text-stone-800 uppercase italic">{log.productName}</span>
+                    <div className="flex-1">
+                      <span className="font-black text-stone-800 uppercase italic">{log.productName}</span>
+                      {log.reason && (
+                        <span className="text-[7px] text-stone-500 block italic">({log.reason})</span>
+                      )}
+                    </div>
                     <span className={`font-black px-2 py-0.5 rounded-full ${log.change > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
                       {log.change > 0 ? '+' : ''}{log.change}
                     </span>
-                    <span className="text-stone-600 font-bold uppercase text-[8px] italic">{log.date}</span>
+                    <span className="text-stone-600 font-bold uppercase text-[8px] italic ml-2">{log.date}</span>
                   </div>
                 ))}
               </div>
@@ -1862,7 +1912,7 @@ export default function App() {
           </div>
         )}
 
-        {/* 5. TASKS */}
+        {/* TASKS */}
         {activeTab === 'tasks' && userRole === 'farmer' && (
           <div className="space-y-6 max-w-lg mx-auto">
             <div className="bg-white p-4 rounded-2xl border shadow-sm space-y-3 border-t-4 border-stone-900">
@@ -1939,7 +1989,7 @@ export default function App() {
           </div>
         )}
 
-        {/* 6. VET IA */}
+        {/* VET IA */}
         {activeTab === 'vet' && userRole === 'farmer' && (
           <div className="bg-white p-6 rounded-3xl border shadow-xl max-w-lg mx-auto border-t-8 border-blue-600">
             <div className="bg-blue-600 p-6 rounded-2xl text-white mb-6 flex items-center gap-4 shadow-lg">
@@ -2159,7 +2209,7 @@ export default function App() {
           </div>
         )}
 
-        {/* 7. MARKET */}
+        {/* MARKET */}
         {activeTab === 'market' && (
           <div className="space-y-10 animate-in slide-in-from-bottom-12 duration-1000">
             <div className="bg-amber-500 p-8 rounded-[3rem] text-white shadow-xl relative overflow-hidden group">
@@ -2195,7 +2245,7 @@ export default function App() {
           </div>
         )}
 
-        {/* 8. DINASTIA */}
+        {/* DINASTIA */}
         {activeTab === 'dinastia' && (
           <div className="bg-white p-8 rounded-3xl border shadow-sm overflow-x-auto">
             <h3 className="text-xl font-black italic uppercase mb-8 flex items-center gap-2 text-emerald-900">
@@ -2211,7 +2261,7 @@ export default function App() {
           </div>
         )}
 
-        {/* 9. PARTI (BIRTHS) */}
+        {/* PARTI (BIRTHS) */}
         {activeTab === 'births' && userRole === 'farmer' && (
           <div className="bg-white p-8 rounded-3xl border shadow-xl max-w-lg mx-auto">
             <div className="bg-amber-50 p-6 rounded-2xl border border-amber-100 text-amber-700 mb-8 flex items-center gap-4 shadow-lg">
