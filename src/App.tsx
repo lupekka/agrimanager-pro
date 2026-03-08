@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState, useEffect } from 'react';
 import {
-  PawPrint, CalendarDays, TrendingUp, Network, Baby, Trash2,
-  PlusCircle, LogOut, Lock, Menu, X, Search, LayoutDashboard,
+  PawPrint, Network, Baby, Trash2,
+  PlusCircle, LogOut, Menu, X, Search, LayoutDashboard,
   History, Package, Edit2, CheckCircle2,
   MinusCircle, Activity, ListChecks, Wallet,
-  ArrowUpRight, ArrowDownLeft, Ghost, UserPlus, Stethoscope, 
+  ArrowUpRight, ArrowDownLeft, UserPlus, Stethoscope, 
   UploadCloud, AlertTriangle, FileDown, Store, ShoppingBag, 
   MessageCircle, Mail, Bot, Info, Send, Save, ArrowRightLeft, Plus, ChevronDown, ChevronRight,
   Camera, Bell, MapPin, Syringe, ClipboardList, CalendarClock, AlertCircle
