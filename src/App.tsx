@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import {
   PawPrint, CalendarDays, TrendingUp, Network, Baby, Trash2,
@@ -889,8 +888,8 @@ useEffect(() => {
 
   const handleAICommand = async () => {
     const frasi = aiInput.toLowerCase().split(/ e |,|\./).filter(s => s.trim());
-    let logs: string[] = [];
-    for (let f of frasi) {
+    const logs: string[] = [];
+    for (const f of frasi) {
       const num = f.match(/(\d+)/)?.[1];
       if (f.includes('venduto') && num) {
         await addDoc(collection(db, 'transactions'), { desc: `IA: ${f}`, amount: Number(num), type: 'Entrata', species: 'Maiali', date: new Date().toLocaleDateString('it-IT'), ownerId: user!.uid });
@@ -1045,8 +1044,8 @@ useEffect(() => {
       }
     ];
     
-    for (let diag of diagnoses) {
-      for (let keyword of diag.keywords) {
+    for (const diag of diagnoses) {
+    for (const keyword of diag.keywords) {
         if (s.includes(keyword)) {
           return {
             title: diag.name,
@@ -1789,65 +1788,55 @@ useEffect(() => {
                                 </p>
                               )}
                               
-                              {editingAnimalId === a.id ? (
-                                <div className="mt-2 space-y-2">
-                                  <textarea 
-                                    className="w-full p-2 bg-stone-50 rounded-lg text-[10px] border-none font-bold italic shadow-inner text-stone-800" 
-                                    value={editNote} 
-                                    onChange={(e) => setEditNote(e.target.value)} 
-                                    placeholder="Nuove note..."
-                                    rows={3}
-                                  />
-                                  <div className="flex gap-2">
-                                    <button 
-                                      onClick={() => handleUpdateNotes(a.id)} 
-                                      className="flex-1 bg-emerald-600 text-white py-1.5 rounded-lg text-[9px] font-black uppercase hover:bg-emerald-700"
-                                    >
-                                      Salva
-                                    </button>
-                                    <button 
-                                      onClick={() => {
-                                        setEditingAnimalId(null);
-                                        setEditNote('');
-                                      }} 
-                                      className="flex-1 bg-stone-300 text-stone-700 py-1.5 rounded-lg text-[9px] font-black uppercase hover:bg-stone-400"
-                                    >
-                                      Annulla
-                                    </button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <>
-                                  <p className="text-[10px] text-stone-700 bg-stone-50 p-2 rounded-lg italic leading-relaxed font-medium">
-                                    "{a.notes || 'Nessuna nota presente.'}"
-                                  </p>
-                                  {a.treatments && a.treatments.length > 0 && (
-                                    <div className="mt-2 pt-2 border-t border-stone-100">
-                                      <p className="text-[8px] font-bold text-stone-500 uppercase mb-1">
-                                        Trattamenti: {a.treatments.length}
-                                      </p>
-                                      <div className="flex flex-wrap gap-1">
-                                        {a.treatments.slice(0, 2).map(t => (
-                                          <span key={t.id} className="text-[7px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-full">
-                                            {t.tipo}
-                                          </span>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                </>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+                            {editingAnimalId === a.id ? (
+  <div className="mt-2 space-y-2">
+    <textarea 
+      className="w-full p-2 bg-stone-50 rounded-lg text-[10px] border-none font-bold italic shadow-inner text-stone-800" 
+      value={editNote} 
+      onChange={(e) => setEditNote(e.target.value)} 
+      placeholder="Nuove note..."
+      rows={3}
+    />
+    <div className="flex gap-2">
+      <button 
+        onClick={() => handleUpdateNotes(a.id)} 
+        className="flex-1 bg-emerald-600 text-white py-1.5 rounded-lg text-[9px] font-black uppercase hover:bg-emerald-700"
+      >
+        Salva
+      </button>
+      <button 
+        onClick={() => {
+          setEditingAnimalId(null);
+          setEditNote('');
+        }} 
+        className="flex-1 bg-stone-300 text-stone-700 py-1.5 rounded-lg text-[9px] font-black uppercase hover:bg-stone-400"
+      >
+        Annulla
+      </button>
+    </div>
+  </div>
+) : (
+  <>
+    <p className="text-[9px] text-stone-600 font-bold mb-2 italic uppercase">{a.birthDate || 'N/D'}</p>
+    <span className="text-[10px] text-stone-700 bg-stone-50 p-2 rounded-lg italic leading-relaxed font-medium">
+      {a.notes || 'Nessuna nota presente.'}
+    </span>
+    {a.treatments && a.treatments.length > 0 && (
+      <div className="mt-2 pt-2 border-t border-stone-100">
+        <p className="text-[8px] font-bold text-stone-500 uppercase mb-1">
+          Trattamenti: {a.treatments.length}
+        </p>
+        <div className="flex flex-wrap gap-1">
+          {a.treatments.slice(0, 2).map(t => (
+            <span key={t.id} className="text-[7px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-full">
+              {t.tipo}
+            </span>
+          ))}
+        </div>
+      </div>
+    )}
+  </>
+)}
 
         {/* FINANCE */}
         {activeTab === 'finance' && userRole === 'farmer' && (
