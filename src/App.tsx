@@ -30,12 +30,12 @@ declare global {
 }
 
 const firebaseConfig = {
-  apiKey: "AIzaSyD6ZxCO6BvGLKfsF235GSsLh-7GQm84Vdk",
-  authDomain: "agrimanager-pro-e3cf7.firebaseapp.com",
-  projectId: "agrimanager-pro-e3cf7",
-  storageBucket: "agrimanager-pro-e3cf7.firebasestorage.app",
-  messagingSenderId: "415553695665",
-  appId: "1:415553695665:web:6e9ddd9f5241424afad790"
+apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
 const app = initializeApp(firebaseConfig);
