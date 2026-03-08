@@ -1,1 +1,1 @@
-importScripts('https://onesignal-proxy.tuo-username.workers.dev/OneSignalSDKWorker.js');
+importScripts('https://onesignal-proxy.lucapezza1.workers.dev/OneSignalSDKWorker.js');
