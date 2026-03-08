@@ -3,7 +3,6 @@
 @tailwind utilities;
 
 @layer base {
-  /* Miglioramenti per la tipografia e accessibilità */
   * {
     @apply box-border;
   }
@@ -19,21 +18,26 @@
     -moz-osx-font-smoothing: grayscale;
   }
   
-  /* Migliora la leggibilità su mobile */
   @media (max-width: 640px) {
     html {
       font-size: 14px;
     }
   }
   
-  /* Stili per selezione testo */
   ::selection {
     @apply bg-emerald-200 text-emerald-900;
+  }
+  
+  /* Variabili CSS globali */
+  :root {
+    --safe-area-top: env(safe-area-inset-top, 0px);
+    --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-area-left: env(safe-area-inset-left, 0px);
+    --safe-area-right: env(safe-area-inset-right, 0px);
   }
 }
 
 @layer components {
-  /* Input più versatili */
   .ui-input {
     @apply w-full p-4 bg-stone-50 border-none rounded-2xl font-bold text-sm shadow-inner 
            focus:ring-4 focus:ring-emerald-100 focus:bg-white 
@@ -49,7 +53,6 @@
     @apply ring-2 ring-emerald-300 bg-emerald-50 focus:ring-emerald-200;
   }
   
-  /* Bottoni uniformi */
   .ui-button {
     @apply font-black uppercase tracking-wider text-xs py-3 px-6 rounded-xl 
            transition-all duration-200 active:scale-95 disabled:opacity-50 
@@ -69,13 +72,11 @@
            hover:border-emerald-600 hover:text-emerald-600;
   }
   
-  /* Card standard */
   .ui-card {
     @apply bg-white rounded-2xl border border-stone-200 shadow-sm 
            hover:shadow-md transition-shadow duration-300;
   }
   
-  /* Badge per conteggi */
   .ui-badge {
     @apply text-[10px] font-black px-2 py-1 rounded-full;
   }
@@ -90,45 +91,54 @@
 }
 
 @layer utilities {
-  /* Animazioni personalizzate */
+  /* Animazioni unificate */
   .animate-fade-in {
-    animation: fadeIn 0.4s ease-out forwards;
+    animation: customFadeIn 0.4s ease-out forwards;
   }
   
   .animate-slide-up {
-    animation: slideUp 0.3s ease-out forwards;
+    animation: customSlideUp 0.3s ease-out forwards;
   }
   
   .animate-slide-down {
-    animation: slideDown 0.3s ease-out forwards;
+    animation: customSlideDown 0.3s ease-out forwards;
   }
   
   .animate-scale-in {
-    animation: scaleIn 0.2s ease-out forwards;
+    animation: customScaleIn 0.2s ease-out forwards;
   }
   
   .animate-pulse-slow {
-    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    animation: customPulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
   
-  /* Safe area per dispositivi moderni */
+  /* Safe area con variabili */
   .pt-safe {
-    padding-top: env(safe-area-inset-top);
+    padding-top: var(--safe-area-top, 0px);
   }
   
   .pb-safe {
-    padding-bottom: env(safe-area-inset-bottom);
+    padding-bottom: var(--safe-area-bottom, 0px);
   }
   
   .pl-safe {
-    padding-left: env(safe-area-inset-left);
+    padding-left: var(--safe-area-left, 0px);
   }
   
   .pr-safe {
-    padding-right: env(safe-area-inset-right);
+    padding-right: var(--safe-area-right, 0px);
   }
   
-  /* Scrollbar personalizzata */
+  /* Safe area con fallback */
+  .pt-safe-fallback {
+    padding-top: max(var(--safe-area-top), 1rem);
+  }
+  
+  .pb-safe-fallback {
+    padding-bottom: max(var(--safe-area-bottom), 1rem);
+  }
+  
+  /* Scrollbar */
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -142,11 +152,6 @@
     @apply bg-stone-300 rounded-full hover:bg-stone-400 transition-colors;
   }
   
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    @apply bg-stone-400;
-  }
-  
-  /* Nascondi scrollbar ma mantieni funzionalità */
   .hide-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -156,7 +161,7 @@
     display: none;
   }
   
-  /* Effetti glassmorphism */
+  /* Glassmorphism */
   .glass-effect {
     @apply bg-white/80 backdrop-blur-lg border border-white/20;
   }
@@ -164,73 +169,51 @@
   .glass-effect-dark {
     @apply bg-stone-900/80 backdrop-blur-lg border border-stone-700/20;
   }
-}
-
-@keyframes fadeIn {
-  from { 
-    opacity: 0; 
-    transform: translateY(10px); 
-  }
-  to { 
-    opacity: 1; 
-    transform: translateY(0); 
+  
+  /* Utility per testo piccolo consistente */
+  .text-xxs {
+    @apply text-[10px] font-bold uppercase tracking-wider;
   }
 }
 
-@keyframes slideUp {
-  from { 
-    opacity: 0; 
-    transform: translateY(20px); 
-  }
-  to { 
-    opacity: 1; 
-    transform: translateY(0); 
-  }
+/* Keyframes unificati */
+@keyframes customFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes slideDown {
-  from { 
-    opacity: 0; 
-    transform: translateY(-20px); 
-  }
-  to { 
-    opacity: 1; 
-    transform: translateY(0); 
-  }
+@keyframes customSlideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes scaleIn {
-  from { 
-    opacity: 0; 
-    transform: scale(0.95); 
-  }
-  to { 
-    opacity: 1; 
-    transform: scale(1); 
-  }
+@keyframes customSlideDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
+@keyframes customScaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
 }
 
-/* Media queries per dispositivi specifici */
+@keyframes customPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Media queries */
 @supports (padding: max(0px)) {
-  .pt-safe {
+  .pt-safe-fallback {
     padding-top: max(env(safe-area-inset-top), 1rem);
   }
   
-  .pb-safe {
+  .pb-safe-fallback {
     padding-bottom: max(env(safe-area-inset-bottom), 1rem);
   }
 }
 
-/* Stili per stampa */
+/* Stampa */
 @media print {
   .no-print {
     display: none;
@@ -241,7 +224,7 @@
   }
 }
 
-/* Tema scuro (opzionale, se vuoi supportarlo in futuro) */
+/* Tema scuro (preparato per il futuro) */
 @media (prefers-color-scheme: dark) {
   .dark-mode-ready {
     @apply bg-stone-900 text-stone-100;
