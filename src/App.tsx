@@ -74,7 +74,8 @@ interface Treatment {
 
 interface Animal { 
   id: string; 
-  name: string; 
+  codice: string;        // ← NUOVO: codice identificativo (ex name)
+  nome?: string;          // ← NUOVO: nome opzionale dell'animale
   species: Species; 
   notes: string; 
   sire?: string; 
@@ -230,6 +231,10 @@ export default function App() {
     note: ''
   });
 
+  // STATI PER LA RICERCA ANIMALI
+  const [animalSearch, setAnimalSearch] = useState('');
+  const [searchResults, setSearchResults] = useState<Animal[]>([]);
+
   // DATI
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -245,7 +250,8 @@ export default function App() {
   const [regName, setRegName] = useState('');
   
   const [newAnimal, setNewAnimal] = useState({ 
-    name: '', 
+    codice: '',           // ← MODIFICATO
+    nome: '',             // ← NUOVO
     species: 'Maiali' as Species, 
     birthDate: '', 
     sire: '',
@@ -472,7 +478,7 @@ export default function App() {
           if (isExpiring || isExpired) {
             expiring.push({
               animalId: animal.id,
-              animalName: animal.name,
+              animalName: animal.codice,
               species: animal.species,
               treatment,
               daysLeft: diffDays,
@@ -487,7 +493,7 @@ export default function App() {
             
             if (!sentNotifications.includes(notificationKey)) {
               notificationsToSend.push({
-                title: `📅 Promemoria: ${treatment.tipo} per ${animal.name}`,
+                title: `📅 Promemoria: ${treatment.tipo} per ${animal.codice}`,
                 message: `Scadenza tra ${diffDays} giorno${diffDays === 1 ? '' : 'i'}`,
                 data: {
                   animalId: animal.id,
@@ -509,6 +515,23 @@ export default function App() {
     });
     
     return expiring;
+  };
+
+  // FUNZIONE PER CERCARE ANIMALI PER CODICE O NOME
+  const searchAnimals = (searchText: string) => {
+    if (!searchText.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    
+    const results = animals.filter(animal => 
+      animal.codice.toLowerCase().includes(searchText.toLowerCase()) ||
+      (animal.nome && animal.nome.toLowerCase().includes(searchText.toLowerCase())) ||
+      (animal.sire && animal.sire.toLowerCase().includes(searchText.toLowerCase())) ||
+      (animal.dam && animal.dam.toLowerCase().includes(searchText.toLowerCase()))
+    );
+    
+    setSearchResults(results);
   };
 
   // FUNZIONE PER OTTENERE LA POSIZIONE
@@ -754,24 +777,45 @@ useEffect(() => {
   };
 
   const handleSaveAnimal = async () => {
-    if (!newAnimal.name.trim()) return alert("Codice Capo richiesto.");
+    if (!newAnimal.codice.trim()) return alert("Codice Capo richiesto.");
+    
+    // Verifica che il codice non sia già usato
+    const codiceExists = animals.some(a => a.codice === newAnimal.codice);
+    if (codiceExists) {
+      if (!confirm(`Il codice "${newAnimal.codice}" esiste già. Continuare?`)) return;
+    }
     
     if (newAnimal.sire) {
-      const sireExists = animals.some(a => a.name === newAnimal.sire || a.id === newAnimal.sire);
+      const sireExists = animals.some(a => a.codice === newAnimal.sire || a.id === newAnimal.sire);
       if (!sireExists) {
         if (!confirm(`Il padre "${newAnimal.sire}" non esiste. Continuare?`)) return;
       }
     }
     
     if (newAnimal.dam) {
-      const damExists = animals.some(a => a.name === newAnimal.dam || a.id === newAnimal.dam);
+      const damExists = animals.some(a => a.codice === newAnimal.dam || a.id === newAnimal.dam);
       if (!damExists) {
         if (!confirm(`La madre "${newAnimal.dam}" non esiste. Continuare?`)) return;
       }
     }
     
-    await addDoc(collection(db, 'animals'), { ...newAnimal, ownerId: user!.uid, treatments: [] });
-    setNewAnimal({ name: '', species: 'Maiali', birthDate: '', sire: '', dam: '', notes: '' });
+    await addDoc(collection(db, 'animals'), { 
+      ...newAnimal, 
+      // Per retrocompatibilità, manteniamo anche name
+      name: newAnimal.codice,
+      ownerId: user!.uid, 
+      treatments: [] 
+    });
+    
+    setNewAnimal({ 
+      codice: '', 
+      nome: '',
+      species: 'Maiali', 
+      birthDate: '', 
+      sire: '',
+      dam: '', 
+      notes: '' 
+    });
   };
 
   const handleUpdateNotes = async (id: string) => {
@@ -892,9 +936,10 @@ useEffect(() => {
     d.text(n, 14, 20);
     const sorted = [...animals].sort((a,b) => a.species.localeCompare(b.species));
     autoTable(d, { 
-      head: [['ID', 'Specie', 'Data Nascita', 'Padre', 'Madre', 'Note', 'Trattamenti']], 
+      head: [['Codice', 'Nome', 'Specie', 'Data Nascita', 'Padre', 'Madre', 'Note', 'Trattamenti']], 
       body: sorted.map(a => [
-        a.name, 
+        a.codice, 
+        a.nome || '-', 
         a.species, 
         a.birthDate || '', 
         a.sire || '', 
@@ -913,16 +958,17 @@ useEffect(() => {
     if (!newBirth.birthDate) return alert("Inserisci la data di nascita.");
     
     try {
-      const mother = animals.find(a => a.name === newBirth.idCode || a.id === newBirth.idCode);
+      const mother = animals.find(a => a.codice === newBirth.idCode || a.id === newBirth.idCode);
       if (!mother) return alert("Madre non trovata.");
       
       for (let i = 0; i < newBirth.count; i++) {
         const defaultName = `${newBirth.species.substring(0, 3)}-${new Date().getFullYear()}-${String(i + 1).padStart(2, '0')}`;
         await addDoc(collection(db, 'animals'), {
-          name: defaultName,
+          codice: defaultName,
+          nome: '',
           species: newBirth.species,
           birthDate: newBirth.birthDate,
-          dam: mother.name,
+          dam: mother.codice,
           notes: 'Nato in azienda',
           ownerId: user!.uid,
           treatments: []
@@ -1374,7 +1420,7 @@ useEffect(() => {
                   <option value="">-- Scegli un animale --</option>
                   {animals.map(a => (
                     <option key={a.id} value={a.id}>
-                      {a.name} ({a.species})
+                      {a.codice} {a.nome && `(${a.nome})`} - {a.species}
                     </option>
                   ))}
                 </select>
@@ -1395,7 +1441,7 @@ useEffect(() => {
             {selectedAnimal && showTreatmentForm && (
               <div className="bg-white p-5 rounded-3xl border-2 border-emerald-200 shadow-sm animate-in slide-in-from-top-2">
                 <h4 className="text-sm font-black text-emerald-900 uppercase mb-4">
-                  Nuovo Trattamento per {selectedAnimal.name}
+                  Nuovo Trattamento per {selectedAnimal.codice} {selectedAnimal.nome && `(${selectedAnimal.nome})`}
                 </h4>
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-3">
@@ -1464,7 +1510,7 @@ useEffect(() => {
               <div className="bg-white p-5 rounded-3xl border shadow-sm">
                 <h4 className="text-sm font-black text-emerald-900 uppercase mb-4 flex items-center gap-2">
                   <ClipboardList size={18} className="text-stone-600" />
-                  Storico Trattamenti - {selectedAnimal.name}
+                  Storico Trattamenti - {selectedAnimal.codice} {selectedAnimal.nome && `(${selectedAnimal.nome})`}
                 </h4>
                 
                 {(!selectedAnimal.treatments || selectedAnimal.treatments.length === 0) ? (
@@ -1563,28 +1609,127 @@ useEffect(() => {
           </div>
         )}
 
-        {/* INVENTARIO */}
+        {/* INVENTARIO CON RICERCA */}
         {activeTab === 'inventory' && userRole === 'farmer' && (
           <div className="space-y-6 animate-in slide-in-from-bottom-4">
+            {/* Barra di ricerca */}
+            <div className="bg-white p-4 rounded-2xl border shadow-sm">
+              <div className="relative">
+                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+                <input
+                  type="text"
+                  placeholder="🔍 Cerca animale per codice o nome..."
+                  className="w-full p-3 pl-10 bg-stone-50 rounded-xl text-sm font-bold border-none shadow-inner text-stone-800"
+                  value={animalSearch}
+                  onChange={(e) => {
+                    setAnimalSearch(e.target.value);
+                    searchAnimals(e.target.value);
+                  }}
+                />
+              </div>
+              
+              {/* Risultati ricerca */}
+              {animalSearch && searchResults.length > 0 && (
+                <div className="mt-3 p-3 bg-emerald-50 rounded-xl border border-emerald-200">
+                  <p className="text-xs font-bold text-emerald-700 mb-2">
+                    🔍 Trovati {searchResults.length} animali:
+                  </p>
+                  <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto custom-scrollbar">
+                    {searchResults.map(animal => (
+                      <button
+                        key={animal.id}
+                        onClick={() => {
+                          setExpandedSpecies(prev => 
+                            prev.includes(animal.species) ? prev : [...prev, animal.species]
+                          );
+                          setAnimalSearch('');
+                          setSearchResults([]);
+                        }}
+                        className="bg-white px-3 py-1.5 rounded-lg text-xs font-bold text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors"
+                      >
+                        {animal.codice} {animal.nome && `(${animal.nome})`} - {animal.species}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {animalSearch && searchResults.length === 0 && (
+                <p className="mt-3 text-xs text-stone-500 italic text-center">
+                  ❌ Nessun animale trovato
+                </p>
+              )}
+            </div>
+
+            {/* Form registrazione capi con CODICE e NOME */}
             <div className="bg-white p-4 rounded-2xl border shadow-sm space-y-3">
               <div className="flex justify-between items-center border-b pb-2">
                 <h3 className="text-[10px] font-black text-stone-700 uppercase">Registrazione Capi</h3>
                 <button onClick={exportASLReport} className="text-[9px] font-bold bg-stone-900 text-white px-3 py-1 rounded-lg uppercase shadow-md">PDF ASL</button>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <input placeholder="Codice Capo *" className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner text-stone-800" value={newAnimal.name} onChange={(e)=>setNewAnimal({...newAnimal, name:e.target.value})} />
-                <select className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner text-stone-800 uppercase" value={newAnimal.species} onChange={(e)=>setNewAnimal({...newAnimal, species:e.target.value as Species})}>
+                {/* CODICE (obbligatorio) */}
+                <input 
+                  placeholder="Codice Capo *" 
+                  className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner text-stone-800" 
+                  value={newAnimal.codice} 
+                  onChange={(e)=>setNewAnimal({...newAnimal, codice: e.target.value})} 
+                />
+                
+                {/* NOME (opzionale) */}
+                <input 
+                  placeholder="Nome (es. Gigio)" 
+                  className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner text-stone-800" 
+                  value={newAnimal.nome} 
+                  onChange={(e)=>setNewAnimal({...newAnimal, nome: e.target.value})} 
+                />
+                
+                <select 
+                  className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner text-stone-800 uppercase" 
+                  value={newAnimal.species} 
+                  onChange={(e)=>setNewAnimal({...newAnimal, species:e.target.value as Species})}
+                >
                   {speciesList.map(s=><option key={s}>{s}</option>)}
                 </select>
-                <input type="date" className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner text-emerald-700" value={newAnimal.birthDate} onChange={(e)=>setNewAnimal({...newAnimal, birthDate:e.target.value})} />
-                <input placeholder="Padre" className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner text-stone-800 uppercase" value={newAnimal.sire} onChange={(e)=>setNewAnimal({...newAnimal, sire:e.target.value})} />
-                <input placeholder="Madre" className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner text-stone-800 uppercase" value={newAnimal.dam} onChange={(e)=>setNewAnimal({...newAnimal, dam:e.target.value})} />
-                <input placeholder="Note" className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner col-span-2 text-stone-800" value={newAnimal.notes} onChange={(e)=>setNewAnimal({...newAnimal, notes:e.target.value})} />
-                <button onClick={handleSaveAnimal} className="bg-emerald-600 text-white font-bold rounded-lg py-2 text-[10px] uppercase col-span-full shadow-md active:scale-95">Salva Capo</button>
+                
+                <input 
+                  type="date" 
+                  className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner text-emerald-700" 
+                  value={newAnimal.birthDate} 
+                  onChange={(e)=>setNewAnimal({...newAnimal, birthDate:e.target.value})} 
+                />
+                
+                <input 
+                  placeholder="Padre (Codice)" 
+                  className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner text-stone-800 uppercase" 
+                  value={newAnimal.sire} 
+                  onChange={(e)=>setNewAnimal({...newAnimal, sire:e.target.value})} 
+                />
+                
+                <input 
+                  placeholder="Madre (Codice)" 
+                  className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner text-stone-800 uppercase" 
+                  value={newAnimal.dam} 
+                  onChange={(e)=>setNewAnimal({...newAnimal, dam:e.target.value})} 
+                />
+                
+                <input 
+                  placeholder="Note (Cure, Salute)" 
+                  className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner col-span-2 text-stone-800" 
+                  value={newAnimal.notes} 
+                  onChange={(e)=>setNewAnimal({...newAnimal, notes:e.target.value})} 
+                />
+                
+                <button 
+                  onClick={handleSaveAnimal} 
+                  className="bg-emerald-600 text-white font-bold rounded-lg py-2 text-[10px] uppercase col-span-full shadow-md active:scale-95"
+                >
+                  Salva Capo
+                </button>
               </div>
             </div>
 
-            {/* SEZIONE SPECIE CON ACCORDION */}
+            {/* SEZIONE SPECIE CON ACCORDION (con visualizzazione CODICE e NOME) */}
             <div className="space-y-3">
               {speciesList.map(specie => {
                 const capi = animals.filter(a => a.species === specie);
@@ -1609,7 +1754,12 @@ useEffect(() => {
                           {capi.map(a => (
                             <div key={a.id} className="bg-white p-4 rounded-xl border border-stone-200 shadow-sm relative group hover:border-emerald-500 transition-all">
                               <div className="flex justify-between items-start mb-1">
-                                <h4 className="font-black text-stone-800 uppercase text-xs">{a.name}</h4>
+                                <div>
+                                  <h4 className="font-black text-stone-800 uppercase text-xs">{a.codice}</h4>
+                                  {a.nome && (
+                                    <p className="text-[10px] text-emerald-600 font-bold italic">"{a.nome}"</p>
+                                  )}
+                                </div>
                                 <div className="flex gap-2">
                                   <button onClick={()=>{setEditingAnimalId(a.id); setEditNote(a.notes || '');}} className="text-stone-600 hover:text-emerald-500"><Edit2 size={14}/></button>
                                   <button onClick={()=>deleteDoc(doc(db,'animals',a.id))} className="text-stone-600 hover:text-red-500"><Trash2 size={14}/></button>
