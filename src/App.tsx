@@ -2082,6 +2082,7 @@ export default function App() {
                 <AlertTriangle size={16} className="text-amber-600 mx-auto mb-1" />
                 <p className="text-[9px] font-bold text-amber-800">{modelError}</p>
                 <p className="text-[8px] text-amber-600 mt-1">Puoi comunque usare l&apos;analisi basata sui sintomi</p>
+                 </div>
             )}
 
             <div className="space-y-4 mb-6">
