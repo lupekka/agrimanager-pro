@@ -42,14 +42,78 @@ const app = initializeApp(firebaseConfig);
 const db = initializeFirestore(app, { localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()}) });
 const auth = getAuth(app);
 
-// --- INTERFACCE ---
+// --- INTERFACCE COMPLETE ---
 type Species = 'Maiali' | 'Cavalli' | 'Mucche' | 'Galline' | 'Oche';
-interface Animal { id: string; name: string; species: Species; notes: string; sire?: string; dam?: string; birthDate?: string; ownerId: string; }
-interface Transaction { id: string; type: 'Entrata' | 'Uscita'; amount: number; desc: string; species: Species; date: string; ownerId: string; }
-interface Task { id: string; text: string; done: boolean; dueDate?: string; ownerId: string; }
-interface Product { id: string; name: string; quantity: number; unit: string; ownerId: string; }
-interface StockLog { id: string; productName: string; change: number; date: string; ownerId: string; }
-interface MarketItem { id: string; name: string; price: number; quantity: number; unit: string; sellerId: string; sellerName: string; contactEmail: string; contactPhone: string; createdAt: string; }
+
+type TreatmentType = 'Vaccino' | 'Vermifugo' | 'Visita' | 'Cura' | 'Altro';
+
+interface Treatment {
+  id: string;
+  tipo: TreatmentType;
+  dataSomministrazione: string;
+  dataScadenza?: string;
+  note: string;
+  completed?: boolean;
+}
+
+interface Animal { 
+  id: string; 
+  name: string; 
+  species: Species; 
+  notes: string; 
+  sire?: string; 
+  dam?: string; 
+  birthDate?: string; 
+  ownerId: string;
+  treatments?: Treatment[];
+}
+
+interface Transaction { 
+  id: string; 
+  type: 'Entrata' | 'Uscita'; 
+  amount: number; 
+  desc: string; 
+  species: Species; 
+  date: string; 
+  ownerId: string; 
+}
+
+interface Task { 
+  id: string; 
+  text: string; 
+  done: boolean; 
+  dueDate?: string; 
+  ownerId: string; 
+}
+
+interface Product { 
+  id: string; 
+  name: string; 
+  quantity: number; 
+  unit: string; 
+  ownerId: string; 
+}
+
+interface StockLog { 
+  id: string; 
+  productName: string; 
+  change: number; 
+  date: string; 
+  ownerId: string; 
+}
+
+interface MarketItem { 
+  id: string; 
+  name: string; 
+  price: number; 
+  quantity: number; 
+  unit: string; 
+  sellerId: string; 
+  sellerName: string; 
+  contactEmail: string; 
+  contactPhone: string; 
+  createdAt: string; 
+}
 
 // Interfaccia per le predizioni
 interface Prediction {
@@ -512,7 +576,7 @@ export default function App() {
       }
     }
     
-    await addDoc(collection(db, 'animals'), { ...newAnimal, ownerId: user!.uid });
+    await addDoc(collection(db, 'animals'), { ...newAnimal, ownerId: user!.uid, treatments: [] });
     setNewAnimal({ name: '', species: 'Maiali', birthDate: '', sire: '', dam: '', notes: '' });
   };
 
@@ -627,7 +691,8 @@ export default function App() {
           birthDate: newBirth.birthDate,
           dam: mother.name,
           notes: 'Nato in azienda',
-          ownerId: user!.uid
+          ownerId: user!.uid,
+          treatments: []
         });
       }
       
@@ -725,7 +790,7 @@ export default function App() {
   // Funzione per verificare trattamenti in scadenza
   const checkExpiringTreatments = (animals: Animal[]) => {
     const today = new Date();
-    const expiring: { animalName: string; treatment: any; daysLeft: number }[] = [];
+    const expiring: { animalName: string; treatment: Treatment; daysLeft: number }[] = [];
     
     animals.forEach(animal => {
       animal.treatments?.forEach(treatment => {
