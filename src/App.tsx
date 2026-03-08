@@ -691,51 +691,47 @@ const fetchRealWeather = async () => {
     return () => unsubs.forEach(u => u());
   }, [user?.uid, userRole]);
 
-  // Caricamento modello MobileNet
-  useEffect(() => {
-    let isMounted = true;
-    
-    const loadModel = async () => {
-      if (activeTab === 'vet' && !model && !modelLoading && !modelError) {
-        setModelLoading(true);
-        setModelError(null);
+ // Caricamento modello MobileNet (VERSIONE CORRETTA)
+useEffect(() => {
+  let isMounted = true;
+  
+  const loadModel = async () => {
+    if (activeTab === 'vet' && !model && !modelLoading && !modelError) {
+      setModelLoading(true);
+      setModelError(null);
+      
+      try {
+        console.log("🚀 Impostazione backend TensorFlow...");
+        await tf.setBackend('webgl');
+        console.log("✅ Backend TensorFlow impostato");
         
-        const timeoutId = setTimeout(() => {
-          if (isMounted) {
-            setModelLoading(false);
-            setModelError("Timeout caricamento AI. Riprova.");
-          }
-        }, 10000);
+        console.log("🚀 Caricamento MobileNet in corso...");
+        const loadedModel = await mobilenet.load();
         
-        try {
-          console.log("🚀 Caricamento MobileNet in corso...");
-          const loadedModel = await mobilenet.load();
-          
-          if (isMounted) {
-            setModel(loadedModel);
-            setModelError(null);
-            console.log("✅ MobileNet caricato con successo!");
-          }
-          clearTimeout(timeoutId);
-        } catch (error) {
-          console.error("❌ Errore caricamento modello:", error);
-          if (isMounted) {
-            setModelError("Errore caricamento AI. Usa solo sintomi.");
-          }
-        } finally {
-          if (isMounted) {
-            setModelLoading(false);
-          }
+        if (isMounted) {
+          setModel(loadedModel);
+          setModelError(null);
+          console.log("✅ MobileNet caricato con successo!");
+        }
+      } catch (error) {
+        console.error("❌ Errore caricamento modello:", error);
+        if (isMounted) {
+          setModelError("Errore caricamento AI. Usa solo sintomi.");
+        }
+      } finally {
+        if (isMounted) {
+          setModelLoading(false);
         }
       }
-    };
-    
-    loadModel();
-    
-    return () => {
-      isMounted = false;
-    };
-  }, [activeTab, model, modelLoading, modelError]);
+    }
+  };
+  
+  loadModel();
+  
+  return () => {
+    isMounted = false;
+  };
+}, [activeTab, model, modelLoading, modelError]);
 
   // FUNZIONI
   const handleAuth = async (e: React.FormEvent) => {
