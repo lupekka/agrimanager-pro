@@ -21,6 +21,8 @@ import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, on
 // TensorFlow per AI locale
 import * as tf from '@tensorflow/tfjs';
 import * as mobilenet from '@tensorflow-models/mobilenet';
+import '@tensorflow/tfjs-backend-cpu';
+import '@tensorflow/tfjs-backend-webgl';
 
 // Dichiarazione per OneSignal
 declare global {
