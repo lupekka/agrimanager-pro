@@ -537,87 +537,69 @@ export default function App() {
     });
   };
 
-  // FUNZIONE PER OTTENERE IL METEO REALE
-  const fetchRealWeather = async () => {
-    try {
-      setWeather(prev => ({ ...prev, loading: true, error: null }));
-      
-      const location = await getUserLocation();
-      
-      const response = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${location.lat}&longitude=${location.lon}&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto`
-      );
-      
-      const data = await response.json();
-      
-      const weatherCode = data.current_weather.weathercode;
-      const weatherInfo = weatherAdviceMap[weatherCode] || { 
-        icon: "☀️", 
-        description: "Variabile", 
-        advice: "VERIFICARE CONDIZIONI LOCALI" 
-      };
-      
-      const temperature = Math.round(data.current_weather.temperature);
-      
-      const dailyForecast = data.daily.time.slice(0, 3).map((date: string, index: number) => ({
-        date: new Date(date).toLocaleDateString('it-IT', { weekday: 'short' }),
-        max: Math.round(data.daily.temperature_2m_max[index]),
-        min: Math.round(data.daily.temperature_2m_min[index]),
-        icon: weatherAdviceMap[data.daily.weathercode[index]]?.icon || "☀️"
-      }));
-      
-      const weatherData = {
-        icon: weatherInfo.icon,
-        temp: temperature,
-        desc: weatherInfo.description,
-        advice: weatherInfo.advice,
-        location: location.city,
-        forecast: dailyForecast,
-        timestamp: Date.now()
-      };
-      
-      localStorage.setItem('agriWeather', JSON.stringify(weatherData));
-      
-      setWeather({
-        icon: weatherInfo.icon,
-        temp: temperature,
-        desc: weatherInfo.description,
-        advice: weatherInfo.advice,
-        location: location.city,
-        forecast: dailyForecast,
-        loading: false,
-        error: null
-      });
-      
-    } catch (error) {
-      console.error("Errore meteo:", error);
-      
-      const cached = localStorage.getItem('agriWeather');
-      if (cached) {
-        const cachedData = JSON.parse(cached);
-        setWeather({
-          icon: cachedData.icon,
-          temp: cachedData.temp,
-          desc: cachedData.desc,
-          advice: cachedData.advice,
-          location: cachedData.location,
-          forecast: cachedData.forecast,
-          loading: false,
-          error: "Dati non aggiornati"
-        });
-      } else {
-        setWeather({
-          icon: "☀️",
-          temp: 18,
-          desc: "Dati non disponibili",
-          advice: "VERIFICARE POSIZIONE",
-          location: "Non rilevata",
-          loading: false,
-          error: "Impossibile ottenere la posizione"
-        });
-      }
-    }
-  };
+  // FUNZIONE PER OTTENERE IL METEO REALE (VERSIONE CORRETTA)
+const fetchRealWeather = async () => {
+  try {
+    setWeather(prev => ({ ...prev, loading: true, error: null }));
+    
+    // Usa ipapi.co per ottenere posizione da IP (non richiede permessi)
+    const ipResponse = await fetch('https://ipapi.co/json/');
+    const ipData = await ipResponse.json();
+    
+    const location = {
+      lat: ipData.latitude,
+      lon: ipData.longitude,
+      city: ipData.city || ipData.region || "Posizione sconosciuta"
+    };
+    
+    const response = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${location.lat}&longitude=${location.lon}&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto`
+    );
+    
+    const data = await response.json();
+    
+    const weatherCode = data.current_weather.weathercode;
+    const weatherInfo = weatherAdviceMap[weatherCode] || { 
+      icon: "☀️", 
+      description: "Variabile", 
+      advice: "VERIFICARE CONDIZIONI LOCALI" 
+    };
+    
+    const temperature = Math.round(data.current_weather.temperature);
+    
+    const dailyForecast = data.daily.time.slice(0, 3).map((date: string, index: number) => ({
+      date: new Date(date).toLocaleDateString('it-IT', { weekday: 'short' }),
+      max: Math.round(data.daily.temperature_2m_max[index]),
+      min: Math.round(data.daily.temperature_2m_min[index]),
+      icon: weatherAdviceMap[data.daily.weathercode[index]]?.icon || "☀️"
+    }));
+    
+    setWeather({
+      icon: weatherInfo.icon,
+      temp: temperature,
+      desc: weatherInfo.description,
+      advice: weatherInfo.advice,
+      location: location.city,
+      forecast: dailyForecast,
+      loading: false,
+      error: null
+    });
+    
+  } catch (error) {
+    console.error("Errore meteo:", error);
+    
+    // Fallback a dati fissi
+    setWeather({
+      icon: "☀️",
+      temp: 18,
+      desc: "Dati non disponibili",
+      advice: "VERIFICARE CONNESSIONE",
+      location: "Non rilevata",
+      loading: false,
+      error: "Errore meteo"
+    });
+  }
+};
 
   // INIZIALIZZA ONESIGNAL
   useEffect(() => {
