@@ -53,6 +53,7 @@ console.log("🚀 Uso configurazione:", firebaseConfig.apiKey ? "✅ con chiave"
 const app = initializeApp(firebaseConfig);
 const db = initializeFirestore(app, { localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()}) });
 window.db = db;
+window.firestore = db;
 const auth = getAuth(app);
 
 // --- INTERFACCE COMPLETE ---
