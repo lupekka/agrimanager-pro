@@ -28,17 +28,9 @@ declare global {
   interface Window {
     OneSignal?: any;
     OneSignalDeferred?: any[];
-    db?: any;
   }
 }
 
-// DEBUG: Controllo variabili d'ambiente
-console.log("🔍 Controllo variabili:", {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY ? "✅ PRESENTE" : "❌ MANCANTE",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID ? "✅ PRESENTE" : "❌ MANCANTE",
-});
-
-// Se mancano, usa un fallback (le tue chiavi hardcoded)
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyD6ZxCO6BvGLKfsF235GSsLh-7GQm84Vdk",
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "agrimanager-pro-e3cf7.firebaseapp.com",
@@ -48,12 +40,12 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:415553695665:web:6e9ddd9f5241424afad790"
 };
 
-console.log("🚀 Uso configurazione:", firebaseConfig.apiKey ? "✅ con chiave" : "❌ senza chiave");
 const app = initializeApp(firebaseConfig);
 const db = initializeFirestore(app, { localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()}) });
-window.db = db;
-window.firestore = db;
 const auth = getAuth(app);
+
+// Esponi db per debug (commenta in produzione)
+// window.db = db;
 
 // --- INTERFACCE COMPLETE ---
 type Species = 'Maiali' | 'Cavalli' | 'Mucche' | 'Galline' | 'Oche';
@@ -73,8 +65,7 @@ interface Treatment {
 
 interface Animal { 
   id: string; 
-  codice: string;
-  nome?: string;
+  name: string; 
   species: Species; 
   notes: string; 
   sire?: string; 
@@ -230,10 +221,6 @@ export default function App() {
     note: ''
   });
 
-  // STATI PER LA RICERCA ANIMALI
-  const [animalSearch, setAnimalSearch] = useState('');
-  const [searchResults, setSearchResults] = useState<Animal[]>([]);
-
   // DATI
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -249,8 +236,7 @@ export default function App() {
   const [regName, setRegName] = useState('');
   
   const [newAnimal, setNewAnimal] = useState({ 
-    codice: '',
-    nome: '',
+    name: '', 
     species: 'Maiali' as Species, 
     birthDate: '', 
     sire: '',
@@ -408,9 +394,24 @@ export default function App() {
       const animalSnap = await getDoc(animalRef);
       const currentTreatments = animalSnap.data()?.treatments || [];
       
+      const updatedTreatments = [...currentTreatments, treatment];
+      
       await updateDoc(animalRef, {
-        treatments: [...currentTreatments, treatment]
+        treatments: updatedTreatments
       });
+      
+      setSelectedAnimal({
+        ...selectedAnimal,
+        treatments: updatedTreatments
+      });
+      
+      setAnimals(prevAnimals => 
+        prevAnimals.map(a => 
+          a.id === selectedAnimal.id 
+            ? { ...a, treatments: updatedTreatments }
+            : a
+        )
+      );
       
       setNewTreatment({
         tipo: 'Vaccino',
@@ -439,6 +440,21 @@ export default function App() {
     await updateDoc(doc(db, 'animals', animalId), {
       treatments: updatedTreatments
     });
+    
+    setAnimals(prevAnimals => 
+      prevAnimals.map(a => 
+        a.id === animalId 
+          ? { ...a, treatments: updatedTreatments }
+          : a
+      )
+    );
+    
+    if (selectedAnimal?.id === animalId) {
+      setSelectedAnimal({
+        ...selectedAnimal,
+        treatments: updatedTreatments
+      });
+    }
   };
 
   const handleDeleteTreatment = async (animalId: string, treatmentId: string) => {
@@ -452,6 +468,21 @@ export default function App() {
     await updateDoc(doc(db, 'animals', animalId), {
       treatments: updatedTreatments
     });
+    
+    setAnimals(prevAnimals => 
+      prevAnimals.map(a => 
+        a.id === animalId 
+          ? { ...a, treatments: updatedTreatments }
+          : a
+      )
+    );
+    
+    if (selectedAnimal?.id === animalId) {
+      setSelectedAnimal({
+        ...selectedAnimal,
+        treatments: updatedTreatments
+      });
+    }
   };
 
   // FUNZIONE PER VERIFICARE TRATTAMENTI IN SCADENZA E INVIARE NOTIFICHE
@@ -477,7 +508,7 @@ export default function App() {
           if (isExpiring || isExpired) {
             expiring.push({
               animalId: animal.id,
-              animalName: animal.codice,
+              animalName: animal.name,
               species: animal.species,
               treatment,
               daysLeft: diffDays,
@@ -492,7 +523,7 @@ export default function App() {
             
             if (!sentNotifications.includes(notificationKey)) {
               notificationsToSend.push({
-                title: `📅 Promemoria: ${treatment.tipo} per ${animal.codice}`,
+                title: `📅 Promemoria: ${treatment.tipo} per ${animal.name}`,
                 message: `Scadenza tra ${diffDays} giorno${diffDays === 1 ? '' : 'i'}`,
                 data: {
                   animalId: animal.id,
@@ -514,23 +545,6 @@ export default function App() {
     });
     
     return expiring;
-  };
-
-  // FUNZIONE PER CERCARE ANIMALI PER CODICE O NOME
-  const searchAnimals = (searchText: string) => {
-    if (!searchText.trim()) {
-      setSearchResults([]);
-      return;
-    }
-    
-    const results = animals.filter(animal => 
-      animal.codice.toLowerCase().includes(searchText.toLowerCase()) ||
-      (animal.nome && animal.nome.toLowerCase().includes(searchText.toLowerCase())) ||
-      (animal.sire && animal.sire.toLowerCase().includes(searchText.toLowerCase())) ||
-      (animal.dam && animal.dam.toLowerCase().includes(searchText.toLowerCase()))
-    );
-    
-    setSearchResults(results);
   };
 
   // FUNZIONE PER OTTENERE LA POSIZIONE
@@ -564,69 +578,87 @@ export default function App() {
     });
   };
 
-  // FUNZIONE PER OTTENERE IL METEO REALE (VERSIONE CORRETTA)
-const fetchRealWeather = async () => {
-  try {
-    setWeather(prev => ({ ...prev, loading: true, error: null }));
-    
-    // Usa ipapi.co per ottenere posizione da IP (non richiede permessi)
-    const ipResponse = await fetch('https://ipapi.co/json/');
-    const ipData = await ipResponse.json();
-    
-    const location = {
-      lat: ipData.latitude,
-      lon: ipData.longitude,
-      city: ipData.city || ipData.region || "Posizione sconosciuta"
-    };
-    
-    const response = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${location.lat}&longitude=${location.lon}&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto`
-    );
-    
-    const data = await response.json();
-    
-    const weatherCode = data.current_weather.weathercode;
-    const weatherInfo = weatherAdviceMap[weatherCode] || { 
-      icon: "☀️", 
-      description: "Variabile", 
-      advice: "VERIFICARE CONDIZIONI LOCALI" 
-    };
-    
-    const temperature = Math.round(data.current_weather.temperature);
-    
-    const dailyForecast = data.daily.time.slice(0, 3).map((date: string, index: number) => ({
-      date: new Date(date).toLocaleDateString('it-IT', { weekday: 'short' }),
-      max: Math.round(data.daily.temperature_2m_max[index]),
-      min: Math.round(data.daily.temperature_2m_min[index]),
-      icon: weatherAdviceMap[data.daily.weathercode[index]]?.icon || "☀️"
-    }));
-    
-    setWeather({
-      icon: weatherInfo.icon,
-      temp: temperature,
-      desc: weatherInfo.description,
-      advice: weatherInfo.advice,
-      location: location.city,
-      forecast: dailyForecast,
-      loading: false,
-      error: null
-    });
-    
-  } catch (error) {
-    console.error("Errore meteo:", error);
-    
-    // Fallback a dati fissi
-    setWeather({
-      icon: "☀️",
-      temp: 18,
-      desc: "Dati non disponibili",
-      advice: "VERIFICARE CONNESSIONE",
-      location: "Non rilevata",
-      loading: false,
-      error: "Errore meteo"
-    });
-  }
-};
+  // FUNZIONE PER OTTENERE IL METEO REALE
+  const fetchRealWeather = async () => {
+    try {
+      setWeather(prev => ({ ...prev, loading: true, error: null }));
+      
+      const location = await getUserLocation();
+      
+      const response = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${location.lat}&longitude=${location.lon}&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto`
+      );
+      
+      const data = await response.json();
+      
+      const weatherCode = data.current_weather.weathercode;
+      const weatherInfo = weatherAdviceMap[weatherCode] || { 
+        icon: "☀️", 
+        description: "Variabile", 
+        advice: "VERIFICARE CONDIZIONI LOCALI" 
+      };
+      
+      const temperature = Math.round(data.current_weather.temperature);
+      
+      const dailyForecast = data.daily.time.slice(0, 3).map((date: string, index: number) => ({
+        date: new Date(date).toLocaleDateString('it-IT', { weekday: 'short' }),
+        max: Math.round(data.daily.temperature_2m_max[index]),
+        min: Math.round(data.daily.temperature_2m_min[index]),
+        icon: weatherAdviceMap[data.daily.weathercode[index]]?.icon || "☀️"
+      }));
+      
+      const weatherData = {
+        icon: weatherInfo.icon,
+        temp: temperature,
+        desc: weatherInfo.description,
+        advice: weatherInfo.advice,
+        location: location.city,
+        forecast: dailyForecast,
+        timestamp: Date.now()
+      };
+      
+      localStorage.setItem('agriWeather', JSON.stringify(weatherData));
+      
+      setWeather({
+        icon: weatherInfo.icon,
+        temp: temperature,
+        desc: weatherInfo.description,
+        advice: weatherInfo.advice,
+        location: location.city,
+        forecast: dailyForecast,
+        loading: false,
+        error: null
+      });
+      
+    } catch (error) {
+      console.error("Errore meteo:", error);
+      
+      const cached = localStorage.getItem('agriWeather');
+      if (cached) {
+        const cachedData = JSON.parse(cached);
+        setWeather({
+          icon: cachedData.icon,
+          temp: cachedData.temp,
+          desc: cachedData.desc,
+          advice: cachedData.advice,
+          location: cachedData.location,
+          forecast: cachedData.forecast,
+          loading: false,
+          error: "Dati non aggiornati"
+        });
+      } else {
+        setWeather({
+          icon: "☀️",
+          temp: 18,
+          desc: "Dati non disponibili",
+          advice: "VERIFICARE POSIZIONE",
+          location: "Non rilevata",
+          loading: false,
+          error: "Impossibile ottenere la posizione"
+        });
+      }
+    }
+  };
 
   // INIZIALIZZA ONESIGNAL
   useEffect(() => {
@@ -634,6 +666,7 @@ const fetchRealWeather = async () => {
     
     const timer = setTimeout(initializeOneSignal, 2000);
     return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // CARICA METEO ALL'AVVIO
@@ -660,6 +693,7 @@ const fetchRealWeather = async () => {
     const interval = setInterval(fetchRealWeather, 30 * 60 * 1000);
     
     return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ACCESSO
@@ -693,6 +727,7 @@ const fetchRealWeather = async () => {
       setLoading(false);
     });
     return () => unsub();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [oneSignalInitialized]);
 
   // SYNC DATI
@@ -714,49 +749,51 @@ const fetchRealWeather = async () => {
       unsubs.push(onSnapshot(query(collection(db, 'stock_logs'), where("ownerId", "==", user.uid), orderBy('date', 'desc'), limit(15)), (s) => setStockLogs(s.docs.map(d => ({ id: d.id, ...d.data() } as StockLog)))));
     }
     return () => unsubs.forEach(u => u());
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.uid, userRole]);
 
- // Caricamento modello MobileNet (VERSIONE CORRETTA)
-useEffect(() => {
-  let isMounted = true;
-  
-  const loadModel = async () => {
-    if (activeTab === 'vet' && !model && !modelLoading && !modelError) {
-      setModelLoading(true);
-      setModelError(null);
-      
-      try {
-        console.log("🚀 Impostazione backend TensorFlow...");
-        await tf.setBackend('webgl');
-        console.log("✅ Backend TensorFlow impostato");
+  // Caricamento modello MobileNet
+  useEffect(() => {
+    let isMounted = true;
+    
+    const loadModel = async () => {
+      if (activeTab === 'vet' && !model && !modelLoading && !modelError) {
+        setModelLoading(true);
+        setModelError(null);
         
-        console.log("🚀 Caricamento MobileNet in corso...");
-        const loadedModel = await mobilenet.load();
-        
-        if (isMounted) {
-          setModel(loadedModel);
-          setModelError(null);
-          console.log("✅ MobileNet caricato con successo!");
-        }
-      } catch (error) {
-        console.error("❌ Errore caricamento modello:", error);
-        if (isMounted) {
-          setModelError("Errore caricamento AI. Usa solo sintomi.");
-        }
-      } finally {
-        if (isMounted) {
-          setModelLoading(false);
+        try {
+          console.log("🚀 Impostazione backend TensorFlow...");
+          await tf.setBackend('webgl');
+          console.log("✅ Backend TensorFlow impostato");
+          
+          console.log("🚀 Caricamento MobileNet in corso...");
+          const loadedModel = await mobilenet.load();
+          
+          if (isMounted) {
+            setModel(loadedModel);
+            setModelError(null);
+            console.log("✅ MobileNet caricato con successo!");
+          }
+        } catch (error) {
+          console.error("❌ Errore caricamento modello:", error);
+          if (isMounted) {
+            setModelError("Errore caricamento AI. Usa solo sintomi.");
+          }
+        } finally {
+          if (isMounted) {
+            setModelLoading(false);
+          }
         }
       }
-    }
-  };
-  
-  loadModel();
-  
-  return () => {
-    isMounted = false;
-  };
-}, [activeTab, model, modelLoading, modelError]);
+    };
+    
+    loadModel();
+    
+    return () => {
+      isMounted = false;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, model, modelLoading, modelError]);
 
   // FUNZIONI
   const handleAuth = async (e: React.FormEvent) => {
@@ -776,45 +813,24 @@ useEffect(() => {
   };
 
   const handleSaveAnimal = async () => {
-    if (!newAnimal.codice.trim()) return alert("Codice Capo richiesto.");
-    
-    // Verifica che il codice non sia già usato
-    const codiceExists = animals.some(a => a.codice === newAnimal.codice);
-    if (codiceExists) {
-      if (!confirm(`Il codice "${newAnimal.codice}" esiste già. Continuare?`)) return;
-    }
+    if (!newAnimal.name.trim()) return alert("Codice Capo richiesto.");
     
     if (newAnimal.sire) {
-      const sireExists = animals.some(a => a.codice === newAnimal.sire || a.id === newAnimal.sire);
+      const sireExists = animals.some(a => a.name === newAnimal.sire || a.id === newAnimal.sire);
       if (!sireExists) {
         if (!confirm(`Il padre "${newAnimal.sire}" non esiste. Continuare?`)) return;
       }
     }
     
     if (newAnimal.dam) {
-      const damExists = animals.some(a => a.codice === newAnimal.dam || a.id === newAnimal.dam);
+      const damExists = animals.some(a => a.name === newAnimal.dam || a.id === newAnimal.dam);
       if (!damExists) {
         if (!confirm(`La madre "${newAnimal.dam}" non esiste. Continuare?`)) return;
       }
     }
     
-    await addDoc(collection(db, 'animals'), { 
-      ...newAnimal, 
-      // Per retrocompatibilità, manteniamo anche name
-      name: newAnimal.codice,
-      ownerId: user!.uid, 
-      treatments: [] 
-    });
-    
-    setNewAnimal({ 
-      codice: '', 
-      nome: '',
-      species: 'Maiali', 
-      birthDate: '', 
-      sire: '',
-      dam: '', 
-      notes: '' 
-    });
+    await addDoc(collection(db, 'animals'), { ...newAnimal, ownerId: user!.uid, treatments: [] });
+    setNewAnimal({ name: '', species: 'Maiali', birthDate: '', sire: '', dam: '', notes: '' });
   };
 
   const handleUpdateNotes = async (id: string) => {
@@ -889,13 +905,28 @@ useEffect(() => {
   const handleAICommand = async () => {
     const frasi = aiInput.toLowerCase().split(/ e |,|\./).filter(s => s.trim());
     const logs: string[] = [];
+    
     for (const f of frasi) {
       const num = f.match(/(\d+)/)?.[1];
       if (f.includes('venduto') && num) {
-        await addDoc(collection(db, 'transactions'), { desc: `IA: ${f}`, amount: Number(num), type: 'Entrata', species: 'Maiali', date: new Date().toLocaleDateString('it-IT'), ownerId: user!.uid });
+        await addDoc(collection(db, 'transactions'), { 
+          desc: `IA: ${f}`, 
+          amount: Number(num), 
+          type: 'Entrata', 
+          species: 'Maiali', 
+          date: new Date().toLocaleDateString('it-IT'), 
+          ownerId: user!.uid 
+        });
         logs.push(`✅ Registrata Entrata: ${num}€`);
       } else if (f.includes('speso') && num) {
-        await addDoc(collection(db, 'transactions'), { desc: `IA: ${f}`, amount: Number(num), type: 'Uscita', species: 'Maiali', date: new Date().toLocaleDateString('it-IT'), ownerId: user!.uid });
+        await addDoc(collection(db, 'transactions'), { 
+          desc: `IA: ${f}`, 
+          amount: Number(num), 
+          type: 'Uscita', 
+          species: 'Maiali', 
+          date: new Date().toLocaleDateString('it-IT'), 
+          ownerId: user!.uid 
+        });
         logs.push(`✅ Registrata Uscita: ${num}€`);
       }
     }
@@ -935,10 +966,9 @@ useEffect(() => {
     d.text(n, 14, 20);
     const sorted = [...animals].sort((a,b) => a.species.localeCompare(b.species));
     autoTable(d, { 
-      head: [['Codice', 'Nome', 'Specie', 'Data Nascita', 'Padre', 'Madre', 'Note', 'Trattamenti']], 
+      head: [['ID', 'Specie', 'Data Nascita', 'Padre', 'Madre', 'Note', 'Trattamenti']], 
       body: sorted.map(a => [
-        a.codice, 
-        a.nome || '-', 
+        a.name, 
         a.species, 
         a.birthDate || '', 
         a.sire || '', 
@@ -957,17 +987,16 @@ useEffect(() => {
     if (!newBirth.birthDate) return alert("Inserisci la data di nascita.");
     
     try {
-      const mother = animals.find(a => a.codice === newBirth.idCode || a.id === newBirth.idCode);
+      const mother = animals.find(a => a.name === newBirth.idCode || a.id === newBirth.idCode);
       if (!mother) return alert("Madre non trovata.");
       
       for (let i = 0; i < newBirth.count; i++) {
         const defaultName = `${newBirth.species.substring(0, 3)}-${new Date().getFullYear()}-${String(i + 1).padStart(2, '0')}`;
         await addDoc(collection(db, 'animals'), {
-          codice: defaultName,
-          nome: '',
+          name: defaultName,
           species: newBirth.species,
           birthDate: newBirth.birthDate,
-          dam: mother.codice,
+          dam: mother.name,
           notes: 'Nato in azienda',
           ownerId: user!.uid,
           treatments: []
@@ -1045,7 +1074,7 @@ useEffect(() => {
     ];
     
     for (const diag of diagnoses) {
-    for (const keyword of diag.keywords) {
+      for (const keyword of diag.keywords) {
         if (s.includes(keyword)) {
           return {
             title: diag.name,
@@ -1208,9 +1237,7 @@ useEffect(() => {
                     <Bell size={16} />
                   </div>
                   <div className="flex-1">
-                   <h4 className="text-xs font-black text-amber-900 mb-1">
-  Non perdere le scadenze dei trattamenti
-</h4>
+                    <h4 className="text-xs font-black text-amber-900 mb-1">Non perdere le scadenze dei trattamenti</h4>
                     <p className="text-[10px] text-amber-800 mb-2">
                       Attivando le notifiche riceverai un avviso quando:
                       • Un trattamento sta per scadere (promemoria giornaliero negli ultimi 7 giorni)
@@ -1421,7 +1448,7 @@ useEffect(() => {
                   <option value="">-- Scegli un animale --</option>
                   {animals.map(a => (
                     <option key={a.id} value={a.id}>
-                      {a.codice} {a.nome && `(${a.nome})`} - {a.species}
+                      {a.name} ({a.species})
                     </option>
                   ))}
                 </select>
@@ -1442,7 +1469,7 @@ useEffect(() => {
             {selectedAnimal && showTreatmentForm && (
               <div className="bg-white p-5 rounded-3xl border-2 border-emerald-200 shadow-sm animate-in slide-in-from-top-2">
                 <h4 className="text-sm font-black text-emerald-900 uppercase mb-4">
-                  Nuovo Trattamento per {selectedAnimal.codice} {selectedAnimal.nome && `(${selectedAnimal.nome})`}
+                  Nuovo Trattamento per {selectedAnimal.name}
                 </h4>
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-3">
@@ -1511,7 +1538,7 @@ useEffect(() => {
               <div className="bg-white p-5 rounded-3xl border shadow-sm">
                 <h4 className="text-sm font-black text-emerald-900 uppercase mb-4 flex items-center gap-2">
                   <ClipboardList size={18} className="text-stone-600" />
-                  Storico Trattamenti - {selectedAnimal.codice} {selectedAnimal.nome && `(${selectedAnimal.nome})`}
+                  Storico Trattamenti - {selectedAnimal.name}
                 </h4>
                 
                 {(!selectedAnimal.treatments || selectedAnimal.treatments.length === 0) ? (
@@ -1567,13 +1594,9 @@ useEffect(() => {
                                   </button>
                                 )}
                                 <button
-                                  onClick={() => {
-                                    if (window.confirm(`❌ Eliminare il trattamento "${t.tipo}" del ${new Date(t.dataSomministrazione).toLocaleDateString('it-IT')}?\nQuesta azione è irreversibile!`)) {
-                                      handleDeleteTreatment(selectedAnimal.id, t.id);
-                                    }
-                                  }}
+                                  onClick={() => handleDeleteTreatment(selectedAnimal.id, t.id)}
                                   className="p-1 text-red-500 hover:bg-red-50 rounded"
-                                  title="Elimina trattamento"
+                                  title="Elimina"
                                 >
                                   <Trash2 size={16} />
                                 </button>
@@ -1614,121 +1637,24 @@ useEffect(() => {
           </div>
         )}
 
-        {/* INVENTARIO CON RICERCA */}
+        {/* INVENTARIO */}
         {activeTab === 'inventory' && userRole === 'farmer' && (
           <div className="space-y-6 animate-in slide-in-from-bottom-4">
-            {/* Barra di ricerca */}
-            <div className="bg-white p-4 rounded-2xl border shadow-sm">
-              <div className="relative">
-                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
-                <input
-                  type="text"
-                  placeholder="🔍 Cerca animale per codice o nome..."
-                  className="w-full p-3 pl-10 bg-stone-50 rounded-xl text-sm font-bold border-none shadow-inner text-stone-800"
-                  value={animalSearch}
-                  onChange={(e) => {
-                    setAnimalSearch(e.target.value);
-                    searchAnimals(e.target.value);
-                  }}
-                />
-              </div>
-              
-              {/* Risultati ricerca */}
-              {animalSearch && searchResults.length > 0 && (
-                <div className="mt-3 p-3 bg-emerald-50 rounded-xl border border-emerald-200">
-                  <p className="text-xs font-bold text-emerald-700 mb-2">
-                    🔍 Trovati {searchResults.length} animali:
-                  </p>
-                  <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto custom-scrollbar">
-                    {searchResults.map(animal => (
-                      <button
-                        key={animal.id}
-                        onClick={() => {
-                          setExpandedSpecies(prev => 
-                            prev.includes(animal.species) ? prev : [...prev, animal.species]
-                          );
-                          setAnimalSearch('');
-                          setSearchResults([]);
-                        }}
-                        className="bg-white px-3 py-1.5 rounded-lg text-xs font-bold text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors"
-                      >
-                        {animal.codice} {animal.nome && `(${animal.nome})`} - {animal.species}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              {animalSearch && searchResults.length === 0 && (
-                <p className="mt-3 text-xs text-stone-500 italic text-center">
-                  ❌ Nessun animale trovato
-                </p>
-              )}
-            </div>
-
-            {/* Form registrazione capi con CODICE e NOME */}
             <div className="bg-white p-4 rounded-2xl border shadow-sm space-y-3">
               <div className="flex justify-between items-center border-b pb-2">
                 <h3 className="text-[10px] font-black text-stone-700 uppercase">Registrazione Capi</h3>
                 <button onClick={exportASLReport} className="text-[9px] font-bold bg-stone-900 text-white px-3 py-1 rounded-lg uppercase shadow-md">PDF ASL</button>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <input 
-                  placeholder="Codice Capo *" 
-                  className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner text-stone-800" 
-                  value={newAnimal.codice} 
-                  onChange={(e)=>setNewAnimal({...newAnimal, codice: e.target.value})} 
-                />
-                
-                <input 
-                  placeholder="Nome (es. Gigio)" 
-                  className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner text-stone-800" 
-                  value={newAnimal.nome} 
-                  onChange={(e)=>setNewAnimal({...newAnimal, nome: e.target.value})} 
-                />
-                
-                <select 
-                  className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner text-stone-800 uppercase" 
-                  value={newAnimal.species} 
-                  onChange={(e)=>setNewAnimal({...newAnimal, species:e.target.value as Species})}
-                >
+                <input placeholder="Codice Capo *" className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner text-stone-800" value={newAnimal.name} onChange={(e)=>setNewAnimal({...newAnimal, name:e.target.value})} />
+                <select className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner text-stone-800 uppercase" value={newAnimal.species} onChange={(e)=>setNewAnimal({...newAnimal, species:e.target.value as Species})}>
                   {speciesList.map(s=><option key={s}>{s}</option>)}
                 </select>
-                
-                <input 
-                  type="date" 
-                  className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner text-emerald-700" 
-                  value={newAnimal.birthDate} 
-                  onChange={(e)=>setNewAnimal({...newAnimal, birthDate:e.target.value})} 
-                />
-                
-                <input 
-                  placeholder="Padre (Codice)" 
-                  className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner text-stone-800 uppercase" 
-                  value={newAnimal.sire} 
-                  onChange={(e)=>setNewAnimal({...newAnimal, sire:e.target.value})} 
-                />
-                
-                <input 
-                  placeholder="Madre (Codice)" 
-                  className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner text-stone-800 uppercase" 
-                  value={newAnimal.dam} 
-                  onChange={(e)=>setNewAnimal({...newAnimal, dam:e.target.value})} 
-                />
-                
-                <input 
-                  placeholder="Note (Cure, Salute)" 
-                  className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner col-span-2 text-stone-800" 
-                  value={newAnimal.notes} 
-                  onChange={(e)=>setNewAnimal({...newAnimal, notes:e.target.value})} 
-                />
-                
-                <button 
-                  onClick={handleSaveAnimal} 
-                  className="bg-emerald-600 text-white font-bold rounded-lg py-2 text-[10px] uppercase col-span-full shadow-md active:scale-95"
-                >
-                  Salva Capo
-                </button>
+                <input type="date" className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner text-emerald-700" value={newAnimal.birthDate} onChange={(e)=>setNewAnimal({...newAnimal, birthDate:e.target.value})} />
+                <input placeholder="Padre" className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner text-stone-800 uppercase" value={newAnimal.sire} onChange={(e)=>setNewAnimal({...newAnimal, sire:e.target.value})} />
+                <input placeholder="Madre" className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner text-stone-800 uppercase" value={newAnimal.dam} onChange={(e)=>setNewAnimal({...newAnimal, dam:e.target.value})} />
+                <input placeholder="Note" className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner col-span-2 text-stone-800" value={newAnimal.notes} onChange={(e)=>setNewAnimal({...newAnimal, notes:e.target.value})} />
+                <button onClick={handleSaveAnimal} className="bg-emerald-600 text-white font-bold rounded-lg py-2 text-[10px] uppercase col-span-full shadow-md active:scale-95">Salva Capo</button>
               </div>
             </div>
 
@@ -1757,25 +1683,10 @@ useEffect(() => {
                           {capi.map(a => (
                             <div key={a.id} className="bg-white p-4 rounded-xl border border-stone-200 shadow-sm relative group hover:border-emerald-500 transition-all">
                               <div className="flex justify-between items-start mb-1">
-                                <div>
-                                  <h4 className="font-black text-stone-800 uppercase text-xs">{a.codice}</h4>
-                                  {a.nome && (
-                                    <p className="text-[10px] text-emerald-600 font-bold italic">"{a.nome}"</p>
-                                  )}
-                                </div>
+                                <h4 className="font-black text-stone-800 uppercase text-xs">{a.name}</h4>
                                 <div className="flex gap-2">
                                   <button onClick={()=>{setEditingAnimalId(a.id); setEditNote(a.notes || '');}} className="text-stone-600 hover:text-emerald-500"><Edit2 size={14}/></button>
-                                  <button 
-                                    onClick={() => {
-                                      if (window.confirm(`❌ Sei sicuro di voler eliminare l'animale "${a.codice}${a.nome ? ` (${a.nome})` : ''}"?\nQuesta azione è irreversibile!`)) {
-                                        deleteDoc(doc(db, 'animals', a.id));
-                                      }
-                                    }} 
-                                    className="text-stone-600 hover:text-red-500"
-                                    title="Elimina animale"
-                                  >
-                                    <Trash2 size={14}/>
-                                  </button>
+                                  <button onClick={()=>deleteDoc(doc(db,'animals',a.id))} className="text-stone-600 hover:text-red-500"><Trash2 size={14}/></button>
                                 </div>
                               </div>
                               
@@ -1790,55 +1701,65 @@ useEffect(() => {
                                 </p>
                               )}
                               
-                            {editingAnimalId === a.id ? (
-  <div className="mt-2 space-y-2">
-    <textarea 
-      className="w-full p-2 bg-stone-50 rounded-lg text-[10px] border-none font-bold italic shadow-inner text-stone-800" 
-      value={editNote} 
-      onChange={(e) => setEditNote(e.target.value)} 
-      placeholder="Nuove note..."
-      rows={3}
-    />
-    <div className="flex gap-2">
-      <button 
-        onClick={() => handleUpdateNotes(a.id)} 
-        className="flex-1 bg-emerald-600 text-white py-1.5 rounded-lg text-[9px] font-black uppercase hover:bg-emerald-700"
-      >
-        Salva
-      </button>
-      <button 
-        onClick={() => {
-          setEditingAnimalId(null);
-          setEditNote('');
-        }} 
-        className="flex-1 bg-stone-300 text-stone-700 py-1.5 rounded-lg text-[9px] font-black uppercase hover:bg-stone-400"
-      >
-        Annulla
-      </button>
-    </div>
-  </div>
-) : (
-  <>
-    <p className="text-[9px] text-stone-600 font-bold mb-2 italic uppercase">{a.birthDate || 'N/D'}</p>
-    <span className="text-[10px] text-stone-700 bg-stone-50 p-2 rounded-lg italic leading-relaxed font-medium">
-      {a.notes || 'Nessuna nota presente.'}
-    </span>
-    {a.treatments && a.treatments.length > 0 && (
-      <div className="mt-2 pt-2 border-t border-stone-100">
-        <p className="text-[8px] font-bold text-stone-500 uppercase mb-1">
-          Trattamenti: {a.treatments.length}
-        </p>
-        <div className="flex flex-wrap gap-1">
-          {a.treatments.slice(0, 2).map(t => (
-            <span key={t.id} className="text-[7px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-full">
-              {t.tipo}
-            </span>
-          ))}
-        </div>
-      </div>
-    )}
-  </>
-)}
+                              {editingAnimalId === a.id ? (
+                                <div className="mt-2 space-y-2">
+                                  <textarea 
+                                    className="w-full p-2 bg-stone-50 rounded-lg text-[10px] border-none font-bold italic shadow-inner text-stone-800" 
+                                    value={editNote} 
+                                    onChange={(e) => setEditNote(e.target.value)} 
+                                    placeholder="Nuove note..."
+                                    rows={3}
+                                  />
+                                  <div className="flex gap-2">
+                                    <button 
+                                      onClick={() => handleUpdateNotes(a.id)} 
+                                      className="flex-1 bg-emerald-600 text-white py-1.5 rounded-lg text-[9px] font-black uppercase hover:bg-emerald-700"
+                                    >
+                                      Salva
+                                    </button>
+                                    <button 
+                                      onClick={() => {
+                                        setEditingAnimalId(null);
+                                        setEditNote('');
+                                      }} 
+                                      className="flex-1 bg-stone-300 text-stone-700 py-1.5 rounded-lg text-[9px] font-black uppercase hover:bg-stone-400"
+                                    >
+                                      Annulla
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <>
+                                  <span className="text-[10px] text-stone-700 bg-stone-50 p-2 rounded-lg italic leading-relaxed font-medium block">
+                                    {a.notes || 'Nessuna nota presente.'}
+                                  </span>
+                                  {a.treatments && a.treatments.length > 0 && (
+                                    <div className="mt-2 pt-2 border-t border-stone-100">
+                                      <p className="text-[8px] font-bold text-stone-500 uppercase mb-1">
+                                        Trattamenti: {a.treatments.length}
+                                      </p>
+                                      <div className="flex flex-wrap gap-1">
+                                        {a.treatments.slice(0, 2).map(t => (
+                                          <span key={t.id} className="text-[7px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-full">
+                                            {t.tipo}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* FINANCE */}
         {activeTab === 'finance' && userRole === 'farmer' && (
@@ -1887,15 +1808,7 @@ useEffect(() => {
                           <span className={`font-black text-sm italic ${t.type==='Entrata' ? 'text-emerald-600' : 'text-red-600'}`}>
                             {t.type==='Entrata' ? '+' : '-'}€{t.amount}
                           </span>
-                          <button 
-                            onClick={() => {
-                              if (window.confirm(`❌ Eliminare la transazione "${t.desc}" di €${t.amount}?\nQuesta azione è irreversibile!`)) {
-                                deleteDoc(doc(db, 'transactions', t.id));
-                              }
-                            }} 
-                            className="text-stone-500 hover:text-red-500"
-                            title="Elimina transazione"
-                          >
+                          <button onClick={()=>deleteDoc(doc(db,'transactions',t.id))} className="text-stone-500 hover:text-red-500">
                             <Trash2 size={14}/>
                           </button>
                         </div>
@@ -2037,17 +1950,6 @@ useEffect(() => {
                     <Store size={12} />
                     PUBBLICA
                   </button>
-                  <button 
-                    onClick={() => {
-                      if (window.confirm(`❌ Eliminare il prodotto "${p.name}" (${p.quantity} ${p.unit})?\nQuesta azione è irreversibile!`)) {
-                        deleteDoc(doc(db, 'products', p.id));
-                      }
-                    }} 
-                    className="text-stone-400 mt-2 hover:text-red-500 transition-colors"
-                    title="Elimina prodotto"
-                  >
-                    <Trash2 size={12}/>
-                  </button>
                 </div>
               ))}
             </div>
@@ -2140,13 +2042,8 @@ useEffect(() => {
                           <CheckCircle2 size={18}/>
                         </button>
                         <button 
-                          onClick={() => {
-                            if (window.confirm(`❌ Eliminare il task "${t.text}"?\nQuesta azione è irreversibile!`)) {
-                              deleteDoc(doc(db, 'tasks', t.id));
-                            }
-                          }} 
+                          onClick={()=>deleteDoc(doc(db,'tasks',t.id))} 
                           className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
-                          title="Elimina task"
                         >
                           <Trash2 size={18}/>
                         </button>
