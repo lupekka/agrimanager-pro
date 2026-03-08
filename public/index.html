@@ -17,40 +17,31 @@
     
     <title>AgriManage Pro</title>
     
-    <!-- ONESIGNAL NOTIFICHE - CONFIGURAZIONE COMPLETA -->
-    <link rel="manifest" href="/manifest.json" />
-    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-    <script>
+   <!-- ONESIGNAL - CARICAMENTO DIRETTO -->
+<script>
+  // Carica OneSignal manualmente
+  (function() {
+    var script = document.createElement('script');
+    script.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js';
+    script.async = false;
+    script.onload = function() {
+      console.log('✅ Script OneSignal caricato');
       window.OneSignalDeferred = window.OneSignalDeferred || [];
-      OneSignalDeferred.push(async function(OneSignal) {
-        await OneSignal.init({
+      window.OneSignalDeferred.push(function(OneSignal) {
+        OneSignal.init({
           appId: "feed9c1e-90cc-468f-a2b5-2dad2c0350ac",
           safari_web_id: "web.onesignal.auto.3cd6b41f-0715-4da8-9807-02ca4af2dc44",
-          notifyButton: {
-            enable: true,
-            position: 'bottom-right',
-            size: 'medium',
-            theme: 'default',
-            prenotify: true,
-            showCredit: false,
-            text: {
-              'tip.state.unsubscribed': 'Attiva notifiche',
-              'tip.state.subscribed': 'Notifiche attive',
-              'tip.state.blocked': 'Notifiche bloccate'
-            }
-          },
-          welcomeNotification: {
-            title: 'AgriManager Pro',
-            message: 'Grazie per aver attivato le notifiche!'
-          },
-          persistNotification: true,
-          autoResubscribe: true,
-          allowLocalhostAsSecureOrigin: true
+          notifyButton: { enable: true },
         });
-        console.log('✅ OneSignal inizializzato con successo');
+        console.log('✅ OneSignal inizializzato');
       });
-    </script>
-    <!-- FINE ONESIGNAL -->
+    };
+    script.onerror = function() {
+      console.error('❌ Impossibile caricare OneSignal');
+    };
+    document.head.appendChild(script);
+  })();
+</script>
     
     <!-- FONT OTTIMIZZATI -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
