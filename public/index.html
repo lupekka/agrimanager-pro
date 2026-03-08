@@ -17,7 +17,8 @@
     
     <title>AgriManage Pro</title>
     
-    <!-- ONESIGNAL NOTIFICHE - AGGIUNTO ORA -->
+    <!-- ONESIGNAL NOTIFICHE - CONFIGURAZIONE COMPLETA -->
+    <link rel="manifest" href="/manifest.json" />
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
       window.OneSignalDeferred = window.OneSignalDeferred || [];
@@ -27,8 +28,26 @@
           safari_web_id: "web.onesignal.auto.3cd6b41f-0715-4da8-9807-02ca4af2dc44",
           notifyButton: {
             enable: true,
+            position: 'bottom-right',
+            size: 'medium',
+            theme: 'default',
+            prenotify: true,
+            showCredit: false,
+            text: {
+              'tip.state.unsubscribed': 'Attiva notifiche',
+              'tip.state.subscribed': 'Notifiche attive',
+              'tip.state.blocked': 'Notifiche bloccate'
+            }
           },
+          welcomeNotification: {
+            title: 'AgriManager Pro',
+            message: 'Grazie per aver attivato le notifiche!'
+          },
+          persistNotification: true,
+          autoResubscribe: true,
+          allowLocalhostAsSecureOrigin: true
         });
+        console.log('✅ OneSignal inizializzato con successo');
       });
     </script>
     <!-- FINE ONESIGNAL -->
