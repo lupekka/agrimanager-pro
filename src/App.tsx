@@ -30,15 +30,23 @@ declare global {
   }
 }
 
+// DEBUG: Controllo variabili d'ambiente
+console.log("🔍 Controllo variabili:", {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY ? "✅ PRESENTE" : "❌ MANCANTE",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID ? "✅ PRESENTE" : "❌ MANCANTE",
+});
+
+// Se mancano, usa un fallback (le tue chiavi hardcoded)
 const firebaseConfig = {
-apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "",
-authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "",
-projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "",
-storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "",
-messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "",
-appId: import.meta.env.VITE_FIREBASE_APP_ID || ""
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyD6ZxCO6BvGLKfsF235GSsLh-7GQm84Vdk",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "agrimanager-pro-e3cf7.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "agrimanager-pro-e3cf7",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "agrimanager-pro-e3cf7.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "415553695665",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:415553695665:web:6e9ddd9f5241424afad790"
 };
 
+console.log("🚀 Uso configurazione:", firebaseConfig.apiKey ? "✅ con chiave" : "❌ senza chiave");
 const app = initializeApp(firebaseConfig);
 const db = initializeFirestore(app, { localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()}) });
 const auth = getAuth(app);
