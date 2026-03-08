@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState, useEffect } from 'react';
 import {
   // Navigazione e UI principali
@@ -19,49 +18,49 @@ import {
   Activity,
   
   // Icone specifiche per sezioni
-  PawPrint,           // Inventario Capi
-  Baby,               // Parti
-  Wallet,             // Finanza/Bilancio
-  Package,            // Prodotti/Magazzino
-  ListChecks,         // Tasks/Agenda
-  Network,            // Albero genealogico
-  Stethoscope,        // Vet IA
-  Store,              // Market
-  ShoppingBag,        // Market items
+  PawPrint,
+  Baby,
+  Wallet,
+  Package,
+  ListChecks,
+  Network,
+  Stethoscope,
+  Store,
+  ShoppingBag,
   
   // Icone per azioni finanziarie
-  ArrowUpRight,       // Entrate
-  ArrowDownLeft,      // Uscite
-  ArrowRightLeft,     // Scambio/Transferimenti
+  ArrowUpRight,
+  ArrowDownLeft,
+  ArrowRightLeft,
   
   // Icone per gestione utenti
-  UserPlus,           // Registrazione
+  UserPlus,
   
   // Icone per file e upload
-  FileDown,           // Download PDF
-  UploadCloud,        // Upload foto
-  History,            // Cronologia movimenti  ← AGGIUNGI QUESTA
+  FileDown,
+  UploadCloud,
+  History,
   
   // Icone per comunicazione
-  MessageCircle,      // WhatsApp
-  Mail,               // Email
+  MessageCircle,
+  Mail,
   
   // Icone per assistente e AI
-  Bot,                // Assistente rapido
+  Bot,
   
   // Icone per accordion
   ChevronDown,
   ChevronRight,
   
   // Icone per notifiche e meteo
-  Bell,               // Notifiche
-  MapPin,             // Posizione meteo
-  Camera,             // Foto per Vet IA
+  Bell,
+  MapPin,
+  Camera,
   
   // Icone per libretto sanitario
-  Syringe,            // Libretto sanitario
-  ClipboardList,      // Storico trattamenti
-  CalendarClock,      // Scadenziario
+  Syringe,
+  ClipboardList,
+  CalendarClock,
   
   // Icone per azioni prodotto
   MinusCircle,
@@ -2139,8 +2138,8 @@ export default function App() {
               <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-center">
                 <AlertTriangle size={16} className="text-amber-600 mx-auto mb-1" />
                 <p className="text-[9px] font-bold text-amber-800">{modelError}</p>
-                <p className="text-[8px] text-amber-600 mt-1">Puoi comunque usare l&apos;analisi basata sui sintomi</p>
-                 </div>
+                <p className="text-[8px] text-amber-600 mt-1">Puoi comunque usare la diagnosi basata sui sintomi</p>
+              </div>
             )}
 
             <div className="space-y-4 mb-6">
