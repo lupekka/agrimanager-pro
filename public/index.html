@@ -17,25 +17,26 @@
     
     <title>AgriManage Pro</title>
     
- <!-- ONESIGNAL - VERSIONE CON PROXY CLOUDFLARE (FUNZIONANTE) -->
+<!-- ONESIGNAL - VERSIONE DEFINITIVA CON NOME RINOMINATO -->
 <script>
   (function() {
     var script = document.createElement('script');
-    script.src = 'https://onesignal-proxy.lucapezza1.workers.dev/OneSignalSDK.page.js';
+    // ⚠️ NOTA IL NUOVO NOME DEL FILE ⚠️
+    script.src = 'https://onesignal-proxy.lucapezza1.workers.dev/TwoSignalSDK.page.js';
     script.async = false;
     script.onload = function() {
-      console.log('✅ OneSignal caricato via proxy');
+      console.log('✅ OneSignal caricato via proxy (nome rinominato)');
       window.OneSignalDeferred = window.OneSignalDeferred || [];
       window.OneSignalDeferred.push(function(OneSignal) {
         OneSignal.init({
           appId: "feed9c1e-90cc-468f-a2b5-2dad2c0350ac",
           safari_web_id: "web.onesignal.auto.3cd6b41f-0715-4da8-9807-02ca4af2dc44",
           notifyButton: { enable: true },
+          // ⚠️ QUESTA RIGA È FONDAMENTALE ⚠️
+          // Dice a OneSignal di usare il nostro service worker con il nuovo nome
+          serviceWorkerPath: "TwoSignalSDKWorker.js"
         });
       });
-    };
-    script.onerror = function() {
-      console.error('❌ Errore caricamento OneSignal');
     };
     document.head.appendChild(script);
   })();
