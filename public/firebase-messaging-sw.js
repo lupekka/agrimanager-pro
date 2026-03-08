@@ -2,7 +2,7 @@
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js');
 
-// La tua configurazione Firebase (uguale a quella in App.tsx)
+// La tua configurazione Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyD6ZxCO6BvGLKfsF235GSsLh-7GQm84Vdk",
   authDomain: "agrimanager-pro-e3cf7.firebaseapp.com",
@@ -16,7 +16,7 @@ firebase.initializeApp(firebaseConfig);
 
 const messaging = firebase.messaging();
 
-// Gestione notifiche in background (app chiusa)
+// Gestione notifiche in background
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Notifica in background:', payload);
   
@@ -29,12 +29,7 @@ messaging.onBackgroundMessage((payload) => {
     badge: '/badge-72.png',
     vibrate: [200, 100, 200],
     data: payload.data || {},
-    actions: [
-      {
-        action: 'open',
-        title: 'Apri'
-      }
-    ],
+    actions: [{ action: 'open', title: 'Apri' }],
     requireInteraction: true,
     silent: false
   };
@@ -42,22 +37,8 @@ messaging.onBackgroundMessage((payload) => {
   return self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-// Gestione click sulla notifica
+// Click sulla notifica
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  
-  // Apri l'app quando si clicca
-  const urlToOpen = '/';
-  
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true })
-      .then((windowClients) => {
-        for (let client of windowClients) {
-          if (client.url === urlToOpen && 'focus' in client) {
-            return client.focus();
-          }
-        }
-        return clients.openWindow(urlToOpen);
-      })
-  );
+  event.waitUntil(clients.openWindow('/'));
 });
