@@ -17,11 +17,11 @@
     
     <title>AgriManage Pro</title>
     
- <!-- ONESIGNAL - VERSIONE CON PROXY CLOUDFLARE -->
+ <!-- ONESIGNAL - VERSIONE CON PROXY CLOUDFLARE (FUNZIONANTE) -->
 <script>
   (function() {
     var script = document.createElement('script');
-    script.src = 'https://onesignal-proxy.tuo-username.workers.dev/OneSignalSDK.page.js';
+    script.src = 'https://onesignal-proxy.lucapezza1.workers.dev/OneSignalSDK.page.js';
     script.async = false;
     script.onload = function() {
       console.log('✅ OneSignal caricato via proxy');
@@ -33,6 +33,9 @@
           notifyButton: { enable: true },
         });
       });
+    };
+    script.onerror = function() {
+      console.error('❌ Errore caricamento OneSignal');
     };
     document.head.appendChild(script);
   })();
