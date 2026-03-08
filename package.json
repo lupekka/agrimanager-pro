@@ -6,7 +6,7 @@
   "homepage": "https://agrimanager-pro.vercel.app",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lucapezza/agrimanager-pro.git"
+    "url": "git+https://github.com/lupekka/agrimanager-pro.git"
   },
   "keywords": [
     "agricoltura",
@@ -15,9 +15,9 @@
     "typescript",
     "firebase",
     "tensorflow",
-    pwa"
+    "pwa"
   ],
-  "author": "Luca Pezza",
+  "author": "",
   "license": "MIT",
   "main": "src/index.tsx",
   "dependencies": {
@@ -33,27 +33,23 @@
     "@tensorflow/tfjs-backend-cpu": "^4.22.0",
     "@tensorflow/tfjs-backend-webgl": "^4.22.0"
   },
-"devDependencies": {
-  "@types/react": "^18.2.0",
-  "@types/react-dom": "^18.2.0",
-  "typescript": "^5.3.3",
-  "loader-utils": "^3.2.1",
-  "@types/jspdf": "^2.5.0",
-  "eslint": "^8.57.0",
-  "@typescript-eslint/eslint-plugin": "^5.62.0",
-  "@typescript-eslint/parser": "^5.62.0",
-  "eslint-plugin-react": "^7.33.2",
-  "eslint-plugin-react-hooks": "^4.6.0"
-},
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "typescript": "^5.3.3",
+    "loader-utils": "^3.2.1",
+    "@types/jspdf": "^2.5.0",
+    "eslint": "^8.57.0",
+    "@typescript-eslint/eslint-plugin": "^5.62.0",
+    "@typescript-eslint/parser": "^5.62.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0"
+  },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "lint": "eslint src --ext ts,tsx",
-    "lint:fix": "eslint src --ext ts,tsx --fix",
-    "preview": "serve -s build",
-    "clean": "rm -rf node_modules build dist"
+    "eject": "react-scripts eject"
   },
   "browserslist": {
     "production": [
@@ -66,10 +62,5 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  },
-  "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=9.0.0"
-  },
-  "proxy": "https://agrimanager-pro.vercel.app"
+  }
 }
