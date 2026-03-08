@@ -40,6 +40,7 @@ import {
   // Icone per file e upload
   FileDown,           // Download PDF
   UploadCloud,        // Upload foto
+  History,            // Cronologia movimenti  ← AGGIUNGI QUESTA
   
   // Icone per comunicazione
   MessageCircle,      // WhatsApp
