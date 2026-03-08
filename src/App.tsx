@@ -74,8 +74,8 @@ interface Treatment {
 
 interface Animal { 
   id: string; 
-  codice: string;        // ← NUOVO: codice identificativo (ex name)
-  nome?: string;          // ← NUOVO: nome opzionale dell'animale
+  codice: string;
+  nome?: string;
   species: Species; 
   notes: string; 
   sire?: string; 
@@ -250,8 +250,8 @@ export default function App() {
   const [regName, setRegName] = useState('');
   
   const [newAnimal, setNewAnimal] = useState({ 
-    codice: '',           // ← MODIFICATO
-    nome: '',             // ← NUOVO
+    codice: '',
+    nome: '',
     species: 'Maiali' as Species, 
     birthDate: '', 
     sire: '',
@@ -1566,9 +1566,13 @@ useEffect(() => {
                                   </button>
                                 )}
                                 <button
-                                  onClick={() => handleDeleteTreatment(selectedAnimal.id, t.id)}
+                                  onClick={() => {
+                                    if (window.confirm(`❌ Eliminare il trattamento "${t.tipo}" del ${new Date(t.dataSomministrazione).toLocaleDateString('it-IT')}?\nQuesta azione è irreversibile!`)) {
+                                      handleDeleteTreatment(selectedAnimal.id, t.id);
+                                    }
+                                  }}
                                   className="p-1 text-red-500 hover:bg-red-50 rounded"
-                                  title="Elimina"
+                                  title="Elimina trattamento"
                                 >
                                   <Trash2 size={16} />
                                 </button>
@@ -1668,7 +1672,6 @@ useEffect(() => {
                 <button onClick={exportASLReport} className="text-[9px] font-bold bg-stone-900 text-white px-3 py-1 rounded-lg uppercase shadow-md">PDF ASL</button>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                {/* CODICE (obbligatorio) */}
                 <input 
                   placeholder="Codice Capo *" 
                   className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner text-stone-800" 
@@ -1676,7 +1679,6 @@ useEffect(() => {
                   onChange={(e)=>setNewAnimal({...newAnimal, codice: e.target.value})} 
                 />
                 
-                {/* NOME (opzionale) */}
                 <input 
                   placeholder="Nome (es. Gigio)" 
                   className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner text-stone-800" 
@@ -1729,7 +1731,7 @@ useEffect(() => {
               </div>
             </div>
 
-            {/* SEZIONE SPECIE CON ACCORDION (con visualizzazione CODICE e NOME) */}
+            {/* SEZIONE SPECIE CON ACCORDION */}
             <div className="space-y-3">
               {speciesList.map(specie => {
                 const capi = animals.filter(a => a.species === specie);
@@ -1762,7 +1764,17 @@ useEffect(() => {
                                 </div>
                                 <div className="flex gap-2">
                                   <button onClick={()=>{setEditingAnimalId(a.id); setEditNote(a.notes || '');}} className="text-stone-600 hover:text-emerald-500"><Edit2 size={14}/></button>
-                                  <button onClick={()=>deleteDoc(doc(db,'animals',a.id))} className="text-stone-600 hover:text-red-500"><Trash2 size={14}/></button>
+                                  <button 
+                                    onClick={() => {
+                                      if (window.confirm(`❌ Sei sicuro di voler eliminare l'animale "${a.codice}${a.nome ? ` (${a.nome})` : ''}"?\nQuesta azione è irreversibile!`)) {
+                                        deleteDoc(doc(db, 'animals', a.id));
+                                      }
+                                    }} 
+                                    className="text-stone-600 hover:text-red-500"
+                                    title="Elimina animale"
+                                  >
+                                    <Trash2 size={14}/>
+                                  </button>
                                 </div>
                               </div>
                               
@@ -1884,7 +1896,15 @@ useEffect(() => {
                           <span className={`font-black text-sm italic ${t.type==='Entrata' ? 'text-emerald-600' : 'text-red-600'}`}>
                             {t.type==='Entrata' ? '+' : '-'}€{t.amount}
                           </span>
-                          <button onClick={()=>deleteDoc(doc(db,'transactions',t.id))} className="text-stone-500 hover:text-red-500">
+                          <button 
+                            onClick={() => {
+                              if (window.confirm(`❌ Eliminare la transazione "${t.desc}" di €${t.amount}?\nQuesta azione è irreversibile!`)) {
+                                deleteDoc(doc(db, 'transactions', t.id));
+                              }
+                            }} 
+                            className="text-stone-500 hover:text-red-500"
+                            title="Elimina transazione"
+                          >
                             <Trash2 size={14}/>
                           </button>
                         </div>
@@ -2026,6 +2046,17 @@ useEffect(() => {
                     <Store size={12} />
                     PUBBLICA
                   </button>
+                  <button 
+                    onClick={() => {
+                      if (window.confirm(`❌ Eliminare il prodotto "${p.name}" (${p.quantity} ${p.unit})?\nQuesta azione è irreversibile!`)) {
+                        deleteDoc(doc(db, 'products', p.id));
+                      }
+                    }} 
+                    className="text-stone-400 mt-2 hover:text-red-500 transition-colors"
+                    title="Elimina prodotto"
+                  >
+                    <Trash2 size={12}/>
+                  </button>
                 </div>
               ))}
             </div>
@@ -2118,8 +2149,13 @@ useEffect(() => {
                           <CheckCircle2 size={18}/>
                         </button>
                         <button 
-                          onClick={()=>deleteDoc(doc(db,'tasks',t.id))} 
+                          onClick={() => {
+                            if (window.confirm(`❌ Eliminare il task "${t.text}"?\nQuesta azione è irreversibile!`)) {
+                              deleteDoc(doc(db, 'tasks', t.id));
+                            }
+                          }} 
                           className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                          title="Elimina task"
                         >
                           <Trash2 size={18}/>
                         </button>
