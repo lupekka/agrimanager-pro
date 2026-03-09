@@ -17,30 +17,27 @@
     
     <title>AgriManage Pro</title>
     
-<!-- ONESIGNAL - VERSIONE DEFINITIVA CON NOME RINOMINATO -->
-<script>
-  (function() {
-    var script = document.createElement('script');
-    // ⚠️ NOTA IL NUOVO NOME DEL FILE ⚠️
-    script.src = 'https://onesignal-proxy.lucapezza1.workers.dev/TwoSignalSDK.page.js';
-    script.async = false;
-    script.onload = function() {
-      console.log('✅ OneSignal caricato via proxy (nome rinominato)');
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      window.OneSignalDeferred.push(function(OneSignal) {
-        OneSignal.init({
-          appId: "feed9c1e-90cc-468f-a2b5-2dad2c0350ac",
-          safari_web_id: "web.onesignal.auto.3cd6b41f-0715-4da8-9807-02ca4af2dc44",
-          notifyButton: { enable: true },
-          // ⚠️ QUESTA RIGA È FONDAMENTALE ⚠️
-          // Dice a OneSignal di usare il nostro service worker con il nuovo nome
-          serviceWorkerPath: "TwoSignalSDKWorker.js"
-        });
-      });
-    };
-    document.head.appendChild(script);
-  })();
-</script>
+    <!-- ONESIGNAL - VERSIONE DEFINITIVA CON NOME RINOMINATO -->
+    <script>
+      (function() {
+        var script = document.createElement('script');
+        script.src = 'https://onesignal-proxy.lucapezza1.workers.dev/TwoSignalSDK.page.js';
+        script.async = false;
+        script.onload = function() {
+          console.log('✅ OneSignal caricato via proxy (nome rinominato)');
+          window.OneSignalDeferred = window.OneSignalDeferred || [];
+          window.OneSignalDeferred.push(function(OneSignal) {
+            OneSignal.init({
+              appId: "feed9c1e-90cc-468f-a2b5-2dad2c0350ac",
+              safari_web_id: "web.onesignal.auto.3cd6b41f-0715-4da8-9807-02ca4af2dc44",
+              notifyButton: { enable: true },
+              serviceWorkerPath: "TwoSignalSDKWorker.js"
+            });
+          });
+        };
+        document.head.appendChild(script);
+      })();
+    </script>
     
     <!-- FONT OTTIMIZZATI -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -96,7 +93,6 @@
     
     <!-- STILI PERSONALIZZATI PER SAFE AREA -->
     <style>
-      /* Reset margin/padding per body */
       body {
         margin: 0;
         padding: 0;
@@ -106,21 +102,11 @@
         -moz-osx-font-smoothing: grayscale;
       }
       
-      /* Utility per safe area */
-      .pt-safe {
-        padding-top: env(safe-area-inset-top);
-      }
-      .pb-safe {
-        padding-bottom: env(safe-area-inset-bottom);
-      }
-      .pl-safe {
-        padding-left: env(safe-area-inset-left);
-      }
-      .pr-safe {
-        padding-right: env(safe-area-inset-right);
-      }
+      .pt-safe { padding-top: env(safe-area-inset-top); }
+      .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+      .pl-safe { padding-left: env(safe-area-inset-left); }
+      .pr-safe { padding-right: env(safe-area-inset-right); }
       
-      /* Safe area combinate */
       .safe-inset {
         padding-top: env(safe-area-inset-top);
         padding-bottom: env(safe-area-inset-bottom);
@@ -128,7 +114,6 @@
         padding-right: env(safe-area-inset-right);
       }
       
-      /* Scrollbar personalizzata */
       .custom-scrollbar::-webkit-scrollbar {
         width: 4px;
         height: 4px;
@@ -145,7 +130,6 @@
         background: #047857;
       }
       
-      /* Nascondi scrollbar mobile */
       .hide-scrollbar {
         -ms-overflow-style: none;
         scrollbar-width: none;
@@ -154,7 +138,6 @@
         display: none;
       }
       
-      /* Animazioni */
       .animate-in {
         animation: fadeIn 0.3s ease-out;
       }
@@ -164,22 +147,17 @@
         to { opacity: 1; transform: translateY(0); }
       }
       
-      /* Utilità per text balancing */
       .text-balance {
         text-wrap: balance;
       }
       
-      /* Miglioramenti tap target per mobile */
       @media (max-width: 768px) {
-        button, 
-        [role="button"],
-        a {
+        button, [role="button"], a {
           min-height: 44px;
           min-width: 44px;
         }
       }
       
-      /* Prevenire selezione testo su UI elements */
       .no-select {
         -webkit-tap-highlight-color: transparent;
         -webkit-touch-callout: none;
@@ -190,6 +168,9 @@
   </head>
   
   <body class="bg-[#F8F9FA] antialiased no-select">
+    <!-- 👇 QUESTO È IL DIV CHE MANCAVA! 👇 -->
+    <div id="root"></div>
+    
     <noscript>
       <div style="text-align: center; padding: 20px; font-family: system-ui; background: #F8F9FA; min-height: 100vh; display: flex; align-items: center; justify-content: center;">
         <div style="max-width: 300px; padding: 30px; background: white; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
@@ -200,10 +181,10 @@
       </div>
     </noscript>
     
-     <!-- RECHARTS VIA CDN -->
-  <script src="https://unpkg.com/react/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/react-is/umd/react-is.production.min.js"></script>
-  <script src="https://unpkg.com/recharts/umd/Recharts.min.js"></script>
-</body>
+    <!-- RECHARTS VIA CDN -->
+    <script src="https://unpkg.com/react/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/react-is/umd/react-is.production.min.js"></script>
+    <script src="https://unpkg.com/recharts/umd/Recharts.min.js"></script>
+  </body>
 </html>
