@@ -1,35 +1,43 @@
 import React from 'react';
-import { signOut } from 'firebase/auth';  // ← AGGIUNTO!
-import { auth } from './services/firebase'; // ← AGGIUNTO!
+import { signOut } from 'firebase/auth';
+import { auth } from './services/firebase';
 import { useAuth } from './hooks/useAuth';
 import { LoadingSpinner } from './components/common/LoadingSpinner';
 import { LoginForm } from './components/auth/LoginForm';
+import { Sidebar } from './components/common/Sidebar';  // AGGIUNTO
+import { MobileNav } from './components/common/MobileNav';  // AGGIUNTO
+import { LayoutDashboard } from 'lucide-react';  // AGGIUNTO
 
 export default function App() {
   console.log("🚀 App renderizzata");
   
-  const { user, loading } = useAuth();
-  console.log("Auth state:", { user, loading });
+  const { user, loading, userName } = useAuth();
+  const [activeTab, setActiveTab] = useState('dashboard');
 
-  if (loading) {
-    console.log("⏳ Mostro loading spinner");
-    return <LoadingSpinner />;
-  }
+  if (loading) return <LoadingSpinner />;
+  if (!user) return <LoginForm />;
 
-  if (!user) {
-    console.log("🔐 Mostro login form");
-    return <LoginForm />;
-  }
+  const menuItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard }
+  ];
 
-  console.log("✅ Utente loggato, mostro dashboard minimal");
-  
-  // Versione minimalissima per test
   return (
-    <div style={{ padding: '20px' }}>
-      <h1>AgriManager Pro - TEST</h1>
-      <p>Utente: {user.email}</p>
-      <p>Se vedi questo, React funziona!</p>
-      <button onClick={() => signOut(auth)}>Logout</button>
+    <div className="min-h-screen bg-[#F8F9FA] flex flex-col md:flex-row">
+      <Sidebar 
+        menuItems={menuItems}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onLogout={() => signOut(auth)}
+        userName={userName}
+      />
+      <MobileNav 
+        menuItems={menuItems}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      />
+      <main className="flex-1 md:ml-64 p-4">
+        <h1>Test Sidebar + MobileNav funziona!</h1>
+      </main>
     </div>
   );
 }
