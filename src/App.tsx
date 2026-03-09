@@ -1758,7 +1758,7 @@ for (const f of frasi) {
                                 <div>
                                   <h4 className="font-black text-stone-800 uppercase text-xs">{a.codice}</h4>
                                   {a.nome && (
-                                    <p className="text-[10px] text-emerald-600 font-bold italic">"{a.nome}"</p>
+                                  <p className="text-[10px] text-emerald-600 font-bold italic">{a.nome}</p>
                                   )}
                                 </div>
                                 <div className="flex gap-2">
@@ -1817,9 +1817,9 @@ for (const f of frasi) {
                                 </div>
                               ) : (
                                 <>
-                                 // ❌<span className="text-[10px] text-stone-700 bg-stone-50 p-2 rounded-lg italic leading-relaxed font-medium">
-  {a.notes || 'Nessuna nota presente.'}
-</span>
+  <span className="text-[10px] text-stone-700 bg-stone-50 p-2 rounded-lg italic leading-relaxed font-medium">
+    {a.notes || 'Nessuna nota presente.'}
+  </span>
                                   {a.treatments && a.treatments.length > 0 && (
                                     <div className="mt-2 pt-2 border-t border-stone-100">
                                       <p className="text-[8px] font-bold text-stone-500 uppercase mb-1">
