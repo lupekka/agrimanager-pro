@@ -25,8 +25,4 @@ export const db = initializeFirestore(app, {
 });
 export const auth = getAuth(app);
 
-// Per debug (solo in sviluppo)
-if (import.meta.env?.DEV) {
-  (window as any).db = db;
-  console.log("📦 Firestore disponibile su window.db");
-}
+// DEBUG RIMOSSO - nessun riferimento a import.meta
