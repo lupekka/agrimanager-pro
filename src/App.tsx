@@ -1,9 +1,9 @@
+import React, { useState, useEffect } from 'react';
 import {
   // Navigazione e UI principali
   LayoutDashboard,
   LogOut,
-  Menu,                    // usato nella navbar mobile
-  X,
+  Menu,
   Search,
   Plus,
   Edit2,
@@ -65,9 +65,6 @@ import {
   MinusCircle,
   PlusCircle
 } from 'lucide-react';
-
-// Forza TypeScript a considerare Menu come utilizzato (è usato nella navbar mobile)
-void Menu;
 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
