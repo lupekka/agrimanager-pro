@@ -92,7 +92,7 @@ export const useProducts = () => {
     await addDoc(collection(db, 'stock_logs'), {
       productName: product.name,
       change: -product.quantity,
-      date: new Date().toLocaleString('it-IT'),
+     date: new Date().toISOString(),
       ownerId: user!.uid,
       reason: 'pubblicazione market'
     });
