@@ -1,19 +1,41 @@
 import React, { useState } from 'react';
+import { 
+  LayoutDashboard, PawPrint, Syringe, Baby, Wallet, Package,
+  ListChecks, Network, Stethoscope, Store, ShoppingBag, Bot 
+} from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth } from './services/firebase';
 import { useAuth } from './hooks/useAuth';
-import { LoadingSpinner } from './components/common/LoadingSpinner';
-import { LoginForm } from './components/auth/LoginForm';
-import { Sidebar } from './components/common/Sidebar';
-import { MobileNav } from './components/common/MobileNav';
-import { LayoutDashboard } from 'lucide-react';
+import { useWeather } from './hooks/useWeather';
+import { useNotifications } from './hooks/useNotifications';
+import { useAnimals } from './hooks/useAnimals';
 
-// Dashboard minimale scritta QUI DENTRO (così siamo sicuri)
+// Importa TUTTI i componenti
+import { 
+  Sidebar, 
+  MobileNav, 
+  WeatherWidget,
+  NotificationBell,
+  LoadingSpinner,
+  LoginForm,
+  AnimalList,
+  HealthBook,
+  BirthRegistration,
+  Finance,
+  ProductList,
+  TaskList,
+  DynastyTree,
+  VetAIAnalysis,
+  MarketPlace,
+  AIAssistant
+} from './components';
+
+// Dashboard minimale (funzionante)
 const DashboardMinimal = ({ onTabChange }: { onTabChange: (tab: string) => void }) => {
   return (
     <div className="p-6 bg-white rounded-3xl shadow-sm">
       <h2 className="text-2xl font-black text-emerald-900">Dashboard TEST</h2>
-      <p className="text-stone-600 mt-2">Se vedi questo, funziona!</p>
+      <p className="text-stone-600 mt-2">Versione minimale funzionante</p>
       <button 
         onClick={() => onTabChange('inventory')}
         className="mt-4 bg-emerald-600 text-white px-4 py-2 rounded-xl"
@@ -25,33 +47,173 @@ const DashboardMinimal = ({ onTabChange }: { onTabChange: (tab: string) => void 
 };
 
 export default function App() {
-  const { user, loading, userName } = useAuth();
+  const { user, userRole, userName, loading } = useAuth();
+  const { weather, refreshWeather } = useWeather();
+  const { 
+    oneSignalInitialized, 
+    showNotificationPrompt, 
+    requestPermission,
+    setShowNotificationPrompt 
+  } = useNotifications(user?.uid);
+  const { animals } = useAnimals();
+  
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [showAssistant, setShowAssistant] = useState(false);
+
+  // Calcola trattamenti in scadenza per il badge
+  const expiringCount = animals.reduce((count, animal) => {
+    const expiring = animal.treatments?.filter(t => 
+      t.dataScadenza && !t.completed && 
+      new Date(t.dataScadenza).getTime() - new Date().getTime() <= 7 * 24 * 60 * 60 * 1000
+    ).length || 0;
+    return count + expiring;
+  }, 0);
 
   if (loading) return <LoadingSpinner />;
   if (!user) return <LoginForm />;
 
-  const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard }
-  ];
+  const menuItems = userRole === 'farmer' 
+    ? [
+        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { id: 'inventory', label: 'Capi', icon: PawPrint },
+        { id: 'health', label: 'Libretto Sanitario', icon: Syringe },
+        { id: 'births', label: 'Parti', icon: Baby },
+        { id: 'finance', label: 'Bilancio', icon: Wallet },
+        { id: 'products', label: 'Magazzino', icon: Package },
+        { id: 'tasks', label: 'Agenda', icon: ListChecks },
+        { id: 'dinastia', label: 'Albero Genealogico', icon: Network },
+        { id: 'vet', label: 'Vet IA', icon: Stethoscope },
+        { id: 'market', label: 'Market', icon: Store }
+      ]
+    : [{ id: 'market', label: 'Market', icon: ShoppingBag }];
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] flex flex-col md:flex-row">
+    <div className="min-h-screen bg-[#F8F9FA] flex flex-col md:flex-row relative text-stone-800 font-sans overflow-x-hidden">
+      
       <Sidebar 
         menuItems={menuItems}
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onLogout={() => signOut(auth)}
         userName={userName}
+        expiringCount={expiringCount}
       />
+
       <MobileNav 
         menuItems={menuItems}
         activeTab={activeTab}
         onTabChange={setActiveTab}
       />
-      <main className="flex-1 md:ml-64 p-4">
-        {activeTab === 'dashboard' && (
-          <DashboardMinimal onTabChange={setActiveTab} />
+
+      <main className="flex-1 md:ml-64 p-4 md:p-8 pb-24">
+        
+        {/* Header */}
+        <div className="mb-6 flex justify-between items-center">
+          <h2 className="text-xl font-black text-emerald-900 uppercase italic tracking-tight">
+            {menuItems.find(i => i.id === activeTab)?.label}
+          </h2>
+          
+          <div className="flex items-center gap-2">
+            {!oneSignalInitialized && showNotificationPrompt && (
+              <NotificationBell onRequestPermission={requestPermission} />
+            )}
+            
+            {userRole === 'farmer' && (
+              <button 
+                onClick={() => setShowAssistant(!showAssistant)} 
+                className="bg-blue-600 text-white p-2 rounded-full shadow-md animate-bounce"
+              >
+                <Bot size={20} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Assistente AI */}
+        {showAssistant && (
+          <div className="animate-slide-down">
+            <AIAssistant onClose={() => setShowAssistant(false)} />
+          </div>
+        )}
+
+        {/* Weather widget */}
+        <div className="animate-fade-in">
+          <WeatherWidget 
+            weather={weather} 
+            onRefresh={refreshWeather} 
+            showPrompt={showNotificationPrompt && weather.error ? true : false}
+            onDismissPrompt={() => setShowNotificationPrompt(false)}
+          />
+        </div>
+
+        {/* Dashboard (minimale) */}
+        {activeTab === 'dashboard' && userRole === 'farmer' && (
+          <div className="animate-fade-in">
+            <DashboardMinimal onTabChange={setActiveTab} />
+          </div>
+        )}
+
+        {/* Inventory */}
+        {activeTab === 'inventory' && userRole === 'farmer' && (
+          <div className="animate-fade-in">
+            <AnimalList />
+          </div>
+        )}
+
+        {/* Health */}
+        {activeTab === 'health' && userRole === 'farmer' && (
+          <div className="animate-fade-in">
+            <HealthBook />
+          </div>
+        )}
+
+        {/* Births */}
+        {activeTab === 'births' && userRole === 'farmer' && (
+          <div className="animate-fade-in">
+            <BirthRegistration />
+          </div>
+        )}
+
+        {/* Finance */}
+        {activeTab === 'finance' && userRole === 'farmer' && (
+          <div className="animate-fade-in">
+            <Finance />
+          </div>
+        )}
+
+        {/* Products */}
+        {activeTab === 'products' && userRole === 'farmer' && (
+          <div className="animate-fade-in">
+            <ProductList />
+          </div>
+        )}
+
+        {/* Tasks */}
+        {activeTab === 'tasks' && userRole === 'farmer' && (
+          <div className="animate-fade-in">
+            <TaskList />
+          </div>
+        )}
+
+        {/* Dinastia */}
+        {activeTab === 'dinastia' && userRole === 'farmer' && (
+          <div className="animate-fade-in">
+            <DynastyTree />
+          </div>
+        )}
+
+        {/* Vet IA */}
+        {activeTab === 'vet' && userRole === 'farmer' && (
+          <div className="animate-fade-in">
+            <VetAIAnalysis />
+          </div>
+        )}
+
+        {/* Market */}
+        {activeTab === 'market' && (
+          <div className="animate-fade-in">
+            <MarketPlace userRole={userRole} />
+          </div>
         )}
       </main>
     </div>
