@@ -9,7 +9,7 @@ interface MarketPlaceProps {
 }
 
 export const MarketPlace: React.FC<MarketPlaceProps> = ({ userRole }) => {
-  const { marketItems } = useMarketItems();
+  const { marketItems, loading } = useMarketItems(); // AGGIUNGI loading
 
   return (
     <div className="space-y-10 animate-in slide-in-from-bottom-12 duration-1000">
@@ -27,13 +27,19 @@ export const MarketPlace: React.FC<MarketPlaceProps> = ({ userRole }) => {
       </div>
 
       {/* Griglia prodotti */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {marketItems.map(item => (
-          <MarketItem key={item.id} item={item} />
-        ))}
-      </div>
+      {loading ? (
+        <div className="text-center py-12">
+          <p className="text-stone-500">Caricamento market...</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {marketItems.map(item => (
+            <MarketItem key={item.id} item={item} />
+          ))}
+        </div>
+      )}
 
-      {marketItems.length === 0 && (
+      {!loading && marketItems.length === 0 && (
         <div className="text-center py-12">
           <p className="text-stone-500 italic">Nessun prodotto in vendita al momento</p>
         </div>
