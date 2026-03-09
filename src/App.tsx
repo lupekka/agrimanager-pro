@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import {
   PawPrint, CalendarDays, TrendingUp, Network, Baby, Trash2,
@@ -889,8 +888,8 @@ useEffect(() => {
 
   const handleAICommand = async () => {
     const frasi = aiInput.toLowerCase().split(/ e |,|\./).filter(s => s.trim());
-    let logs: string[] = [];
-    for (let f of frasi) {
+   const logs: string[] = [];
+for (const f of frasi) {
       const num = f.match(/(\d+)/)?.[1];
       if (f.includes('venduto') && num) {
         await addDoc(collection(db, 'transactions'), { desc: `IA: ${f}`, amount: Number(num), type: 'Entrata', species: 'Maiali', date: new Date().toLocaleDateString('it-IT'), ownerId: user!.uid });
@@ -1045,8 +1044,8 @@ useEffect(() => {
       }
     ];
     
-    for (let diag of diagnoses) {
-      for (let keyword of diag.keywords) {
+    for (const diag of diagnoses) {
+  for (const keyword of diag.keywords) {
         if (s.includes(keyword)) {
           return {
             title: diag.name,
@@ -1818,9 +1817,9 @@ useEffect(() => {
                                 </div>
                               ) : (
                                 <>
-                                  <p className="text-[10px] text-stone-700 bg-stone-50 p-2 rounded-lg italic leading-relaxed font-medium">
-                                    "{a.notes || 'Nessuna nota presente.'}"
-                                  </p>
+                                 // ❌<span className="text-[10px] text-stone-700 bg-stone-50 p-2 rounded-lg italic leading-relaxed font-medium">
+  {a.notes || 'Nessuna nota presente.'}
+</span>
                                   {a.treatments && a.treatments.length > 0 && (
                                     <div className="mt-2 pt-2 border-t border-stone-100">
                                       <p className="text-[8px] font-bold text-stone-500 uppercase mb-1">
@@ -2193,7 +2192,7 @@ useEffect(() => {
               <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-center">
                 <AlertTriangle size={16} className="text-amber-600 mx-auto mb-1" />
                 <p className="text-[9px] font-bold text-amber-800">{modelError}</p>
-                <p className="text-[8px] text-amber-600 mt-1">Puoi comunque usare l'analisi basata sui sintomi</p>
+                <p className="text-[8px] text-amber-600 mt-1">Puoi comunque usare la diagnosi basata sui sintomi</p>
               </div>
             )}
 
