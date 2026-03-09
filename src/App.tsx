@@ -18,6 +18,7 @@ import {
   NotificationBell,
   LoadingSpinner,
   LoginForm,
+  Dashboard,
   AnimalList,
   HealthBook,
   BirthRegistration,
@@ -30,24 +31,8 @@ import {
   AIAssistant
 } from './components';
 
-// Dashboard minimale (funzionante)
-const DashboardMinimal = ({ onTabChange }: { onTabChange: (tab: string) => void }) => {
-  return (
-    <div className="p-6 bg-white rounded-3xl shadow-sm">
-      <h2 className="text-2xl font-black text-emerald-900">Dashboard TEST</h2>
-      <p className="text-stone-600 mt-2">Versione minimale funzionante</p>
-      <button 
-        onClick={() => onTabChange('inventory')}
-        className="mt-4 bg-emerald-600 text-white px-4 py-2 rounded-xl"
-      >
-        Vai a Inventory
-      </button>
-    </div>
-  );
-};
-
 export default function App() {
-  const { user, userRole, userName, loading } = useAuth();
+  const { user, userRole, userName, loading, logout } = useAuth();
   const { weather, refreshWeather } = useWeather();
   const { 
     oneSignalInitialized, 
@@ -70,6 +55,7 @@ export default function App() {
   }, 0);
 
   if (loading) return <LoadingSpinner />;
+
   if (!user) return <LoginForm />;
 
   const menuItems = userRole === 'farmer' 
@@ -129,14 +115,14 @@ export default function App() {
           </div>
         </div>
 
-        {/* Assistente AI */}
+        {/* Assistente AI con animazione */}
         {showAssistant && (
           <div className="animate-slide-down">
             <AIAssistant onClose={() => setShowAssistant(false)} />
           </div>
         )}
 
-        {/* Weather widget */}
+        {/* Weather widget con animazione */}
         <div className="animate-fade-in">
           <WeatherWidget 
             weather={weather} 
@@ -146,75 +132,76 @@ export default function App() {
           />
         </div>
 
-        {/* Dashboard (minimale) */}
+        {/* Dashboard con animazione */}
         {activeTab === 'dashboard' && userRole === 'farmer' && (
           <div className="animate-fade-in">
-            <DashboardMinimal onTabChange={setActiveTab} />
+            <Dashboard onTabChange={setActiveTab} />
           </div>
         )}
 
-        {/* Inventory */}
+        {/* Inventory con animazione */}
         {activeTab === 'inventory' && userRole === 'farmer' && (
           <div className="animate-fade-in">
             <AnimalList />
           </div>
         )}
 
-        {/* Health */}
+        {/* Health con animazione */}
         {activeTab === 'health' && userRole === 'farmer' && (
           <div className="animate-fade-in">
             <HealthBook />
           </div>
         )}
 
-        {/* Births */}
+        {/* Births con animazione */}
         {activeTab === 'births' && userRole === 'farmer' && (
           <div className="animate-fade-in">
             <BirthRegistration />
           </div>
         )}
 
-        {/* Finance */}
+        {/* Finance con animazione */}
         {activeTab === 'finance' && userRole === 'farmer' && (
           <div className="animate-fade-in">
             <Finance />
           </div>
         )}
 
-        {/* Products */}
+        {/* Products con animazione */}
         {activeTab === 'products' && userRole === 'farmer' && (
           <div className="animate-fade-in">
             <ProductList />
           </div>
         )}
 
-        {/* Tasks */}
+        {/* Tasks con animazione */}
         {activeTab === 'tasks' && userRole === 'farmer' && (
           <div className="animate-fade-in">
             <TaskList />
           </div>
         )}
 
-        {/* Dinastia */}
+        {/* Dinastia con animazione */}
         {activeTab === 'dinastia' && userRole === 'farmer' && (
           <div className="animate-fade-in">
             <DynastyTree />
           </div>
         )}
 
-        {/* Vet IA */}
+        {/* Vet con animazione */}
         {activeTab === 'vet' && userRole === 'farmer' && (
           <div className="animate-fade-in">
             <VetAIAnalysis />
           </div>
         )}
 
-        {/* Market */}
+        {/* Market con animazione - ECCO IL TUO PEZZO FINALE */}
         {activeTab === 'market' && (
           <div className="animate-fade-in">
             <MarketPlace userRole={userRole} />
           </div>
         )}
+        
       </main>
     </div>
   );
