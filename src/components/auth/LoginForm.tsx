@@ -33,7 +33,6 @@ export const LoginForm: React.FC = () => {
         
         <form onSubmit={handleSubmit} className="space-y-4">
           
-          {/* Sezione registrazione (mostrata solo se isRegistering è true) */}
           {isRegistering && (
             <div className="space-y-3 bg-stone-50 p-4 rounded-2xl border">
               <input 
@@ -71,7 +70,6 @@ export const LoginForm: React.FC = () => {
             </div>
           )}
           
-          {/* Campi comuni */}
           <input 
             type="email" 
             placeholder="Email" 
@@ -90,7 +88,6 @@ export const LoginForm: React.FC = () => {
             required 
           />
           
-          {/* Bottone principale */}
           <button 
             type="submit" 
             className="w-full bg-emerald-700 text-white py-3 rounded-xl font-bold uppercase shadow-lg active:scale-95"
@@ -98,7 +95,6 @@ export const LoginForm: React.FC = () => {
             {isRegistering ? "Crea Account" : "Entra"}
           </button>
           
-          {/* Link per switch login/registrazione */}
           <button 
             type="button" 
             onClick={() => setIsRegistering(!isRegistering)} 
