@@ -115,56 +115,93 @@ export default function App() {
           </div>
         </div>
 
+        {/* Assistente AI con animazione */}
         {showAssistant && (
-          <AIAssistant onClose={() => setShowAssistant(false)} />
+          <div className="animate-slide-down">
+            <AIAssistant onClose={() => setShowAssistant(false)} />
+          </div>
         )}
 
-        <WeatherWidget 
-          weather={weather} 
-          onRefresh={refreshWeather} 
-          showPrompt={showNotificationPrompt && weather.error ? true : false}
-          onDismissPrompt={() => setShowNotificationPrompt(false)}
-        />
+        {/* Weather widget con animazione */}
+        <div className="animate-fade-in">
+          <WeatherWidget 
+            weather={weather} 
+            onRefresh={refreshWeather} 
+            showPrompt={showNotificationPrompt && weather.error ? true : false}
+            onDismissPrompt={() => setShowNotificationPrompt(false)}
+          />
+        </div>
 
+        {/* Dashboard con animazione */}
         {activeTab === 'dashboard' && userRole === 'farmer' && (
-          <Dashboard onTabChange={setActiveTab} />
+          <div className="animate-fade-in">
+            <Dashboard onTabChange={setActiveTab} />
+          </div>
         )}
 
+        {/* Inventory con animazione */}
         {activeTab === 'inventory' && userRole === 'farmer' && (
-          <AnimalList />
+          <div className="animate-fade-in">
+            <AnimalList />
+          </div>
         )}
 
+        {/* Health con animazione */}
         {activeTab === 'health' && userRole === 'farmer' && (
-          <HealthBook />
+          <div className="animate-fade-in">
+            <HealthBook />
+          </div>
         )}
 
+        {/* Births con animazione */}
         {activeTab === 'births' && userRole === 'farmer' && (
-          <BirthRegistration />
+          <div className="animate-fade-in">
+            <BirthRegistration />
+          </div>
         )}
 
+        {/* Finance con animazione */}
         {activeTab === 'finance' && userRole === 'farmer' && (
-          <Finance />
+          <div className="animate-fade-in">
+            <Finance />
+          </div>
         )}
 
+        {/* Products con animazione */}
         {activeTab === 'products' && userRole === 'farmer' && (
-          <ProductList />
+          <div className="animate-fade-in">
+            <ProductList />
+          </div>
         )}
 
+        {/* Tasks con animazione */}
         {activeTab === 'tasks' && userRole === 'farmer' && (
-          <TaskList />
+          <div className="animate-fade-in">
+            <TaskList />
+          </div>
         )}
 
+        {/* Dinastia con animazione */}
         {activeTab === 'dinastia' && userRole === 'farmer' && (
-          <DynastyTree />
+          <div className="animate-fade-in">
+            <DynastyTree />
+          </div>
         )}
 
+        {/* Vet con animazione */}
         {activeTab === 'vet' && userRole === 'farmer' && (
-          <VetAIAnalysis />
+          <div className="animate-fade-in">
+            <VetAIAnalysis />
+          </div>
         )}
 
+        {/* Market con animazione - ECCO IL TUO PEZZO FINALE */}
         {activeTab === 'market' && (
-          <MarketPlace userRole={userRole} />
+          <div className="animate-fade-in">
+            <MarketPlace userRole={userRole} />
+          </div>
         )}
+        
       </main>
     </div>
   );
