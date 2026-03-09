@@ -1,12 +1,12 @@
 import React from 'react';
 import { TreatmentCard } from './TreatmentCard';
-import { Animal, Treatment } from '../../types';
+import { Animal } from '../../types';
 
 interface TreatmentListProps {
   animals: Animal[];
   selectedAnimal: Animal | null;
   onSelectAnimal: (animal: Animal | null) => void;
-  // MODIFICA QUI: aggiungi il terzo parametro
+  // MODIFICATO: ora accetta 3 parametri
   onCompleteTreatment: (animalId: string, treatmentId: string, updates: any) => Promise<void> | void;
   onDeleteTreatment: (animalId: string, treatmentId: string) => Promise<void> | void;
 }
@@ -55,7 +55,7 @@ export const TreatmentList: React.FC<TreatmentListProps> = ({
                 key={treatment.id}
                 treatment={treatment}
                 animalId={selectedAnimal.id}
-                // MODIFICA QUI: passa una funzione che chiama onCompleteTreatment con { completed: true }
+                // MODIFICATO: qui passiamo { completed: true } come terzo parametro
                 onComplete={(animalId, treatmentId) => 
                   onCompleteTreatment(animalId, treatmentId, { completed: true })
                 }
