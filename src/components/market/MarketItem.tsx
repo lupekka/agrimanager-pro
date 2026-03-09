@@ -1,14 +1,48 @@
 import React from 'react';
-import { ShoppingBag, MessageCircle, Mail } from 'lucide-react';
+import { ShoppingBag, MessageCircle, Mail, Trash2 } from 'lucide-react'; // AGGIUNGI Trash2
 import { MarketItem as MarketItemType } from '../../types';
+import { useAuth } from '../../hooks/useAuth'; // AGGIUNGI useAuth
+import { deleteDoc, doc } from 'firebase/firestore'; // AGGIUNGI deleteDoc
+import { db } from '../../services/firebase'; // AGGIUNGI db
 
 interface MarketItemProps {
   item: MarketItemType;
+  onDelete?: () => void; // AGGIUNGI prop opzionale per ricaricare
 }
 
-export const MarketItem: React.FC<MarketItemProps> = ({ item }) => {
+export const MarketItem: React.FC<MarketItemProps> = ({ item, onDelete }) => {
+  const { user } = useAuth(); // CHI è l'utente loggato
+  
+  // Verifica se l'utente loggato è il proprietario dell'annuncio
+  const isOwner = user?.uid === item.ownerId;
+
+  const handleDelete = async () => {
+    if (!confirm("❌ Sei sicuro di voler eliminare questo annuncio?")) return;
+    
+    try {
+      await deleteDoc(doc(db, 'market_items', item.id));
+      alert("Annuncio eliminato!");
+      if (onDelete) onDelete();
+    } catch (error) {
+      console.error("Errore eliminazione:", error);
+      alert("Errore durante l'eliminazione");
+    }
+  };
+
   return (
-    <div className="bg-white rounded-[2.5rem] border-2 border-stone-100 shadow-md overflow-hidden flex flex-col group hover:shadow-2xl hover:translate-y-[-5px] transition-all duration-700">
+    <div className="bg-white rounded-[2.5rem] border-2 border-stone-100 shadow-md overflow-hidden flex flex-col group hover:shadow-2xl hover:translate-y-[-5px] transition-all duration-700 relative">
+      
+      {/* BOTTONE ELIMINA (visibile solo al proprietario) */}
+      {isOwner && (
+        <button
+          onClick={handleDelete}
+          className="absolute top-4 left-4 z-10 bg-white/90 backdrop-blur p-2 rounded-full shadow-md hover:bg-red-50 hover:text-red-600 transition-all"
+          title="Elimina annuncio"
+        >
+          <Trash2 size={18} className="text-red-500" />
+        </button>
+      )}
+      
       <div className="h-44 bg-stone-50 flex items-center justify-center relative overflow-hidden group-hover:bg-amber-50 transition-colors duration-1000">
         <div className="absolute top-4 right-4 bg-white/95 backdrop-blur px-4 py-2 rounded-2xl font-black text-xl text-emerald-600 shadow-lg border-2 border-emerald-50 italic leading-none">
           €{item.price.toFixed(2)}
