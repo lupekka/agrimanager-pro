@@ -1,4 +1,6 @@
 import React from 'react';
+import { signOut } from 'firebase/auth';  // ← AGGIUNTO!
+import { auth } from './services/firebase'; // ← AGGIUNTO!
 import { useAuth } from './hooks/useAuth';
 import { LoadingSpinner } from './components/common/LoadingSpinner';
 import { LoginForm } from './components/auth/LoginForm';
