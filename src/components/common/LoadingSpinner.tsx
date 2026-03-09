@@ -1,11 +1,7 @@
 import React from 'react';
 import { Activity } from 'lucide-react';
 
-interface LoadingSpinnerProps {
-  message?: string;
-}
-
-export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ 
+export const LoadingSpinner: React.FC<{ message?: string }> = ({ 
   message = "Caricamento in corso..." 
 }) => {
   return (
