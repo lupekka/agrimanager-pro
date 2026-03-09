@@ -1,7 +1,11 @@
 import React from 'react';
 
 interface MobileNavProps {
-  menuItems: Array<{ id: string; label: string; icon: React.FC<{ size?: number }> }>;
+  menuItems: Array<{ 
+    id: string; 
+    label: string; 
+    icon: any;  // Cambiato da FC a any
+  }>;
   activeTab: string;
   onTabChange: (tab: string) => void;
 }
