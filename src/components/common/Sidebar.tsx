@@ -1,17 +1,18 @@
 import React from 'react';
 import { LogOut } from 'lucide-react';
 
+// Usa il tipo qualsiasi per l'icona per evitare errori
 interface SidebarProps {
   menuItems: Array<{ 
     id: string; 
     label: string; 
-    icon: React.FC<{ size?: number }> 
+    icon: any;  // Cambiato da FC a any
   }>;
   activeTab: string;
   onTabChange: (tab: string) => void;
   onLogout: () => void;
   userName: string;
-  expiringCount?: number; // opzionale per il badge delle notifiche
+  expiringCount?: number;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
@@ -42,7 +43,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <item.icon size={18} /> 
             <span className="flex-1 text-left">{item.label}</span>
             
-            {/* Badge per il libretto sanitario se ci sono scadenze */}
             {item.id === 'health' && expiringCount > 0 && (
               <span className="bg-red-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center">
                 {expiringCount}
