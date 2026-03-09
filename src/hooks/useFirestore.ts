@@ -1,5 +1,16 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, onSnapshot, addDoc, deleteDoc, doc, updateDoc, QueryConstraint } from 'firebase/firestore';
+import { 
+  collection, 
+  query, 
+  where, 
+  onSnapshot, 
+  addDoc, 
+  deleteDoc, 
+  doc, 
+  updateDoc, 
+  QueryConstraint,
+  DocumentData
+} from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useAuth } from './useAuth';
 
@@ -22,25 +33,34 @@ export const useFirestore = <T extends { id: string }>(
     const q = query(collection(db, collectionName), ...constraints);
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as T));
+      const items = snapshot.docs.map(doc => {
+        const docData = doc.data() as Omit<T, 'id'>;
+        return { id: doc.id, ...docData } as T;
+      });
       setData(items);
       setLoading(false);
     });
 
     return unsubscribe;
-  }, [collectionName, user]);
+  }, [collectionName, user, additionalConstraints]);
 
   const add = async (item: Omit<T, 'id'>) => {
     if (!user) throw new Error("Non autenticato");
-    return addDoc(collection(db, collectionName), { ...item, ownerId: user.uid });
+    const docRef = await addDoc(collection(db, collectionName), { 
+      ...item, 
+      ownerId: user.uid 
+    });
+    return docRef;
   };
 
   const remove = async (id: string) => {
     return deleteDoc(doc(db, collectionName, id));
   };
 
-  const update = async (id: string, updates: Partial<T>) => {
-    return updateDoc(doc(db, collectionName, id), updates);
+  // FIX: Gestiamo il tipo correttamente
+  const update = async (id: string, updates: Partial<Omit<T, 'id'>>) => {
+    const docRef = doc(db, collectionName, id);
+    return updateDoc(docRef, updates as DocumentData);
   };
 
   return { data, loading, add, remove, update };
