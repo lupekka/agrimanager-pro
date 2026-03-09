@@ -1,12 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';  // ← AGGIUNGI useState
 import { signOut } from 'firebase/auth';
 import { auth } from './services/firebase';
 import { useAuth } from './hooks/useAuth';
 import { LoadingSpinner } from './components/common/LoadingSpinner';
 import { LoginForm } from './components/auth/LoginForm';
-import { Sidebar } from './components/common/Sidebar';  // AGGIUNTO
-import { MobileNav } from './components/common/MobileNav';  // AGGIUNTO
-import { LayoutDashboard } from 'lucide-react';  // AGGIUNTO
+import { Sidebar } from './components/common/Sidebar';
+import { MobileNav } from './components/common/MobileNav';
+import { LayoutDashboard } from 'lucide-react';
 
 export default function App() {
   console.log("🚀 App renderizzata");
