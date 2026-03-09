@@ -60,13 +60,13 @@ export const useProducts = () => {
   const modifyProduct = async (product: Product, amount: number, isAddition: boolean) => {
     const newQty = isAddition ? product.quantity + amount : Math.max(0, product.quantity - amount);
     await updateDoc(doc(db, 'products', product.id), { quantity: newQty });
-    await addDoc(collection(db, 'stock_logs'), { 
-      productName: product.name, 
-      change: isAddition ? amount : -amount, 
-      date: new Date().toLocaleString('it-IT'), 
-      ownerId: user!.uid,
-      reason: 'modifica scorta'
-    });
+   await addDoc(collection(db, 'stock_logs'), { 
+  productName: product.name, 
+  change: isAddition ? amount : -amount, 
+  date: new Date().toISOString(),  // ← CAMBIA QUI
+  ownerId: user!.uid,
+  reason: 'modifica scorta'
+});
   };
 
   const deleteProduct = async (id: string) => {
