@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, PawPrint, Syringe, Baby, Wallet, Package,
   ListChecks, Network, Stethoscope, Store, ShoppingBag, Bot 
@@ -32,21 +32,52 @@ import {
 } from './components';
 
 export default function App() {
-  const { user, userRole, userName, loading, logout } = useAuth();
+  console.log("🚀 App montata");
+  
+  // AUTH (sempre sicuro)
+  const { user, userRole, userName, loading } = useAuth();
+  console.log("Auth state:", { user, userRole, userName, loading });
+  
+  // WEATHER (sicuro)
   const { weather, refreshWeather } = useWeather();
+  
+  // NOTIFICHE (sicuro)
   const { 
     oneSignalInitialized, 
     showNotificationPrompt, 
     requestPermission,
     setShowNotificationPrompt 
   } = useNotifications(user?.uid);
-  const { animals } = useAnimals();
-  
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [showAssistant, setShowAssistant] = useState(false);
 
-  // Calcola trattamenti in scadenza per il badge
-  const expiringCount = animals.reduce((count, animal) => {
+  // ⚠️ PARTE CRITICA: GESTIONE ANIMALS CON TRY/CATCH
+  const [animals, setAnimals] = useState([]);
+  const [animalsError, setAnimalsError] = useState(null);
+  const [animalsLoading, setAnimalsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadAnimals() {
+      try {
+        console.log("🦊 Provo a caricare useAnimals...");
+        const result = useAnimals();
+        console.log("🦊 useAnimals eseguito:", result);
+        
+        setAnimals(result.animals || []);
+        setAnimalsLoading(result.loading);
+        setAnimalsError(null);
+      } catch (error) {
+        console.error("🔥 ERRORE GRAVE in useAnimals:", error);
+        setAnimalsError(error.message || "Errore sconosciuto");
+        setAnimalsLoading(false);
+      }
+    }
+    
+    if (user) {
+      loadAnimals();
+    }
+  }, [user]);
+
+  // Calcola trattamenti in scadenza per il badge (usando animals)
+  const expiringCount = (animals || []).reduce((count, animal) => {
     const expiring = animal.treatments?.filter(t => 
       t.dataScadenza && !t.completed && 
       new Date(t.dataScadenza).getTime() - new Date().getTime() <= 7 * 24 * 60 * 60 * 1000
@@ -54,7 +85,64 @@ export default function App() {
     return count + expiring;
   }, 0);
 
-  if (loading) return <LoadingSpinner />;
+  // MOSTRA ERRORI SE PRESENTI
+  if (animalsError) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: '#fee',
+        padding: '20px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontFamily: 'system-ui'
+      }}>
+        <div style={{
+          background: 'white',
+          padding: '30px',
+          borderRadius: '20px',
+          maxWidth: '500px',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+        }}>
+          <h1 style={{ color: '#dc2626', marginBottom: '20px' }}>
+            ❌ Errore nel caricamento
+          </h1>
+          <p style={{ marginBottom: '15px', color: '#333' }}>
+            Si è verificato un errore durante il caricamento dei dati:
+          </p>
+          <pre style={{
+            background: '#f3f4f6',
+            padding: '15px',
+            borderRadius: '10px',
+            overflow: 'auto',
+            fontSize: '12px',
+            color: '#dc2626'
+          }}>
+            {animalsError}
+          </pre>
+          <button
+            onClick={() => window.location.reload()}
+            style={{
+              background: '#059669',
+              color: 'white',
+              border: 'none',
+              padding: '12px 24px',
+              borderRadius: '10px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              marginTop: '20px',
+              cursor: 'pointer'
+            }}
+          >
+            Ricarica pagina
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading || animalsLoading) return <LoadingSpinner />;
 
   if (!user) return <LoginForm />;
 
@@ -93,7 +181,6 @@ export default function App() {
 
       <main className="flex-1 md:ml-64 p-4 md:p-8 pb-24">
         
-        {/* Header */}
         <div className="mb-6 flex justify-between items-center">
           <h2 className="text-xl font-black text-emerald-900 uppercase italic tracking-tight">
             {menuItems.find(i => i.id === activeTab)?.label}
@@ -115,14 +202,12 @@ export default function App() {
           </div>
         </div>
 
-        {/* Assistente AI con animazione */}
         {showAssistant && (
           <div className="animate-slide-down">
             <AIAssistant onClose={() => setShowAssistant(false)} />
           </div>
         )}
 
-        {/* Weather widget con animazione */}
         <div className="animate-fade-in">
           <WeatherWidget 
             weather={weather} 
@@ -132,76 +217,65 @@ export default function App() {
           />
         </div>
 
-        {/* Dashboard con animazione */}
         {activeTab === 'dashboard' && userRole === 'farmer' && (
           <div className="animate-fade-in">
             <Dashboard onTabChange={setActiveTab} />
           </div>
         )}
 
-        {/* Inventory con animazione */}
         {activeTab === 'inventory' && userRole === 'farmer' && (
           <div className="animate-fade-in">
             <AnimalList />
           </div>
         )}
 
-        {/* Health con animazione */}
         {activeTab === 'health' && userRole === 'farmer' && (
           <div className="animate-fade-in">
             <HealthBook />
           </div>
         )}
 
-        {/* Births con animazione */}
         {activeTab === 'births' && userRole === 'farmer' && (
           <div className="animate-fade-in">
             <BirthRegistration />
           </div>
         )}
 
-        {/* Finance con animazione */}
         {activeTab === 'finance' && userRole === 'farmer' && (
           <div className="animate-fade-in">
             <Finance />
           </div>
         )}
 
-        {/* Products con animazione */}
         {activeTab === 'products' && userRole === 'farmer' && (
           <div className="animate-fade-in">
             <ProductList />
           </div>
         )}
 
-        {/* Tasks con animazione */}
         {activeTab === 'tasks' && userRole === 'farmer' && (
           <div className="animate-fade-in">
             <TaskList />
           </div>
         )}
 
-        {/* Dinastia con animazione */}
         {activeTab === 'dinastia' && userRole === 'farmer' && (
           <div className="animate-fade-in">
             <DynastyTree />
           </div>
         )}
 
-        {/* Vet con animazione */}
         {activeTab === 'vet' && userRole === 'farmer' && (
           <div className="animate-fade-in">
             <VetAIAnalysis />
           </div>
         )}
 
-        {/* Market con animazione - ECCO IL TUO PEZZO FINALE */}
         {activeTab === 'market' && (
           <div className="animate-fade-in">
             <MarketPlace userRole={userRole} />
           </div>
         )}
-        
       </main>
     </div>
   );
