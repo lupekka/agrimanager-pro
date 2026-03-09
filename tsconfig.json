@@ -1,54 +1,14 @@
 {
-  "include": [
-    "./src/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "build",
-    "**/*.test.ts",
-    "**/*.spec.ts"
-  ],
-  "compilerOptions": {
-    // Base
-    "target": "ES2022",
-    "module": "ESNext",
-    "lib": ["DOM", "DOM.Iterable", "ES2022"],
-    "jsx": "react-jsx",
-    
-    // Rigore
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
-    "noImplicitReturns": true,
-    
-    // Moduli
-    "moduleResolution": "node",
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "resolveJsonModule": true,
-    
-    // Build
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "allowJs": true,
-    "checkJs": false,
-    
-    // Output
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "sourceMap": true,
-    "removeComments": true,
-    
-    // Avanzato
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "isolatedModules": true
-  },
-  "ts-node": {
+    "include": [
+        "./src/**/*"
+    ],
     "compilerOptions": {
-      "module": "CommonJS"
+        "strict": true,
+        "esModuleInterop": true,
+        "lib": [
+            "dom",
+            "es2015"
+        ],
+        "jsx": "react-jsx"
     }
-  }
 }
