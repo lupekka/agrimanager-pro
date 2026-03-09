@@ -6,8 +6,9 @@ interface TreatmentListProps {
   animals: Animal[];
   selectedAnimal: Animal | null;
   onSelectAnimal: (animal: Animal | null) => void;
-  onCompleteTreatment: (animalId: string, treatmentId: string) => void;
-  onDeleteTreatment: (animalId: string, treatmentId: string) => void;
+  // MODIFICA QUI: aggiungi il terzo parametro
+  onCompleteTreatment: (animalId: string, treatmentId: string, updates: any) => Promise<void> | void;
+  onDeleteTreatment: (animalId: string, treatmentId: string) => Promise<void> | void;
 }
 
 export const TreatmentList: React.FC<TreatmentListProps> = ({
@@ -54,7 +55,10 @@ export const TreatmentList: React.FC<TreatmentListProps> = ({
                 key={treatment.id}
                 treatment={treatment}
                 animalId={selectedAnimal.id}
-                onComplete={onCompleteTreatment}
+                // MODIFICA QUI: passa una funzione che chiama onCompleteTreatment con { completed: true }
+                onComplete={(animalId, treatmentId) => 
+                  onCompleteTreatment(animalId, treatmentId, { completed: true })
+                }
                 onDelete={onDeleteTreatment}
               />
             ))}
