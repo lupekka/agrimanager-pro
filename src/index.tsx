@@ -3,6 +3,17 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './styles.css';
 
+// ✅ REGISTRAZIONE SERVICE WORKER (aggiunta qui)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js').then(registration => {
+      console.log('✅ Service Worker registrato:', registration);
+    }).catch(error => {
+      console.log('❌ Service Worker registration failed:', error);
+    });
+  });
+}
+
 // Versione 10/10 - Robusta e professionale
 const renderApp = () => {
   const rootElement = document.getElementById('root');
