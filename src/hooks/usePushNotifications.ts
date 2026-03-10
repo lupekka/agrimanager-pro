@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
 // 🔑 LA TUA PUBLIC KEY (quella che hai generato)
-const VAPID_PUBLIC_KEY = 'BJyj-VDCNxAK-jSU6ft3wsWdB2yYN_fpclJFxyG2LIDkvlefSaUXljVKGEHlPDRDEZwxYHiHVyB7tHNYfDvovEY';
-
+const VAPID_PUBLIC_KEY = 'BB_A4oE_cFxpLF5uoLDfmvbO0cgHq03ccgO7u5mQEI7RjGtl307NSI-pR6aPgR5YrD7I5JNcO_tUGhEZII-THIWI';
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
