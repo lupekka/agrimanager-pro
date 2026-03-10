@@ -13,7 +13,7 @@ export const StockLogs: React.FC<StockLogsProps> = ({ logs }) => {
         <History size={14} className="text-emerald-600" /> Cronologia Movimenti
       </h3>
       <div className="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar">
-        {logs.map(log => (
+       {(logs || []).map(log => (
           <div key={log.id} className="flex justify-between items-center text-[10px] p-2 bg-stone-50 rounded-xl border border-stone-100">
             <div className="flex-1">
               <span className="font-black text-stone-800 uppercase italic">{log.productName}</span>
