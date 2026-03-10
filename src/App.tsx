@@ -100,9 +100,9 @@ export default function App() {
           </h2>
           
           <div className="flex items-center gap-2">
-            {!oneSignalInitialized && showNotificationPrompt && (
-              <NotificationBell onRequestPermission={requestPermission} />
-            )}
+           {!oneSignalInitialized && showNotificationPrompt && (
+  <NotificationBell />
+)}
             
             {userRole === 'farmer' && (
               <button 
