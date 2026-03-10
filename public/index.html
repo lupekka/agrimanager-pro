@@ -17,28 +17,6 @@
     
     <title>AgriManage Pro</title>
     
-    <!-- ONESIGNAL - VERSIONE DEFINITIVA CON NOME RINOMINATO -->
-    <script>
-      (function() {
-        var script = document.createElement('script');
-        script.src = 'https://onesignal-proxy.lucapezza1.workers.dev/TwoSignalSDK.page.js';
-        script.async = false;
-        script.onload = function() {
-          console.log('✅ OneSignal caricato via proxy (nome rinominato)');
-          window.OneSignalDeferred = window.OneSignalDeferred || [];
-          window.OneSignalDeferred.push(function(OneSignal) {
-            OneSignal.init({
-              appId: "feed9c1e-90cc-468f-a2b5-2dad2c0350ac",
-              safari_web_id: "web.onesignal.auto.3cd6b41f-0715-4da8-9807-02ca4af2dc44",
-              notifyButton: { enable: true },
-              serviceWorkerPath: "TwoSignalSDKWorker.js"
-            });
-          });
-        };
-        document.head.appendChild(script);
-      })();
-    </script>
-    
     <!-- FONT OTTIMIZZATI -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
