@@ -1,29 +1,50 @@
 import React from 'react';
-import { Bell } from 'lucide-react';
+import { Bell, BellOff } from 'lucide-react';
+import { usePushNotifications } from '../../hooks/usePushNotifications';
 
-interface NotificationBellProps {
-  onRequestPermission: () => void;
-}
+export const NotificationBell: React.FC = () => {
+  const { isSupported, permission, requestPermission } = usePushNotifications();
 
-export const NotificationBell: React.FC<NotificationBellProps> = ({ onRequestPermission }) => {
-  const handleClick = () => {
-    if (window.confirm(
-      "🔔 AgriManager Pro vuole inviarti notifiche per:\n\n" +
-      "• Avvisarti quando un trattamento sta per scadere\n" +
-      "• Ricordarti i richiami vaccinali\n" +
-      "• Segnalarti scadenze importanti\n\n" +
-      "Le notifiche arrivano anche quando l'app è chiusa.\n\n" +
-      "Vuoi attivarle?"
-    )) {
-      onRequestPermission();
-    }
-  };
+  if (!isSupported) {
+    return (
+      <div className="relative group">
+        <div className="bg-stone-300 text-white p-2 rounded-full shadow-md cursor-not-allowed opacity-50">
+          <BellOff size={20} />
+        </div>
+        <div className="absolute bottom-full right-0 mb-2 w-48 bg-stone-800 text-white text-[10px] p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+          Browser non supportato
+        </div>
+      </div>
+    );
+  }
 
+  if (permission === 'denied') {
+    return (
+      <div className="relative group">
+        <div className="bg-red-500 text-white p-2 rounded-full shadow-md opacity-50">
+          <BellOff size={20} />
+        </div>
+        <div className="absolute bottom-full right-0 mb-2 w-48 bg-stone-800 text-white text-[10px] p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+          Notifiche bloccate
+        </div>
+      </div>
+    );
+  }
+
+  if (permission === 'granted') {
+    return (
+      <div className="bg-emerald-500 text-white p-2 rounded-full shadow-md">
+        <Bell size={20} />
+      </div>
+    );
+  }
+
+  // default - non richiesto ancora
   return (
     <div className="relative">
-      <button 
-        onClick={handleClick}
-        className="bg-amber-500 text-white p-2 rounded-full shadow-md animate-pulse hover:bg-amber-600 transition-colors"
+      <button
+        onClick={requestPermission}
+        className="bg-amber-500 text-white p-2 rounded-full shadow-md hover:bg-amber-600 transition-colors animate-pulse"
         title="Attiva notifiche per ricevere promemoria"
       >
         <Bell size={20} />
