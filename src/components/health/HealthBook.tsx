@@ -107,12 +107,14 @@ export const HealthBook: React.FC = () => {
         />
       )}
 
-      {/* Lista trattamenti */}
+           {/* Lista trattamenti */}
       <TreatmentList
         animals={animals}
         selectedAnimal={selectedAnimal}
         onSelectAnimal={setSelectedAnimal}
-        onCompleteTreatment={updateTreatment}
+        onCompleteTreatment={(animalId, treatmentId) => 
+          updateTreatment(animalId, treatmentId, { completed: true })
+        }
         onDeleteTreatment={deleteTreatment}
       />
     </div>
