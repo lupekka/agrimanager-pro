@@ -4,19 +4,24 @@ import { Animal, ExpiringTreatment } from '../types';
 declare global {
   interface Window {
     OneSignal?: any;
+    _oneSignalInitialized?: boolean;
   }
 }
 
 export const useNotifications = (userId?: string) => {
   const [oneSignalInitialized, setOneSignalInitialized] = useState(false);
-  const [oneSignalId, setOneSignalId] = useState<string | null>(null);
-  const [notificationPermission, setNotificationPermission] = useState(false);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(true);
+  const [notificationPermission, setNotificationPermission] = useState(false);
 
-  // Inizializza OneSignal
+  // Inizializza OneSignal (una sola volta)
   useEffect(() => {
-    const initializeOneSignal = () => {
-      if (window.OneSignal && !oneSignalInitialized) {
+    // Evita inizializzazioni multiple
+    if (typeof window === 'undefined' || window._oneSignalInitialized) return;
+
+    const initOneSignal = () => {
+      if (!window.OneSignal || window._oneSignalInitialized) return;
+
+      window.OneSignal.push(() => {
         window.OneSignal.init({
           appId: "feed9c1e-90cc-468f-a2b5-2dad2c0350ac",
           safari_web_id: "web.onesignal.auto.3cd6b41f-0715-4da8-9807-02ca4af2dc44",
@@ -36,27 +41,43 @@ export const useNotifications = (userId?: string) => {
           autoResubscribe: true,
           allowLocalhostAsSecureOrigin: true
         });
+
+        window._oneSignalInitialized = true;
+        setOneSignalInitialized(true);
         
-        window.OneSignal.getUserId().then((id: string) => {
-          if (id) {
-            setOneSignalId(id);
-            setOneSignalInitialized(true);
-            setNotificationPermission(true);
-            setShowNotificationPrompt(false);
-            
-            if (userId) {
-              window.OneSignal.setExternalUserId(userId);
-            }
-          }
-        });
-      }
+        // Verifica se le notifiche sono già permesse
+        if (Notification.permission === 'granted') {
+          setNotificationPermission(true);
+          setShowNotificationPrompt(false);
+        }
+
+        // Collega l'utente se fornito
+        if (userId) {
+          window.OneSignal.setExternalUserId(userId);
+        }
+      });
     };
 
-    initializeOneSignal();
-    
-    const timer = setTimeout(initializeOneSignal, 2000);
+    // Carica lo script se non esiste
+    if (!window.OneSignal) {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js';
+      script.async = true;
+      script.onload = initOneSignal;
+      document.head.appendChild(script);
+    } else {
+      initOneSignal();
+    }
+
+    // Timeout di sicurezza
+    const timer = setTimeout(() => {
+      if (!window._oneSignalInitialized) {
+        console.log('⚠️ OneSignal non caricato dopo timeout');
+      }
+    }, 5000);
+
     return () => clearTimeout(timer);
-  }, [oneSignalInitialized, userId]);
+  }, [userId]);
 
   // Richiedi permesso
   const requestPermission = useCallback(() => {
@@ -64,23 +85,31 @@ export const useNotifications = (userId?: string) => {
       alert("OneSignal non è ancora caricato. Riprova tra qualche secondo.");
       return;
     }
-    window.OneSignal.showSlidedownPrompt();
-    setShowNotificationPrompt(false);
+
+    window.OneSignal.push(() => {
+      window.OneSignal.showSlidedownPrompt().then(() => {
+        setNotificationPermission(true);
+        setShowNotificationPrompt(false);
+      });
+    });
   }, []);
 
   // Invia notifica
   const sendNotification = useCallback((title: string, message: string, data?: any) => {
-    if (!window.OneSignal || !oneSignalId) return;
+    if (!window.OneSignal) return;
     
-    window.OneSignal.sendTag("lastNotification", new Date().toDateString());
+    window.OneSignal.push(() => {
+      window.OneSignal.sendTag("lastNotification", new Date().toDateString());
+    });
     
+    // Notifica nativa come fallback
     if (Notification.permission === 'granted') {
       new Notification(title, { 
         body: message,
         icon: '/icon-192.png'
       });
     }
-  }, [oneSignalId]);
+  }, []);
 
   // Controlla trattamenti in scadenza
   const checkExpiringTreatments = useCallback((animals: Animal[]): ExpiringTreatment[] => {
@@ -88,7 +117,6 @@ export const useNotifications = (userId?: string) => {
     today.setHours(0, 0, 0, 0);
     
     const expiring: ExpiringTreatment[] = [];
-    const notificationsToSend: { title: string; message: string; data: any }[] = [];
     
     animals.forEach(animal => {
       animal.treatments?.forEach(treatment => {
@@ -112,41 +140,15 @@ export const useNotifications = (userId?: string) => {
               isExpired
             });
           }
-          
-          // Invia notifiche se necessario
-          if (oneSignalInitialized && treatment.dataScadenza && !treatment.completed && !isExpired && diffDays <= 7 && diffDays >= 0) {
-            const notificationKey = `${animal.id}_${treatment.id}_${diffDays}`;
-            const sentNotifications = JSON.parse(localStorage.getItem('sentNotifications') || '[]');
-            
-            if (!sentNotifications.includes(notificationKey)) {
-              notificationsToSend.push({
-                title: `📅 Promemoria: ${treatment.tipo} per ${animal.codice}`,
-                message: `Scadenza tra ${diffDays} giorno${diffDays === 1 ? '' : 'i'}`,
-                data: {
-                  animalId: animal.id,
-                  treatmentId: treatment.id,
-                  daysLeft: diffDays
-                }
-              });
-              
-              sentNotifications.push(notificationKey);
-              localStorage.setItem('sentNotifications', JSON.stringify(sentNotifications));
-            }
-          }
         }
       });
     });
     
-    notificationsToSend.forEach(notif => {
-      sendNotification(notif.title, notif.message, notif.data);
-    });
-    
     return expiring;
-  }, [oneSignalInitialized, sendNotification]);
+  }, []);
 
   return {
     oneSignalInitialized,
-    oneSignalId,
     notificationPermission,
     showNotificationPrompt,
     requestPermission,
