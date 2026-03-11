@@ -10,7 +10,6 @@ import { speciesList } from '../../utils/constants';
 export const AnimalList: React.FC = () => {
   console.log("🐶 1. AnimalList montato");
   
-  // ✅ 1. PRIMA TUTTI GLI HOOK (sempre, senza condizioni)
   const { animals, loading, error, addAnimal, updateAnimal, deleteAnimal } = useAnimals();
   const [expandedSpecies, setExpandedSpecies] = useState<Species[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -19,7 +18,6 @@ export const AnimalList: React.FC = () => {
   console.log("🐶 3. animals è array?", Array.isArray(animals));
   console.log("🐶 4. lunghezza animals:", animals?.length);
   
-  // ✅ 2. DOPO tutti gli hook, possiamo fare i return condizionali
   if (error) {
     console.error("🐶 ERRORE:", error);
     return (
@@ -48,17 +46,6 @@ export const AnimalList: React.FC = () => {
     );
   }
   
-  if (animals.length === 0) {
-    return (
-      <div className="p-8 text-center text-stone-500">
-        <p className="text-lg">🐷 Nessun animale presente</p>
-        <p className="text-sm mt-2">Aggiungi il primo capo dal form sopra</p>
-      </div>
-    );
-  }
-
-  console.log("🐶 5. Primo animale:", animals[0]);
-  
   const filteredAnimals = animals.filter(animal => 
     animal.codice.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (animal.nome && animal.nome.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -74,6 +61,7 @@ export const AnimalList: React.FC = () => {
     updateAnimal(id, { notes });
   };
 
+  // ✅ IL FORM È SEMPRE VISIBILE, IN QUALSIASI CASO
   return (
     <div className="space-y-6">
       <AnimalForm onSave={addAnimal} existingCodici={animals.map(a => a.codice)} />
@@ -83,49 +71,56 @@ export const AnimalList: React.FC = () => {
         resultsCount={searchTerm ? filteredAnimals.length : undefined}
       />
       
-      <div className="space-y-3">
-        {speciesList.map(specie => {
-          const capi = filteredAnimals.filter(a => a.species === specie);
-          if (capi.length === 0) return null;
-          const isExpanded = expandedSpecies.includes(specie);
-          
-          return (
-            <div key={specie} className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-sm">
-              <div 
-                onClick={() => toggleSpecies(specie)} 
-                className="flex items-center justify-between p-4 cursor-pointer hover:bg-stone-50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  {isExpanded ? (
-                    <ChevronDown size={20} className="text-emerald-600" />
-                  ) : (
-                    <ChevronRight size={20} className="text-stone-400" />
-                  )}
-                  <h4 className="text-sm font-black text-emerald-800 uppercase">{specie}</h4>
-                </div>
-                <span className="text-xs font-bold text-stone-700 bg-stone-100 px-3 py-1 rounded-full">
-                  {capi.length} {capi.length === 1 ? 'capo' : 'capi'}
-                </span>
-              </div>
-              
-              {isExpanded && (
-                <div className="p-4 border-t border-stone-100 bg-stone-50/50">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {capi.map(animal => (
-                      <AnimalCard 
-                        key={animal.id} 
-                        animal={animal}
-                        onDelete={deleteAnimal}
-                        onUpdateNotes={handleUpdateNotes}
-                      />
-                    ))}
+      {animals.length === 0 ? (
+        <div className="p-8 text-center text-stone-500 bg-white rounded-2xl border border-stone-200">
+          <p className="text-lg">🐷 Nessun animale presente</p>
+          <p className="text-sm mt-2">Aggiungi il primo capo dal form sopra</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {speciesList.map(specie => {
+            const capi = filteredAnimals.filter(a => a.species === specie);
+            if (capi.length === 0) return null;
+            const isExpanded = expandedSpecies.includes(specie);
+            
+            return (
+              <div key={specie} className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-sm">
+                <div 
+                  onClick={() => toggleSpecies(specie)} 
+                  className="flex items-center justify-between p-4 cursor-pointer hover:bg-stone-50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    {isExpanded ? (
+                      <ChevronDown size={20} className="text-emerald-600" />
+                    ) : (
+                      <ChevronRight size={20} className="text-stone-400" />
+                    )}
+                    <h4 className="text-sm font-black text-emerald-800 uppercase">{specie}</h4>
                   </div>
+                  <span className="text-xs font-bold text-stone-700 bg-stone-100 px-3 py-1 rounded-full">
+                    {capi.length} {capi.length === 1 ? 'capo' : 'capi'}
+                  </span>
                 </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+                
+                {isExpanded && (
+                  <div className="p-4 border-t border-stone-100 bg-stone-50/50">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {capi.map(animal => (
+                        <AnimalCard 
+                          key={animal.id} 
+                          animal={animal}
+                          onDelete={deleteAnimal}
+                          onUpdateNotes={handleUpdateNotes}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };
