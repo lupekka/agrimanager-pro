@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, PawPrint, Syringe, Baby, Wallet, Package,
   ListChecks, Network, Stethoscope, Store, ShoppingBag, Bot 
@@ -31,6 +31,9 @@ import {
   AIAssistant
 } from './components';
 
+// Importa il tutorial
+import { SimpleTutorial } from './components/onboarding/SimpleTutorial';
+
 export default function App() {
   const { user, userRole, userName, loading, logout } = useAuth();
   const { weather, refreshWeather } = useWeather();
@@ -44,6 +47,29 @@ export default function App() {
   
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showAssistant, setShowAssistant] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false); // ← NUOVO
+
+  // 🔥 LOGICA TUTORIAL - MOSTRA SOLO AI NUOVI UTENTI
+  useEffect(() => {
+    // Controlla se il tutorial è già stato visto
+    const tutorialVisto = localStorage.getItem('tutorialCompletato');
+    
+    // Se è un utente loggato E non ha mai visto il tutorial
+    if (user && !tutorialVisto) {
+      // Aspetta un attimo che l'app sia caricata (evita sovrapposizioni)
+      const timer = setTimeout(() => {
+        setShowTutorial(true);
+      }, 800);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [user]);
+
+  // Funzione per completare il tutorial
+  const handleTutorialComplete = () => {
+    setShowTutorial(false);
+    localStorage.setItem('tutorialCompletato', 'true');
+  };
 
   // Calcola trattamenti in scadenza per il badge
   const expiringCount = animals.reduce((count, animal) => {
@@ -90,7 +116,8 @@ export default function App() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
       />
-<main className="flex-1 md:ml-64 p-4 md:p-8 pb-24 pt-safe pb-safe">
+      
+      <main className="flex-1 md:ml-64 p-4 md:p-8 pb-24 pt-safe pb-safe">
         
         {/* Header */}
         <div className="mb-6 flex justify-between items-center">
@@ -100,8 +127,8 @@ export default function App() {
           
           <div className="flex items-center gap-2">
            {!oneSignalInitialized && showNotificationPrompt && (
-  <NotificationBell />
-)}
+             <NotificationBell />
+           )}
             
             {userRole === 'farmer' && (
               <button 
@@ -194,7 +221,7 @@ export default function App() {
           </div>
         )}
 
-        {/* Market con animazione - ECCO IL TUO PEZZO FINALE */}
+        {/* Market con animazione */}
         {activeTab === 'market' && (
           <div className="animate-fade-in">
             <MarketPlace userRole={userRole} />
@@ -202,6 +229,14 @@ export default function App() {
         )}
         
       </main>
+
+      {/* 🔥 TUTORIAL - appare solo se showTutorial è true */}
+      {showTutorial && (
+        <SimpleTutorial 
+          onComplete={handleTutorialComplete} 
+          userName={userName} 
+        />
+      )}
     </div>
   );
 }
