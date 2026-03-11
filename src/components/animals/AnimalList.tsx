@@ -8,13 +8,62 @@ import { Species } from '../../types';
 import { speciesList } from '../../utils/constants';
 
 export const AnimalList: React.FC = () => {
-  const { animals, addAnimal, deleteAnimal, updateAnimal } = useAnimals();
+  console.log("🐶 1. AnimalList montato");
+  
+  const { animals, loading, error } = useAnimals();
+  
+  console.log("🐶 2. useAnimals restituito:", { animals, loading, error });
+  console.log("🐶 3. animals è array?", Array.isArray(animals));
+  console.log("🐶 4. lunghezza animals:", animals?.length);
+  
+  // Se c'è errore, mostralo
+  if (error) {
+    console.error("🐶 ERRORE:", error);
+    return (
+      <div className="bg-red-50 p-6 rounded-2xl border border-red-200">
+        <h3 className="text-red-600 font-black text-lg">❌ Errore</h3>
+        <p className="text-sm text-stone-700 mt-2">{error}</p>
+      </div>
+    );
+  }
+  
+  if (loading) {
+    return (
+      <div className="p-8 text-center text-stone-500">
+        <p className="text-lg">⏳ Caricamento animali...</p>
+      </div>
+    );
+  }
+  
+  // Se animals non è array
+  if (!Array.isArray(animals)) {
+    console.error("🐶 animals NON è un array!", animals);
+    return (
+      <div className="bg-red-50 p-6 rounded-2xl border border-red-200">
+        <h3 className="text-red-600 font-black text-lg">❌ Errore formato dati</h3>
+        <p className="text-sm text-stone-700 mt-2">I dati ricevuti non sono un array</p>
+      </div>
+    );
+  }
+  
+  // Se array vuoto
+  if (animals.length === 0) {
+    return (
+      <div className="p-8 text-center text-stone-500">
+        <p className="text-lg">🐷 Nessun animale presente</p>
+        <p className="text-sm mt-2">Aggiungi il primo capo dal form sopra</p>
+      </div>
+    );
+  }
+
+  console.log("🐶 5. Primo animale:", animals[0]);
+  
   const [expandedSpecies, setExpandedSpecies] = useState<Species[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredAnimals = animals.filter(animal => 
     animal.codice.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    animal.nome?.toLowerCase().includes(searchTerm.toLowerCase())
+    (animal.nome && animal.nome.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const toggleSpecies = (species: Species) => {
