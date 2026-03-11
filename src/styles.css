@@ -230,3 +230,90 @@
     @apply bg-stone-900 text-stone-100;
   }
 }
+
+/* ========== TUTORIAL ONBOARDING ========== */
+@keyframes tutorialPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+.tutorial-pulse {
+  animation: tutorialPulse 2s infinite;
+}
+
+.tutorial-highlight {
+  position: relative;
+  z-index: 10000;
+  box-shadow: 0 0 0 4px #059669, 0 0 0 8px rgba(5, 150, 105, 0.3);
+  border-radius: 12px;
+  transition: box-shadow 0.2s;
+}
+
+.tutorial-bullet {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  font-size: 1rem;
+}
+
+.tutorial-bullet-dot {
+  color: #059669;
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+.tutorial-progress {
+  height: 0.5rem;
+  background-color: #e5e5e5;
+  border-top-left-radius: 1.5rem;
+  border-top-right-radius: 1.5rem;
+  overflow: hidden;
+}
+
+.tutorial-progress-bar {
+  height: 100%;
+  background-color: #059669;
+  transition: width 0.3s;
+}
+
+.tutorial-button {
+  flex: 1;
+  padding: 1rem 0;
+  border-radius: 0.75rem;
+  font-weight: 900;
+  font-size: 1.125rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+}
+
+.tutorial-button-primary {
+  background-color: #059669;
+  color: white;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.tutorial-button-primary:hover {
+  background-color: #047857;
+}
+
+.tutorial-button-secondary {
+  background-color: #e5e5e5;
+  color: #1c1917;
+}
+
+.tutorial-button-secondary:hover {
+  background-color: #d4d4d4;
+}
+
+.tutorial-card {
+  background-color: white;
+  border-radius: 1.5rem;
+  max-width: 32rem;
+  width: 100%;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  border: 4px solid #059669;
+  position: relative;
+}
