@@ -10,13 +10,16 @@ import { speciesList } from '../../utils/constants';
 export const AnimalList: React.FC = () => {
   console.log("🐶 1. AnimalList montato");
   
-  // ✅ Prendiamo TUTTO quello che serve
+  // ✅ 1. PRIMA TUTTI GLI HOOK (sempre, senza condizioni)
   const { animals, loading, error, addAnimal, updateAnimal, deleteAnimal } = useAnimals();
+  const [expandedSpecies, setExpandedSpecies] = useState<Species[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
   
   console.log("🐶 2. useAnimals restituito:", { animals, loading, error });
   console.log("🐶 3. animals è array?", Array.isArray(animals));
   console.log("🐶 4. lunghezza animals:", animals?.length);
   
+  // ✅ 2. DOPO tutti gli hook, possiamo fare i return condizionali
   if (error) {
     console.error("🐶 ERRORE:", error);
     return (
@@ -56,9 +59,6 @@ export const AnimalList: React.FC = () => {
 
   console.log("🐶 5. Primo animale:", animals[0]);
   
-  const [expandedSpecies, setExpandedSpecies] = useState<Species[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-
   const filteredAnimals = animals.filter(animal => 
     animal.codice.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (animal.nome && animal.nome.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -76,7 +76,7 @@ export const AnimalList: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <AnimalForm onSave={addAnimal} />
+      <AnimalForm onSave={addAnimal} existingCodici={animals.map(a => a.codice)} />
       <AnimalSearch 
         value={searchTerm} 
         onChange={setSearchTerm}
