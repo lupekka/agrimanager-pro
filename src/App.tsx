@@ -90,8 +90,7 @@ export default function App() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
       />
-
-      <main className="flex-1 md:ml-64 p-4 md:p-8 pb-24">
+<main className="flex-1 md:ml-64 p-4 md:p-8 pb-24 pt-safe pb-safe">
         
         {/* Header */}
         <div className="mb-6 flex justify-between items-center">
