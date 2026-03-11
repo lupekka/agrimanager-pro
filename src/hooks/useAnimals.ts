@@ -7,6 +7,7 @@ import { Animal } from '../types';
 export const useAnimals = () => {
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null); // ← AGGIUNTO
   const { user } = useAuth();
 
   useEffect(() => {
@@ -17,11 +18,33 @@ export const useAnimals = () => {
     }
 
     const q = query(collection(db, 'animals'), where("ownerId", "==", user.uid));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Animal));
-      setAnimals(items);
-      setLoading(false);
-    });
+    const unsubscribe = onSnapshot(q, 
+      (snapshot) => {
+        const items = snapshot.docs.map(doc => {
+          const data = doc.data();
+          // Protezione dati
+          return { 
+            id: doc.id, 
+            codice: data.codice || 'N/D',
+            nome: data.nome || '',
+            species: data.species || 'Maiali',
+            notes: data.notes || '',
+            sire: data.sire || '',
+            dam: data.dam || '',
+            birthDate: data.birthDate || undefined,
+            ownerId: data.ownerId || user.uid,
+            treatments: Array.isArray(data.treatments) ? data.treatments : []
+          } as Animal;
+        });
+        setAnimals(items);
+        setLoading(false);
+      },
+      (err) => {
+        console.error("🔥 useAnimals - ERRORE:", err);
+        setError(err.message); // ← SALVA ERRORE
+        setLoading(false);
+      }
+    );
 
     return unsubscribe;
   }, [user]);
@@ -78,7 +101,8 @@ export const useAnimals = () => {
 
   return { 
     animals, 
-    loading, 
+    loading,
+    error, // ← AGGIUNTO
     addAnimal, 
     deleteAnimal, 
     updateAnimal,
