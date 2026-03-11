@@ -8,14 +8,20 @@
     <!-- PWA / iOS MIGLIORATO -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="AgriManage">
+    <meta name="apple-mobile-web-app-title" content="AgriManager">
     <meta name="theme-color" content="#059669" />
     
     <!-- META PER SOCIAL -->
     <meta name="description" content="Gestione agricola professionale">
     <meta name="format-detection" content="telephone=no">
     
-    <title>AgriManage Pro</title>
+    <!-- MANIFEST PWA (AGGIUNTO!) -->
+    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- ICONE PER iOS (OPZIONALE) -->
+    <link rel="apple-touch-icon" href="/logo192.png" />
+    
+    <title>AgriManager Pro</title>
     
     <!-- FONT OTTIMIZZATI -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -146,13 +152,13 @@
   </head>
   
   <body class="bg-[#F8F9FA] antialiased no-select">
-    <!-- 👇 QUESTO È IL DIV CHE MANCAVA! 👇 -->
+    <!-- DIV PRINCIPALE PER REACT -->
     <div id="root"></div>
     
     <noscript>
       <div style="text-align: center; padding: 20px; font-family: system-ui; background: #F8F9FA; min-height: 100vh; display: flex; align-items: center; justify-content: center;">
         <div style="max-width: 300px; padding: 30px; background: white; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
-          <h1 style="font-size: 24px; font-weight: 800; color: #059669; margin-bottom: 10px;">AgriManage Pro</h1>
+          <h1 style="font-size: 24px; font-weight: 800; color: #059669; margin-bottom: 10px;">AgriManager Pro</h1>
           <p style="color: #4b5563; margin-bottom: 20px;">⚠️ Abilita JavaScript per utilizzare l'applicazione.</p>
           <p style="font-size: 12px; color: #9ca3af;">Gestione agricola professionale</p>
         </div>
