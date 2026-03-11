@@ -10,14 +10,13 @@ import { speciesList } from '../../utils/constants';
 export const AnimalList: React.FC = () => {
   console.log("🐶 1. AnimalList montato");
   
-  // ✅ CORRETTO: prendiamo TUTTO quello che serve
+  // ✅ Prendiamo TUTTO quello che serve
   const { animals, loading, error, addAnimal, updateAnimal, deleteAnimal } = useAnimals();
   
   console.log("🐶 2. useAnimals restituito:", { animals, loading, error });
   console.log("🐶 3. animals è array?", Array.isArray(animals));
   console.log("🐶 4. lunghezza animals:", animals?.length);
   
-  // Se c'è errore, mostralo
   if (error) {
     console.error("🐶 ERRORE:", error);
     return (
@@ -36,7 +35,6 @@ export const AnimalList: React.FC = () => {
     );
   }
   
-  // Se animals non è array
   if (!Array.isArray(animals)) {
     console.error("🐶 animals NON è un array!", animals);
     return (
@@ -47,7 +45,6 @@ export const AnimalList: React.FC = () => {
     );
   }
   
-  // Se array vuoto
   if (animals.length === 0) {
     return (
       <div className="p-8 text-center text-stone-500">
