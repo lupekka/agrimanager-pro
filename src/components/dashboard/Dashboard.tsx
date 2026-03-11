@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useAnimals } from '../../hooks/useAnimals';
 import { useTransactions } from '../../hooks/useTransactions';
 import { useTasks } from '../../hooks/useTasks';
 import { useNotifications } from '../../hooks/useNotifications';
+import { useAuth } from '../../hooks/useAuth';  // ← AGGIUNTO
 import { KPICards } from './KPICards';
-import { ExpiringTreatments } from './ExpiringTreatments';
 import { Calendar } from 'lucide-react';
 
 interface DashboardProps {
@@ -12,11 +12,11 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ onTabChange }) => {
- const { animals } = useAnimals();
-const { transactions } = useTransactions();
-const { tasks } = useTasks();
-const { checkExpiringTreatments } = useNotifications();
-const { userName } = useAuth();  // ← AGGIUNGI QUESTA RIGA!
+  const { animals } = useAnimals();
+  const { transactions } = useTransactions();
+  const { tasks } = useTasks();
+  const { checkExpiringTreatments } = useNotifications();
+  const { userName } = useAuth();  // ← AGGIUNTO
 
   const totalIncome = transactions.filter(t => t.type === 'Entrata').reduce((acc, t) => acc + t.amount, 0);
   const totalExpense = transactions.filter(t => t.type === 'Uscita').reduce((acc, t) => acc + t.amount, 0);
@@ -38,7 +38,7 @@ const { userName } = useAuth();  // ← AGGIUNGI QUESTA RIGA!
 
   return (
     <div className="space-y-6">
-      {/* 🔝 HEADER CON DATA E BENVENUTO */}
+      {/* 🔝 HEADER CON DATA E BENVENUTO (ORA CON NOME UTENTE) */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h3 className="text-xs font-black text-stone-600 uppercase tracking-widest">
@@ -50,12 +50,12 @@ const { userName } = useAuth();  // ← AGGIUNGI QUESTA RIGA!
             }).toUpperCase()}
           </h3>
           <h2 className="text-2xl font-black text-emerald-900 mt-1">
-            Bentornato, <span className="text-emerald-600">Marco</span> 👋
+            Bentornato, <span className="text-emerald-600">{userName?.split(' ')[0] || 'Utente'}</span> 👋
           </h2>
         </div>
       </div>
 
-      {/* 📊 KPI IN ALTO (sempre visibili) */}
+      {/* 📊 KPI IN ALTO */}
       <KPICards
         totalAnimals={animals.length}
         pendingTasks={pendingTasks}
@@ -65,29 +65,33 @@ const { userName } = useAuth();  // ← AGGIUNGI QUESTA RIGA!
         onTasksClick={() => onTabChange('tasks')}
       />
 
-      {/* 📅 RIEPILOGO RAPIDO SCADENZE */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="bg-amber-50 p-4 rounded-2xl border border-amber-200 text-center">
-          <p className="text-xs text-amber-600 font-black">OGGI</p>
-          <p className="text-3xl font-black text-amber-700">{trattamentiOggi.length}</p>
-        </div>
-        <div className="bg-blue-50 p-4 rounded-2xl border border-blue-200 text-center">
-          <p className="text-xs text-blue-600 font-black">DOMANI</p>
-          <p className="text-3xl font-black text-blue-700">{trattamentiDomani.length}</p>
-        </div>
-        <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-200 text-center">
-          <p className="text-xs text-emerald-600 font-black">SETTIMANA</p>
-          <p className="text-3xl font-black text-emerald-700">{trattamentiSettimana.length}</p>
+      {/* 📅 SEZIONE SCADENZE CON TITOLO CHIARO */}
+      <div>
+        <h3 className="text-sm font-black text-emerald-900 uppercase mb-3 flex items-center gap-2">
+          <Calendar size={18} className="text-emerald-600" />
+          Trattamenti in scadenza
+        </h3>
+        
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-amber-50 p-4 rounded-2xl border border-amber-200">
+            <p className="text-xs text-amber-600 font-black mb-1">DA FARE OGGI</p>
+            <p className="text-3xl font-black text-amber-700">{trattamentiOggi.length}</p>
+          </div>
+          <div className="bg-blue-50 p-4 rounded-2xl border border-blue-200">
+            <p className="text-xs text-blue-600 font-black mb-1">DOMANI</p>
+            <p className="text-3xl font-black text-blue-700">{trattamentiDomani.length}</p>
+          </div>
+          <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-200">
+            <p className="text-xs text-emerald-600 font-black mb-1">IN ARRIVO (7 GIORNI)</p>
+            <p className="text-3xl font-black text-emerald-700">{trattamentiSettimana.length}</p>
+          </div>
         </div>
       </div>
 
       {/* 📋 LISTA PROSSIMI TRATTAMENTI */}
       {tuttiProssimi.length > 0 && (
         <div className="bg-white p-5 rounded-3xl border-2 border-emerald-100 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <Calendar size={20} className="text-emerald-600" />
-            <h3 className="text-sm font-black text-emerald-900 uppercase">Prossimi trattamenti</h3>
-          </div>
+          <h4 className="text-xs font-black text-stone-600 uppercase mb-3">Prossimi trattamenti</h4>
           
           <div className="space-y-2">
             {tuttiProssimi.map(t => (
