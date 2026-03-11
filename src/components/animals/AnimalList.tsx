@@ -10,7 +10,8 @@ import { speciesList } from '../../utils/constants';
 export const AnimalList: React.FC = () => {
   console.log("🐶 1. AnimalList montato");
   
-  const { animals, loading, error } = useAnimals();
+  // ✅ CORRETTO: prendiamo TUTTO quello che serve
+  const { animals, loading, error, addAnimal, updateAnimal, deleteAnimal } = useAnimals();
   
   console.log("🐶 2. useAnimals restituito:", { animals, loading, error });
   console.log("🐶 3. animals è array?", Array.isArray(animals));
