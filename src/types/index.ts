@@ -16,7 +16,7 @@ export interface Treatment {
 
 export interface Animal { 
   id: string; 
-  codice: string;        // Codice identificativo (obbligatorio)
+ microchip: string;        // Codice identificativo (obbligatorio)
   nome?: string;         // Nome affettuoso (opzionale)
   name?: string;         // Per retrocompatibilità (opzionale)
   species: Species; 
