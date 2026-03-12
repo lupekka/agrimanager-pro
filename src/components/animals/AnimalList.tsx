@@ -64,7 +64,7 @@ export const AnimalList: React.FC = () => {
   // ✅ IL FORM È SEMPRE VISIBILE, IN QUALSIASI CASO
   return (
     <div className="space-y-6">
-      <AnimalForm onSave={addAnimal} existingCodici={animals.map(a => a.codice)} />
+     <AnimalForm onSave={addAnimal} existingMicrochip={animals.map(a => a.microchip)} />
       <AnimalSearch 
         value={searchTerm} 
         onChange={setSearchTerm}
