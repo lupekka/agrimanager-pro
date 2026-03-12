@@ -46,10 +46,10 @@ export const AnimalList: React.FC = () => {
     );
   }
   
-  const filteredAnimals = animals.filter(animal => 
-    animal.codice.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (animal.nome && animal.nome.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+ const filteredAnimals = animals.filter(animal => 
+  animal.microchip.toLowerCase().includes(searchTerm.toLowerCase()) || // ← CAMBIATO
+  (animal.nome && animal.nome.toLowerCase().includes(searchTerm.toLowerCase()))
+);
 
   const toggleSpecies = (species: Species) => {
     setExpandedSpecies(prev => 
