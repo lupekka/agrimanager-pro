@@ -5,20 +5,21 @@ import { Animal } from '../../types';
 interface AnimalCardProps {
   animal: Animal;
   onDelete: (id: string) => void;
-  onUpdate: (id: string, updates: Partial<Animal>) => void; // Modifica il nome da onUpdateNotes a onUpdate
+  onUpdate: (id: string, updates: Partial<Animal>) => void;
 }
 
 export const AnimalCard: React.FC<AnimalCardProps> = ({ animal, onDelete, onUpdate }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
+    microchip: animal.microchip,  // ← CAMBIATO
     nome: animal.nome || '',
     birthDate: animal.birthDate || '',
-    microchip: (animal as any).microchip || '', // Se non hai il campo microchip, lo aggiungeremo dopo
     notes: animal.notes || ''
   });
 
   const handleSave = () => {
     onUpdate(animal.id, {
+      microchip: editForm.microchip,  // ← CAMBIATO
       nome: editForm.nome,
       birthDate: editForm.birthDate,
       notes: editForm.notes
@@ -26,13 +27,25 @@ export const AnimalCard: React.FC<AnimalCardProps> = ({ animal, onDelete, onUpda
     setIsEditing(false);
   };
 
-  // Se è in modalità modifica
   if (isEditing) {
     return (
       <div className="bg-white p-4 rounded-xl border-2 border-emerald-500 shadow-lg">
-        <h4 className="font-black text-emerald-800 mb-3">Modifica {animal.codice}</h4>
+        <h4 className="font-black text-emerald-800 mb-3">Modifica {animal.microchip}</h4>
         
         <div className="space-y-3">
+          {/* Microchip (NON MODIFICABILE? O MODIFICABILE?) */}
+          <div>
+            <label className="text-xs font-bold text-stone-600">Microchip</label>
+            <input
+              type="text"
+              value={editForm.microchip}
+              onChange={(e) => setEditForm({...editForm, microchip: e.target.value})}
+              className="w-full p-2 bg-stone-50 rounded-lg text-sm"
+              placeholder="Microchip"
+            />
+            <p className="text-[8px] text-stone-500 mt-1">Il microchip identifica l'animale. Modifica solo se sicuro.</p>
+          </div>
+
           {/* Nome */}
           <div>
             <label className="text-xs font-bold text-stone-600">Nome</label>
@@ -53,18 +66,6 @@ export const AnimalCard: React.FC<AnimalCardProps> = ({ animal, onDelete, onUpda
               value={editForm.birthDate}
               onChange={(e) => setEditForm({...editForm, birthDate: e.target.value})}
               className="w-full p-2 bg-stone-50 rounded-lg text-sm"
-            />
-          </div>
-
-          {/* Microchip (se vuoi aggiungerlo) */}
-          <div>
-            <label className="text-xs font-bold text-stone-600">Microchip</label>
-            <input
-              type="text"
-              value={editForm.microchip}
-              onChange={(e) => setEditForm({...editForm, microchip: e.target.value})}
-              className="w-full p-2 bg-stone-50 rounded-lg text-sm"
-              placeholder="Codice microchip"
             />
           </div>
 
@@ -99,13 +100,12 @@ export const AnimalCard: React.FC<AnimalCardProps> = ({ animal, onDelete, onUpda
     );
   }
 
-  // Visualizzazione normale (quella che già hai)
   return (
     <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-sm relative group hover:border-emerald-500 transition-all">
       <div className="flex justify-between items-start mb-1">
         <div>
           <div className="flex items-center gap-2">
-            <h4 className="font-black text-stone-800 uppercase text-xs">{animal.codice}</h4>
+            <h4 className="font-black text-stone-800 uppercase text-xs">{animal.microchip}</h4>
             {animal.nome && (
               <p className="text-[10px] text-emerald-600 font-bold italic">"{animal.nome}"</p>
             )}
@@ -121,7 +121,7 @@ export const AnimalCard: React.FC<AnimalCardProps> = ({ animal, onDelete, onUpda
           </button>
           <button 
             onClick={() => {
-              if (window.confirm(`❌ Eliminare l'animale "${animal.codice}"?`)) {
+              if (window.confirm(`❌ Eliminare l'animale "${animal.microchip}"?`)) {
                 onDelete(animal.id);
               }
             }} 
@@ -132,13 +132,6 @@ export const AnimalCard: React.FC<AnimalCardProps> = ({ animal, onDelete, onUpda
           </button>
         </div>
       </div>
-      
-      {/* Riga microchip (se presente) */}
-      {(animal as any).microchip && (
-        <p className="text-[8px] font-mono text-stone-400 mb-1">
-          🏷️ {(animal as any).microchip}
-        </p>
-      )}
       
       <div className="mb-2 text-[8px] font-bold text-stone-600 uppercase">
         {animal.sire && <div>Padre: {animal.sire}</div>}
@@ -151,12 +144,10 @@ export const AnimalCard: React.FC<AnimalCardProps> = ({ animal, onDelete, onUpda
         </p>
       )}
       
-      {/* Note */}
       <p className="text-[10px] text-stone-700 bg-stone-50 p-2 rounded-lg italic leading-relaxed font-medium">
         "{animal.notes || 'Nessuna nota presente.'}"
       </p>
       
-      {/* Trattamenti (se presenti) */}
       {animal.treatments && animal.treatments.length > 0 && (
         <div className="mt-2 pt-2 border-t border-stone-100">
           <p className="text-[8px] font-bold text-stone-500 uppercase mb-1">
