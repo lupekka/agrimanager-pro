@@ -36,7 +36,7 @@ export const TreatmentList: React.FC<TreatmentListProps> = ({
   return (
     <div className="bg-white p-5 rounded-3xl border shadow-sm">
       <h4 className="text-sm font-black text-emerald-900 uppercase mb-4 flex items-center gap-2">
-        <span>Storico Trattamenti - {selectedAnimal.codice}</span>
+        <span>Storico Trattamenti - {selectedAnimal.microchip}</span>  {/* ← CAMBIATO */}
         {selectedAnimal.nome && (
           <span className="text-xs font-normal text-stone-500">({selectedAnimal.nome})</span>
         )}
