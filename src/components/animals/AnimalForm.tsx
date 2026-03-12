@@ -5,12 +5,12 @@ import { speciesList } from '../../utils/constants';
 
 interface AnimalFormProps {
   onSave: (animal: any) => void;
-  existingCodici?: string[]; // per verificare duplicati
+  existingMicrochip?: string[]; // ← RINOMINATO
 }
 
-export const AnimalForm: React.FC<AnimalFormProps> = ({ onSave, existingCodici = [] }) => {
+export const AnimalForm: React.FC<AnimalFormProps> = ({ onSave, existingMicrochip = [] }) => {
   const [newAnimal, setNewAnimal] = useState({
-    codice: '',
+    microchip: '',            // ← CAMBIATO da "codice"
     nome: '',
     species: 'Maiali' as Species,
     birthDate: '',
@@ -19,26 +19,26 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ onSave, existingCodici =
     notes: ''
   });
 
-  const [codiceError, setCodiceError] = useState('');
+  const [microchipError, setMicrochipError] = useState(''); // ← RINOMINATO
 
-  const handleCodiceChange = (value: string) => {
-    setNewAnimal({...newAnimal, codice: value});
+  const handleMicrochipChange = (value: string) => { // ← RINOMINATO
+    setNewAnimal({...newAnimal, microchip: value});
     
-    if (existingCodici.includes(value)) {
-      setCodiceError(`Il codice "${value}" esiste già`);
+    if (existingMicrochip.includes(value)) {
+      setMicrochipError(`Il microchip "${value}" esiste già`);
     } else {
-      setCodiceError('');
+      setMicrochipError('');
     }
   };
 
   const handleSubmit = () => {
-    if (!newAnimal.codice.trim()) {
-      alert("Codice Capo richiesto.");
+    if (!newAnimal.microchip.trim()) { // ← CAMBIATO
+      alert("Microchip richiesto.");
       return;
     }
     
-    if (existingCodici.includes(newAnimal.codice)) {
-      if (!confirm(`Il codice "${newAnimal.codice}" esiste già. Continuare?`)) {
+    if (existingMicrochip.includes(newAnimal.microchip)) {
+      if (!confirm(`Il microchip "${newAnimal.microchip}" esiste già. Continuare?`)) {
         return;
       }
     }
@@ -46,7 +46,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ onSave, existingCodici =
     onSave(newAnimal);
     
     setNewAnimal({
-      codice: '',
+      microchip: '',           // ← CAMBIATO
       nome: '',
       species: 'Maiali',
       birthDate: '',
@@ -54,7 +54,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ onSave, existingCodici =
       dam: '',
       notes: ''
     });
-    setCodiceError('');
+    setMicrochipError('');
   };
 
   return (
@@ -66,18 +66,18 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ onSave, existingCodici =
       </div>
       
       <div className="grid grid-cols-2 gap-2">
-        {/* CODICE (obbligatorio) */}
+        {/* MICROCHIP (obbligatorio) - RINOMINATO */}
         <div className="col-span-2 md:col-span-1">
           <input 
-            placeholder="Codice Capo *" 
+            placeholder="Microchip *" 
             className={`p-2 w-full bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner text-stone-800 ${
-              codiceError ? 'border-2 border-red-300' : ''
+              microchipError ? 'border-2 border-red-300' : ''
             }`} 
-            value={newAnimal.codice} 
-            onChange={(e) => handleCodiceChange(e.target.value)} 
+            value={newAnimal.microchip} 
+            onChange={(e) => handleMicrochipChange(e.target.value)} 
           />
-          {codiceError && (
-            <p className="text-[8px] text-red-500 mt-1">{codiceError}</p>
+          {microchipError && (
+            <p className="text-[8px] text-red-500 mt-1">{microchipError}</p>
           )}
         </div>
         
@@ -106,17 +106,17 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ onSave, existingCodici =
           onChange={(e) => setNewAnimal({...newAnimal, birthDate: e.target.value})} 
         />
         
-        {/* PADRE */}
+        {/* PADRE (microchip) */}
         <input 
-          placeholder="Padre (Codice)" 
+          placeholder="Padre (microchip)" 
           className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner text-stone-800 uppercase" 
           value={newAnimal.sire} 
           onChange={(e) => setNewAnimal({...newAnimal, sire: e.target.value})} 
         />
         
-        {/* MADRE */}
+        {/* MADRE (microchip) */}
         <input 
-          placeholder="Madre (Codice)" 
+          placeholder="Madre (microchip)" 
           className="p-2 bg-stone-50 rounded-lg text-xs font-bold border-none shadow-inner text-stone-800 uppercase" 
           value={newAnimal.dam} 
           onChange={(e) => setNewAnimal({...newAnimal, dam: e.target.value})} 
@@ -134,7 +134,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ onSave, existingCodici =
         <button 
           onClick={handleSubmit} 
           className="bg-emerald-600 text-white font-bold rounded-lg py-2 text-[10px] uppercase col-span-full shadow-md active:scale-95"
-          disabled={!newAnimal.codice.trim()}
+          disabled={!newAnimal.microchip.trim()}
         >
           Salva Capo
         </button>
