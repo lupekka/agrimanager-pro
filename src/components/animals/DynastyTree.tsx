@@ -4,12 +4,15 @@ import { useAnimals } from '../../hooks/useAnimals';
 import { Animal } from '../../types';
 import { speciesList } from '../../utils/constants';
 
+// Definiamo un tipo per la direzione
+type Direction = 'ascendants' | 'descendants' | 'both';
+
 // Componente per un singolo nodo dell'albero (ricorsivo)
 const FamilyNode: React.FC<{
   animal: Animal;
   allAnimals: Animal[];
   level: number;
-  direction: 'ascendants' | 'descendants';
+  direction: Direction;
   expandedNodes: Set<string>;
   onToggle: (id: string) => void;
 }> = ({ animal, allAnimals, level, direction, expandedNodes, onToggle }) => {
@@ -25,8 +28,12 @@ const FamilyNode: React.FC<{
     a.sire === animal.microchip || a.dam === animal.microchip
   );
   
-  const hasAscendants = (father || mother) && direction !== 'descendants';
-  const hasDescendants = children.length > 0 && direction !== 'ascendants';
+  // CORREZIONE: controlli espliciti con tipi
+  const showAscendants = direction === 'both' || direction === 'ascendants';
+  const showDescendants = direction === 'both' || direction === 'descendants';
+  
+  const hasAscendants = (father || mother) && showAscendants;
+  const hasDescendants = children.length > 0 && showDescendants;
   const hasContent = hasAscendants || hasDescendants;
   
   // Determina il margine sinistro in base al livello
@@ -109,8 +116,8 @@ const FamilyNode: React.FC<{
           {/* Linea verticale di connessione */}
           <div className="absolute left-[20px] top-0 bottom-0 w-0.5 bg-emerald-200"></div>
           
-          {/* Ascendenti (sopra) */}
-          {hasAscendants && direction !== 'descendants' && (
+          {/* Ascendenti (sopra) - CORRETTO */}
+          {hasAscendants && (
             <div className="relative">
               {father && (
                 <FamilyNode
@@ -135,8 +142,8 @@ const FamilyNode: React.FC<{
             </div>
           )}
           
-          {/* Discendenti (sotto) */}
-          {hasDescendants && direction !== 'ascendants' && (
+          {/* Discendenti (sotto) - CORRETTO */}
+          {hasDescendants && (
             <div className="relative mt-2">
               {children.map(child => (
                 <FamilyNode
