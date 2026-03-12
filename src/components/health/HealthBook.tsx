@@ -79,7 +79,7 @@ export const HealthBook: React.FC = () => {
             <option value="">-- Scegli un animale --</option>
             {animals.map(a => (
               <option key={a.id} value={a.id}>
-                {a.codice} {a.nome && `(${a.nome})`} - {a.species}
+                {a.microchip} {a.nome && `(${a.nome})`} - {a.species}
               </option>
             ))}
           </select>
@@ -99,7 +99,7 @@ export const HealthBook: React.FC = () => {
       {/* Form nuovo trattamento */}
       {selectedAnimal && showTreatmentForm && (
         <TreatmentForm
-          animalName={`${selectedAnimal.codice} ${selectedAnimal.nome ? `(${selectedAnimal.nome})` : ''}`}
+          animalName={`${selectedAnimal.microchip} ${selectedAnimal.nome ? `(${selectedAnimal.nome})` : ''}`}
           newTreatment={newTreatment}
           onChange={setNewTreatment}
           onSave={handleAddTreatment}
@@ -107,7 +107,7 @@ export const HealthBook: React.FC = () => {
         />
       )}
 
-           {/* Lista trattamenti */}
+      {/* Lista trattamenti */}
       <TreatmentList
         animals={animals}
         selectedAnimal={selectedAnimal}
