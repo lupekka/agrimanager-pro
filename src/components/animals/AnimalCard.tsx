@@ -1,22 +1,105 @@
 import React, { useState } from 'react';
-import { Edit2, Trash2 } from 'lucide-react';
+import { Edit2, Trash2, Save, X } from 'lucide-react';
 import { Animal } from '../../types';
 
 interface AnimalCardProps {
   animal: Animal;
   onDelete: (id: string) => void;
-  onUpdateNotes: (id: string, notes: string) => void;
+  onUpdate: (id: string, updates: Partial<Animal>) => void; // Modifica il nome da onUpdateNotes a onUpdate
 }
 
-export const AnimalCard: React.FC<AnimalCardProps> = ({ animal, onDelete, onUpdateNotes }) => {
+export const AnimalCard: React.FC<AnimalCardProps> = ({ animal, onDelete, onUpdate }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [editNote, setEditNote] = useState(animal.notes || '');
+  const [editForm, setEditForm] = useState({
+    nome: animal.nome || '',
+    birthDate: animal.birthDate || '',
+    microchip: (animal as any).microchip || '', // Se non hai il campo microchip, lo aggiungeremo dopo
+    notes: animal.notes || ''
+  });
 
   const handleSave = () => {
-    onUpdateNotes(animal.id, editNote);
+    onUpdate(animal.id, {
+      nome: editForm.nome,
+      birthDate: editForm.birthDate,
+      notes: editForm.notes
+    });
     setIsEditing(false);
   };
 
+  // Se è in modalità modifica
+  if (isEditing) {
+    return (
+      <div className="bg-white p-4 rounded-xl border-2 border-emerald-500 shadow-lg">
+        <h4 className="font-black text-emerald-800 mb-3">Modifica {animal.codice}</h4>
+        
+        <div className="space-y-3">
+          {/* Nome */}
+          <div>
+            <label className="text-xs font-bold text-stone-600">Nome</label>
+            <input
+              type="text"
+              value={editForm.nome}
+              onChange={(e) => setEditForm({...editForm, nome: e.target.value})}
+              className="w-full p-2 bg-stone-50 rounded-lg text-sm"
+              placeholder="Nome (opzionale)"
+            />
+          </div>
+
+          {/* Data di nascita */}
+          <div>
+            <label className="text-xs font-bold text-stone-600">Data di nascita</label>
+            <input
+              type="date"
+              value={editForm.birthDate}
+              onChange={(e) => setEditForm({...editForm, birthDate: e.target.value})}
+              className="w-full p-2 bg-stone-50 rounded-lg text-sm"
+            />
+          </div>
+
+          {/* Microchip (se vuoi aggiungerlo) */}
+          <div>
+            <label className="text-xs font-bold text-stone-600">Microchip</label>
+            <input
+              type="text"
+              value={editForm.microchip}
+              onChange={(e) => setEditForm({...editForm, microchip: e.target.value})}
+              className="w-full p-2 bg-stone-50 rounded-lg text-sm"
+              placeholder="Codice microchip"
+            />
+          </div>
+
+          {/* Note */}
+          <div>
+            <label className="text-xs font-bold text-stone-600">Note</label>
+            <textarea
+              value={editForm.notes}
+              onChange={(e) => setEditForm({...editForm, notes: e.target.value})}
+              className="w-full p-2 bg-stone-50 rounded-lg text-sm h-20"
+              placeholder="Note sull'animale"
+            />
+          </div>
+
+          {/* Bottoni */}
+          <div className="flex gap-2 pt-2">
+            <button
+              onClick={handleSave}
+              className="flex-1 bg-emerald-600 text-white py-2 rounded-lg text-xs font-black flex items-center justify-center gap-1"
+            >
+              <Save size={14} /> Salva
+            </button>
+            <button
+              onClick={() => setIsEditing(false)}
+              className="flex-1 bg-stone-200 text-stone-700 py-2 rounded-lg text-xs font-black flex items-center justify-center gap-1"
+            >
+              <X size={14} /> Annulla
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Visualizzazione normale (quella che già hai)
   return (
     <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-sm relative group hover:border-emerald-500 transition-all">
       <div className="flex justify-between items-start mb-1">
@@ -28,10 +111,11 @@ export const AnimalCard: React.FC<AnimalCardProps> = ({ animal, onDelete, onUpda
             )}
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
           <button 
             onClick={() => setIsEditing(true)} 
-            className="text-stone-600 hover:text-emerald-500"
+            className="text-stone-600 hover:text-emerald-500 p-1.5 hover:bg-emerald-50 rounded-lg"
+            title="Modifica"
           >
             <Edit2 size={14}/>
           </button>
@@ -41,13 +125,20 @@ export const AnimalCard: React.FC<AnimalCardProps> = ({ animal, onDelete, onUpda
                 onDelete(animal.id);
               }
             }} 
-            className="text-stone-600 hover:text-red-500"
+            className="text-stone-600 hover:text-red-500 p-1.5 hover:bg-red-50 rounded-lg"
             title="Elimina animale"
           >
             <Trash2 size={14}/>
           </button>
         </div>
       </div>
+      
+      {/* Riga microchip (se presente) */}
+      {(animal as any).microchip && (
+        <p className="text-[8px] font-mono text-stone-400 mb-1">
+          🏷️ {(animal as any).microchip}
+        </p>
+      )}
       
       <div className="mb-2 text-[8px] font-bold text-stone-600 uppercase">
         {animal.sire && <div>Padre: {animal.sire}</div>}
@@ -60,53 +151,25 @@ export const AnimalCard: React.FC<AnimalCardProps> = ({ animal, onDelete, onUpda
         </p>
       )}
       
-      {isEditing ? (
-        <div className="mt-2 space-y-2">
-          <textarea 
-            className="w-full p-2 bg-stone-50 rounded-lg text-[10px] border-none font-bold italic shadow-inner text-stone-800" 
-            value={editNote} 
-            onChange={(e) => setEditNote(e.target.value)} 
-            placeholder="Nuove note..."
-            rows={3}
-          />
-          <div className="flex gap-2">
-            <button 
-              onClick={handleSave} 
-              className="flex-1 bg-emerald-600 text-white py-1.5 rounded-lg text-[9px] font-black uppercase hover:bg-emerald-700"
-            >
-              Salva
-            </button>
-            <button 
-              onClick={() => {
-                setIsEditing(false);
-                setEditNote(animal.notes || '');
-              }} 
-              className="flex-1 bg-stone-300 text-stone-700 py-1.5 rounded-lg text-[9px] font-black uppercase hover:bg-stone-400"
-            >
-              Annulla
-            </button>
+      {/* Note */}
+      <p className="text-[10px] text-stone-700 bg-stone-50 p-2 rounded-lg italic leading-relaxed font-medium">
+        "{animal.notes || 'Nessuna nota presente.'}"
+      </p>
+      
+      {/* Trattamenti (se presenti) */}
+      {animal.treatments && animal.treatments.length > 0 && (
+        <div className="mt-2 pt-2 border-t border-stone-100">
+          <p className="text-[8px] font-bold text-stone-500 uppercase mb-1">
+            Trattamenti: {animal.treatments.length}
+          </p>
+          <div className="flex flex-wrap gap-1">
+            {animal.treatments.slice(0, 2).map(t => (
+              <span key={t.id} className="text-[7px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-full">
+                {t.tipo}
+              </span>
+            ))}
           </div>
         </div>
-      ) : (
-        <>
-          <p className="text-[10px] text-stone-700 bg-stone-50 p-2 rounded-lg italic leading-relaxed font-medium">
-            "{animal.notes || 'Nessuna nota presente.'}"
-          </p>
-          {animal.treatments && animal.treatments.length > 0 && (
-            <div className="mt-2 pt-2 border-t border-stone-100">
-              <p className="text-[8px] font-bold text-stone-500 uppercase mb-1">
-                Trattamenti: {animal.treatments.length}
-              </p>
-              <div className="flex flex-wrap gap-1">
-                {animal.treatments.slice(0, 2).map(t => (
-                  <span key={t.id} className="text-[7px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-full">
-                    {t.tipo}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-        </>
       )}
     </div>
   );
