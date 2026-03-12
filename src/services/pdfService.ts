@@ -24,9 +24,9 @@ export const pdfService = {
     
     // Crea tabella
     autoTable(doc, {
-      head: [['Codice', 'Nome', 'Specie', 'Data Nascita', 'Padre', 'Madre', 'Note', 'Trattamenti']],
+      head: [['Microchip', 'Nome', 'Specie', 'Data Nascita', 'Padre', 'Madre', 'Note', 'Trattamenti']],
       body: sorted.map(a => [
-        a.codice,
+        a.microchip,  // ← CAMBIATO
         a.nome || '-',
         a.species,
         a.birthDate ? new Date(a.birthDate).toLocaleDateString('it-IT') : '',
@@ -69,7 +69,7 @@ export const pdfService = {
     const tableData = expiringTreatments.map(t => {
       const animal = animals.find(a => a.id === t.animalId);
       return [
-        animal?.codice || '',
+        animal?.microchip || '',  // ← CAMBIATO
         animal?.species || '',
         t.treatment.tipo,
         new Date(t.treatment.dataSomministrazione).toLocaleDateString('it-IT'),
@@ -80,7 +80,7 @@ export const pdfService = {
     });
     
     autoTable(doc, {
-      head: [['Animale', 'Specie', 'Trattamento', 'Data', 'Scadenza', 'Stato', 'Note']],
+      head: [['Microchip', 'Specie', 'Trattamento', 'Data', 'Scadenza', 'Stato', 'Note']],
       body: tableData,
       startY: 35,
       styles: { fontSize: 8 },
@@ -170,7 +170,6 @@ export const pdfService = {
    */
   exportFullReport: (animals: Animal[], transactions: any[], products: any[], tasks: any[]) => {
     const doc = new jsPDF();
-    let page = 1;
     
     // Frontespizio
     doc.setFontSize(24);
@@ -198,9 +197,9 @@ export const pdfService = {
     doc.text('Registro Animali', 14, 20);
     
     autoTable(doc, {
-      head: [['Codice', 'Specie', 'Data Nascita', 'Trattamenti']],
+      head: [['Microchip', 'Specie', 'Data Nascita', 'Trattamenti']],
       body: animals.map(a => [
-        a.codice,
+        a.microchip,  // ← CAMBIATO
         a.species,
         a.birthDate || '-',
         (a.treatments?.length || 0).toString()
