@@ -18,18 +18,19 @@ export const BirthRegistration: React.FC = () => {
     if (newBirth.count <= 0 || newBirth.count > 20) return alert("Inserisci un numero valido di nati (1-20).");
     if (!newBirth.birthDate) return alert("Inserisci la data di nascita.");
     
-    const mother = animals.find(a => a.codice === newBirth.idCode || a.id === newBirth.idCode);
+    // CAMBIATO: ricerca per microchip invece che per codice
+    const mother = animals.find(a => a.microchip === newBirth.idCode || a.id === newBirth.idCode);
     if (!mother) return alert("Madre non trovata.");
     
     for (let i = 0; i < newBirth.count; i++) {
       const defaultName = `${newBirth.species.substring(0, 3)}-${new Date().getFullYear()}-${String(i + 1).padStart(2, '0')}`;
       await addAnimal({
-        codice: defaultName,
+        microchip: defaultName,  // CAMBIATO: da codice a microchip
         nome: '',
         species: newBirth.species,
         birthDate: newBirth.birthDate,
         sire: '',
-        dam: mother.codice,
+        dam: mother.microchip,  // CAMBIATO: usa microchip della madre
         notes: 'Nato in azienda'
       });
     }
@@ -48,7 +49,7 @@ export const BirthRegistration: React.FC = () => {
       <div className="space-y-6">
         <input 
           className="w-full p-3 bg-stone-50 rounded-xl font-black text-sm shadow-inner border-none text-stone-800 uppercase" 
-          placeholder="Codice Madre" 
+          placeholder="Microchip Madre"  // CAMBIATO: da "Codice Madre" a "Microchip Madre"
           value={newBirth.idCode} 
           onChange={(e) => setNewBirth({...newBirth, idCode: e.target.value})} 
         />
