@@ -7,7 +7,7 @@ import { Animal } from '../types';
 export const useAnimals = () => {
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null); // ← AGGIUNTO
+  const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -22,10 +22,10 @@ export const useAnimals = () => {
       (snapshot) => {
         const items = snapshot.docs.map(doc => {
           const data = doc.data();
-          // Protezione dati
+          // Protezione dati con microchip
           return { 
             id: doc.id, 
-            codice: data.codice || 'N/D',
+            microchip: data.microchip || data.codice || 'N/D',  // ← CAMBIATO da codice a microchip
             nome: data.nome || '',
             species: data.species || 'Maiali',
             notes: data.notes || '',
@@ -41,7 +41,7 @@ export const useAnimals = () => {
       },
       (err) => {
         console.error("🔥 useAnimals - ERRORE:", err);
-        setError(err.message); // ← SALVA ERRORE
+        setError(err.message);
         setLoading(false);
       }
     );
@@ -102,7 +102,7 @@ export const useAnimals = () => {
   return { 
     animals, 
     loading,
-    error, // ← AGGIUNTO
+    error,
     addAnimal, 
     deleteAnimal, 
     updateAnimal,
