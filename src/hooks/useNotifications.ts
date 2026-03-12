@@ -112,40 +112,40 @@ export const useNotifications = (userId?: string) => {
   }, [permission]);
 
   // Controlla trattamenti in scadenza (uguale a prima)
-  const checkExpiringTreatments = useCallback((animals: Animal[]): ExpiringTreatment[] => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const expiring: ExpiringTreatment[] = [];
-    
-    animals.forEach(animal => {
-      animal.treatments?.forEach(treatment => {
-        if (treatment.dataScadenza && !treatment.completed) {
-          const scadenza = new Date(treatment.dataScadenza);
-          scadenza.setHours(0, 0, 0, 0);
-          
-          const diffTime = scadenza.getTime() - today.getTime();
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-          
-          const isExpired = diffDays < 0;
-          const isExpiring = !isExpired && diffDays <= 7;
-          
-          if (isExpiring || isExpired) {
-            expiring.push({
-              animalId: animal.id,
-              animalName: animal.codice,
-              species: animal.species,
-              treatment,
-              daysLeft: diffDays,
-              isExpired
-            });
-          }
+ const checkExpiringTreatments = useCallback((animals: Animal[]): ExpiringTreatment[] => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const expiring: ExpiringTreatment[] = [];
+  
+  animals.forEach(animal => {
+    animal.treatments?.forEach(treatment => {
+      if (treatment.dataScadenza && !treatment.completed) {
+        const scadenza = new Date(treatment.dataScadenza);
+        scadenza.setHours(0, 0, 0, 0);
+        
+        const diffTime = scadenza.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        const isExpired = diffDays < 0;
+        const isExpiring = !isExpired && diffDays <= 7;
+        
+        if (isExpiring || isExpired) {
+          expiring.push({
+            animalId: animal.id,
+            animalName: animal.microchip,  // ← CAMBIATO
+            species: animal.species,
+            treatment,
+            daysLeft: diffDays,
+            isExpired
+          });
         }
-      });
+      }
     });
-    
-    return expiring;
-  }, []);
+  });
+  
+  return expiring;
+}, []);
 
   return {
     oneSignalInitialized: false, // Non usiamo più OneSignal
