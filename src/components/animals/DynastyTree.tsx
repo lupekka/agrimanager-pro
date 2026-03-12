@@ -6,12 +6,12 @@ import { useAnimals } from '../../hooks/useAnimals';
 const DynastyBranch: React.FC<{ animal: Animal; allAnimals: Animal[]; level?: number }> = ({ 
   animal, allAnimals, level = 0 
 }) => {
-  // Usa sia codice che nome per i filtri
-  const animalDisplayName = animal.nome || animal.name || animal.codice;
+  // Usa microchip e nome per i filtri (codice è stato rinominato in microchip)
+  const animalDisplayName = animal.nome || animal.name || animal.microchip;
   
   const children = allAnimals.filter(a => 
     a.dam === animalDisplayName || a.sire === animalDisplayName || 
-    a.dam === animal.codice || a.sire === animal.codice ||
+    a.dam === animal.microchip || a.sire === animal.microchip ||
     a.dam === animal.id || a.sire === animal.id
   );
   
@@ -19,7 +19,7 @@ const DynastyBranch: React.FC<{ animal: Animal; allAnimals: Animal[]; level?: nu
     <div className={level > 0 ? "ml-4 border-l-2 border-stone-300 pl-4 mt-2" : ""}>
       <div className={`p-3 rounded-xl border bg-white mb-2 shadow-sm ${level === 0 ? 'border-l-4 border-l-emerald-600' : ''}`}>
         <div className="flex items-center gap-2">
-          <p className="font-bold text-stone-900 text-xs uppercase">{animal.codice}</p>
+          <p className="font-bold text-stone-900 text-xs uppercase">{animal.microchip}</p>
           {animal.nome && (
             <p className="text-[10px] text-emerald-600 font-bold italic">"{animal.nome}"</p>
           )}
