@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Syringe, PlusCircle, FileDown } from 'lucide-react';
+import { Syringe, PlusCircle, Download } from 'lucide-react'; // ← CAMBIATO FileDown in Download
 import { useAnimals } from '../../hooks/useAnimals';
 import { Treatment } from '../../types';
 import { TreatmentForm } from './TreatmentForm';
@@ -41,15 +41,15 @@ export const HealthBook: React.FC = () => {
 
   const handleExportPDF = () => {
     if (animals.length === 0) {
-      alert("Nessun animale da esportare");
+      alert("Nessun trattamento da esportare");
       return;
     }
-    pdfService.exportASLReport(animals);
+    pdfService.exportTreatmentsReport(animals); // ← CHIAMA LA FUNZIONE GIUSTA
   };
 
   return (
     <div className="space-y-6">
-      {/* Header con pulsante esporta */}
+      {/* Header con pulsante esporta trattamenti */}
       <div className="flex justify-between items-center">
         <h3 className="text-sm font-black text-emerald-900 uppercase flex items-center gap-2">
           <Syringe size={18} className="text-emerald-600" />
@@ -59,8 +59,8 @@ export const HealthBook: React.FC = () => {
           onClick={handleExportPDF}
           className="bg-stone-800 text-white px-4 py-2 rounded-xl text-xs font-black uppercase flex items-center gap-2 hover:bg-stone-700"
         >
-          <FileDown size={16} />
-          Esporta PDF
+          <Download size={16} />
+          Esporta Trattamenti
         </button>
       </div>
 
