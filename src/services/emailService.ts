@@ -1,5 +1,5 @@
 import emailjs from '@emailjs/browser';
-import { Animal, Treatment } from '../types';
+import { Animal, Treatment } from '../types/index';
 
 // Configurazione EmailJS
 const EMAILJS_SERVICE_ID = 'service_5v9gl8d';
