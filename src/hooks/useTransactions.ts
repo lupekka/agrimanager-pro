@@ -2,19 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, addDoc, deleteDoc, doc, orderBy } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useAuth } from './useAuth';
-
-// TIPI DEFINITI DIRETTAMENTE QUI
-export type TransactionType = 'Entrata' | 'Uscita';
-
-export interface Transaction { 
-  id: string; 
-  type: TransactionType; 
-  amount: number; 
-  desc: string; 
-  species: string; 
-  date: string; 
-  ownerId: string; 
-}
+import { Transaction } from '../types';  // ← IMPORT
 
 export const useTransactions = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
