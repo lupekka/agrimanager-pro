@@ -1,5 +1,30 @@
 import emailjs from '@emailjs/browser';
-import { Animal, Treatment } from '../types/index';
+
+// TIPI DEFINITI DIRETTAMENTE QUI
+export type Species = 'Maiali' | 'Cavalli' | 'Mucche' | 'Galline' | 'Oche';
+export type TreatmentType = 'Vaccino' | 'Vermifugo' | 'Visita' | 'Cura' | 'Medicazione' | 'Altro';
+
+export interface Treatment {
+  id: string;
+  tipo: TreatmentType;
+  dataSomministrazione: string;
+  dataScadenza?: string;
+  note: string;
+  completed?: boolean;
+}
+
+export interface Animal { 
+  id: string; 
+  microchip: string;
+  nome?: string;
+  species: Species; 
+  notes: string; 
+  sire?: string; 
+  dam?: string; 
+  birthDate?: string; 
+  ownerId: string;
+  treatments?: Treatment[];
+}
 
 // Configurazione EmailJS
 const EMAILJS_SERVICE_ID = 'service_5v9gl8d';
