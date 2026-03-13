@@ -301,6 +301,6 @@ export const pdfService = {
       }
     }
     
-    doc.save(`trattamenti_${today.replace(/\g, '-')}.pdf`);
+    doc.save(`trattamenti_${today.replace(/\//g, '-')}.pdf`);
   }
 };
