@@ -2,7 +2,29 @@ import { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useAuth } from './useAuth';
-import { Animal } from '../types';
+
+// TIPI DEFINITI DIRETTAMENTE QUI
+export interface Treatment {
+  id: string;
+  tipo: string;
+  dataSomministrazione: string;
+  dataScadenza?: string;
+  note: string;
+  completed?: boolean;
+}
+
+export interface Animal { 
+  id: string; 
+  microchip: string;
+  nome?: string;
+  species: string; 
+  notes: string; 
+  sire?: string; 
+  dam?: string; 
+  birthDate?: string; 
+  ownerId: string;
+  treatments?: Treatment[];
+}
 
 export const useAnimals = () => {
   const [animals, setAnimals] = useState<Animal[]>([]);
@@ -22,10 +44,9 @@ export const useAnimals = () => {
       (snapshot) => {
         const items = snapshot.docs.map(doc => {
           const data = doc.data();
-          // Protezione dati con microchip
           return { 
             id: doc.id, 
-            microchip: data.microchip || data.codice || 'N/D',  // ← CAMBIATO da codice a microchip
+            microchip: data.microchip || data.codice || 'N/D',
             nome: data.nome || '',
             species: data.species || 'Maiali',
             notes: data.notes || '',
