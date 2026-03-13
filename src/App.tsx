@@ -36,13 +36,11 @@ import { SimpleTutorial } from './components/onboarding/SimpleTutorial';
 
 export default function App() {
   const { user, userRole, userName, loading, logout } = useAuth();
-  const { weather, refreshWeather } = useWeather();
+   const { weather, refreshWeather } = useWeather();
   const { 
-    oneSignalInitialized, 
-    showNotificationPrompt, 
-    requestPermission,
-    setShowNotificationPrompt 
-  } = useNotifications(user?.uid);
+    notificationsEnabled, 
+    setNotificationsEnabled 
+  } = useNotifications();
   const { animals } = useAnimals();
   
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -125,8 +123,7 @@ export default function App() {
             {menuItems.find(i => i.id === activeTab)?.label}
           </h2>
           
-          <div className="flex items-center gap-2">
-           {!oneSignalInitialized && showNotificationPrompt && (
+          <div className="flex items-center gap-2"
              <NotificationBell />
            )}
             
