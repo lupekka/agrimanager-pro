@@ -1,47 +1,134 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, onSnapshot, addDoc, deleteDoc, doc, orderBy } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useAuth } from './useAuth';
-import { Transaction } from '../types';
 
-export const useTransactions = () => {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+// TIPI DEFINITI DIRETTAMENTE QUI
+export interface Treatment {
+  id: string;
+  tipo: string;
+  dataSomministrazione: string;
+  dataScadenza?: string;
+  note: string;
+  completed?: boolean;
+}
+
+export interface Animal { 
+  id: string; 
+  microchip: string;
+  nome?: string;
+  species: string; 
+  notes: string; 
+  sire?: string; 
+  dam?: string; 
+  birthDate?: string; 
+  ownerId: string;
+  treatments?: Treatment[];
+}
+
+export const useAnimals = () => {
+  const [animals, setAnimals] = useState<Animal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
   useEffect(() => {
     if (!user) {
-      setTransactions([]);
+      setAnimals([]);
       setLoading(false);
       return;
     }
 
-    const q = query(
-      collection(db, 'transactions'), 
-      where("ownerId", "==", user.uid),
-      orderBy('date', 'desc')
+    const q = query(collection(db, 'animals'), where("ownerId", "==", user.uid));
+    const unsubscribe = onSnapshot(q, 
+      (snapshot) => {
+        const items = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return { 
+            id: doc.id, 
+            microchip: data.microchip || data.codice || 'N/D',
+            nome: data.nome || '',
+            species: data.species || 'Maiali',
+            notes: data.notes || '',
+            sire: data.sire || '',
+            dam: data.dam || '',
+            birthDate: data.birthDate || undefined,
+            ownerId: data.ownerId || user.uid,
+            treatments: Array.isArray(data.treatments) ? data.treatments : []
+          } as Animal;
+        });
+        setAnimals(items);
+        setLoading(false);
+      },
+      (err) => {
+        console.error("🔥 useAnimals - ERRORE:", err);
+        setError(err.message);
+        setLoading(false);
+      }
     );
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Transaction));
-      setTransactions(items);
-      setLoading(false);
-    });
 
     return unsubscribe;
   }, [user]);
 
-  const addTransaction = async (transaction: Omit<Transaction, 'id' | 'ownerId'>) => {
+  const addAnimal = async (animal: Omit<Animal, 'id' | 'ownerId' | 'treatments'>) => {
     if (!user) throw new Error("Non autenticato");
-    return addDoc(collection(db, 'transactions'), { 
-      ...transaction, 
-      ownerId: user.uid 
+    return addDoc(collection(db, 'animals'), { 
+      ...animal, 
+      ownerId: user.uid, 
+      treatments: [] 
     });
   };
 
-  const deleteTransaction = async (id: string) => {
-    return deleteDoc(doc(db, 'transactions', id));
+  const deleteAnimal = async (id: string) => {
+    return deleteDoc(doc(db, 'animals', id));
   };
 
-  return { transactions, loading, addTransaction, deleteTransaction };
+  const updateAnimal = async (id: string, updates: Partial<Animal>) => {
+    return updateDoc(doc(db, 'animals', id), updates);
+  };
+
+  const addTreatment = async (animalId: string, treatment: any) => {
+    const animal = animals.find(a => a.id === animalId);
+    if (!animal) return;
+    
+    const currentTreatments = animal.treatments || [];
+    return updateDoc(doc(db, 'animals', animalId), {
+      treatments: [...currentTreatments, treatment]
+    });
+  };
+
+  const updateTreatment = async (animalId: string, treatmentId: string, updates: any) => {
+    const animal = animals.find(a => a.id === animalId);
+    if (!animal) return;
+    
+    const updatedTreatments = animal.treatments?.map(t => 
+      t.id === treatmentId ? { ...t, ...updates } : t
+    ) || [];
+    
+    return updateDoc(doc(db, 'animals', animalId), {
+      treatments: updatedTreatments
+    });
+  };
+
+  const deleteTreatment = async (animalId: string, treatmentId: string) => {
+    const animal = animals.find(a => a.id === animalId);
+    if (!animal) return;
+    
+    const updatedTreatments = animal.treatments?.filter(t => t.id !== treatmentId) || [];
+    return updateDoc(doc(db, 'animals', animalId), {
+      treatments: updatedTreatments
+    });
+  };
+
+  return { 
+    animals, 
+    loading,
+    error,
+    addAnimal, 
+    deleteAnimal, 
+    updateAnimal,
+    addTreatment,
+    updateTreatment,
+    deleteTreatment
+  };
 };
