@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Download } from 'lucide-react';  // ← AGGIUNTO Download
 import { useAnimals } from '../../hooks/useAnimals';
 import { AnimalCard } from './AnimalCard';
 import { AnimalForm } from './AnimalForm';
 import { AnimalSearch } from './AnimalSearch';
 import { Species } from '../../types';
 import { speciesList } from '../../utils/constants';
+import { pdfService } from '../../services/pdfService';  // ← AGGIUNTO
 
 export const AnimalList: React.FC = () => {
   console.log("🐶 1. AnimalList montato");
@@ -17,6 +18,15 @@ export const AnimalList: React.FC = () => {
   console.log("🐶 2. useAnimals restituito:", { animals, loading, error });
   console.log("🐶 3. animals è array?", Array.isArray(animals));
   console.log("🐶 4. lunghezza animals:", animals?.length);
+  
+  // Funzione per esportare PDF - AGGIUNTA
+  const handleExportPDF = () => {
+    if (animals.length === 0) {
+      alert("Nessun animale da esportare");
+      return;
+    }
+    pdfService.exportAnimalList(animals);
+  };
   
   if (error) {
     console.error("🐶 ERRORE:", error);
@@ -46,10 +56,10 @@ export const AnimalList: React.FC = () => {
     );
   }
   
- const filteredAnimals = animals.filter(animal => 
-  animal.microchip.toLowerCase().includes(searchTerm.toLowerCase()) || // ← CAMBIATO
-  (animal.nome && animal.nome.toLowerCase().includes(searchTerm.toLowerCase()))
-);
+  const filteredAnimals = animals.filter(animal => 
+    animal.microchip.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (animal.nome && animal.nome.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   const toggleSpecies = (species: Species) => {
     setExpandedSpecies(prev => 
@@ -61,10 +71,21 @@ export const AnimalList: React.FC = () => {
     updateAnimal(id, { notes });
   };
 
-  // ✅ IL FORM È SEMPRE VISIBILE, IN QUALSIASI CASO
   return (
     <div className="space-y-6">
-     <AnimalForm onSave={addAnimal} existingMicrochip={animals.map(a => a.microchip)} />
+      {/* Header con titolo e pulsante esporta */}
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-black text-emerald-900">🐷 Capi</h2>
+        <button
+          onClick={handleExportPDF}
+          className="bg-stone-800 text-white px-4 py-2 rounded-xl text-sm font-black flex items-center gap-2 hover:bg-stone-700 transition-colors"
+        >
+          <Download size={18} />
+          Esporta PDF
+        </button>
+      </div>
+
+      <AnimalForm onSave={addAnimal} existingMicrochip={animals.map(a => a.microchip)} />
       <AnimalSearch 
         value={searchTerm} 
         onChange={setSearchTerm}
