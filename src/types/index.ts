@@ -75,6 +75,30 @@ export interface MarketItem {
   ownerId: string; 
 }
 
+export interface WeatherData {
+  icon: string;
+  temp: number;
+  desc: string;
+  advice: string;
+  location: string;
+  loading: boolean;
+  error: string | null;
+  forecast?: { date: string; max: number; min: number; icon: string }[];
+}
+
+export interface Prediction {
+  className: string;
+  probability: number;
+}
+
+export interface DiagnosisResult {
+  title: string;
+  possibleCauses: string[];
+  action: string;
+  severity: 'high' | 'medium' | 'low';
+  visualFindings?: string[];
+}
+
 export interface ExpiringTreatment {
   animalId: string;
   animalName: string;
