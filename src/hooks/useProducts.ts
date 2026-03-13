@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, addDoc, deleteDoc, doc, updateDoc, orderBy, limit } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useAuth } from './useAuth';
-import { Product, StockLog } from '../types';
+import { Product, StockLog } from '../types';  // ← IMPORT
 
 export const useProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -18,14 +18,12 @@ export const useProducts = () => {
       return;
     }
 
-    // Products
     const productsQuery = query(collection(db, 'products'), where("ownerId", "==", user.uid));
     const unsubProducts = onSnapshot(productsQuery, (snapshot) => {
       const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
       setProducts(items);
     });
 
-    // Stock logs
     const logsQuery = query(
       collection(db, 'stock_logs'), 
       where("ownerId", "==", user.uid), 
@@ -60,13 +58,13 @@ export const useProducts = () => {
   const modifyProduct = async (product: Product, amount: number, isAddition: boolean) => {
     const newQty = isAddition ? product.quantity + amount : Math.max(0, product.quantity - amount);
     await updateDoc(doc(db, 'products', product.id), { quantity: newQty });
-   await addDoc(collection(db, 'stock_logs'), { 
-  productName: product.name, 
-  change: isAddition ? amount : -amount, 
-  date: new Date().toISOString(),  // ← CAMBIA QUI
-  ownerId: user!.uid,
-  reason: 'modifica scorta'
-});
+    await addDoc(collection(db, 'stock_logs'), { 
+      productName: product.name, 
+      change: isAddition ? amount : -amount, 
+      date: new Date().toISOString(), 
+      ownerId: user!.uid,
+      reason: 'modifica scorta'
+    });
   };
 
   const deleteProduct = async (id: string) => {
@@ -92,7 +90,7 @@ export const useProducts = () => {
     await addDoc(collection(db, 'stock_logs'), {
       productName: product.name,
       change: -product.quantity,
-     date: new Date().toISOString(),
+      date: new Date().toISOString(),
       ownerId: user!.uid,
       reason: 'pubblicazione market'
     });
