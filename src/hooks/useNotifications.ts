@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { emailService } from "../services/emailService2";
+import { emailService } from "../services/emailService";
 import { useAuth } from "./useAuth";
 
 // TIPI DEFINITI DIRETTAMENTE QUI
