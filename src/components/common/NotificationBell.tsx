@@ -1,55 +1,43 @@
 import React from 'react';
 import { Bell, BellOff } from 'lucide-react';
-import { usePushNotifications } from '../../hooks/usePushNotifications';
+import { useNotifications } from '../../hooks/useNotifications'; // ← CAMBIATO
 
 export const NotificationBell: React.FC = () => {
-  const { isSupported, permission, requestPermission } = usePushNotifications();
+  const { notificationsEnabled, setNotificationsEnabled } = useNotifications(); // ← CAMBIATO
 
-  if (!isSupported) {
-    return (
-      <div className="relative group">
-        <div className="bg-stone-300 text-white p-2 rounded-full shadow-md cursor-not-allowed opacity-50">
-          <BellOff size={20} />
-        </div>
-        <div className="absolute bottom-full right-0 mb-2 w-48 bg-stone-800 text-white text-[10px] p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-          Browser non supportato
-        </div>
-      </div>
-    );
-  }
+  const toggleNotifications = () => {
+    const newValue = !notificationsEnabled;
+    setNotificationsEnabled(newValue);
+    localStorage.setItem('emailNotifications', String(newValue));
+    
+    if (newValue) {
+      alert('✅ Riceverai le notifiche via email alle scadenze');
+    } else {
+      alert('❌ Notifiche email disattivate');
+    }
+  };
 
-  if (permission === 'denied') {
-    return (
-      <div className="relative group">
-        <div className="bg-red-500 text-white p-2 rounded-full shadow-md opacity-50">
-          <BellOff size={20} />
-        </div>
-        <div className="absolute bottom-full right-0 mb-2 w-48 bg-stone-800 text-white text-[10px] p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-          Notifiche bloccate
-        </div>
-      </div>
-    );
-  }
-
-  if (permission === 'granted') {
-    return (
-      <div className="bg-emerald-500 text-white p-2 rounded-full shadow-md">
-        <Bell size={20} />
-      </div>
-    );
-  }
-
-  // default - non richiesto ancora
+  // Non c'è più bisogno di tutti quei controlli (isSupported, permission, ecc.)
   return (
-    <div className="relative">
+    <div className="relative group">
       <button
-        onClick={requestPermission}
-        className="bg-amber-500 text-white p-2 rounded-full shadow-md hover:bg-amber-600 transition-colors animate-pulse"
-        title="Attiva notifiche per ricevere promemoria"
+        onClick={toggleNotifications}
+        className={`p-2 rounded-full shadow-md transition-colors ${
+          notificationsEnabled 
+            ? 'bg-emerald-500 text-white hover:bg-emerald-600' 
+            : 'bg-stone-300 text-stone-600 hover:bg-stone-400'
+        }`}
+        title={notificationsEnabled ? 'Notifiche email attive' : 'Notifiche email disattive'}
       >
-        <Bell size={20} />
+        {notificationsEnabled ? <Bell size={20} /> : <BellOff size={20} />}
       </button>
-      <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+      
+      {/* Tooltip informativo */}
+      <div className="absolute bottom-full right-0 mb-2 w-48 bg-stone-800 text-white text-[10px] p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+        {notificationsEnabled 
+          ? '✅ Riceverai email per le scadenze' 
+          : '❌ Notifiche email disattive'}
+      </div>
     </div>
   );
 };
