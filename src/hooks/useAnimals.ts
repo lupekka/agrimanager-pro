@@ -2,29 +2,9 @@ import { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useAuth } from './useAuth';
+import { Animal, Treatment } from '../types';  // ← IMPORT
 
-// TIPI DEFINITI DIRETTAMENTE QUI
-export interface Treatment {
-  id: string;
-  tipo: string;
-  dataSomministrazione: string;
-  dataScadenza?: string;
-  note: string;
-  completed?: boolean;
-}
-
-export interface Animal { 
-  id: string; 
-  microchip: string;
-  nome?: string;
-  species: string; 
-  notes: string; 
-  sire?: string; 
-  dam?: string; 
-  birthDate?: string; 
-  ownerId: string;
-  treatments?: Treatment[];
-}
+// ✅ NESSUN TIPO DEFINITO LOCALMENTE
 
 export const useAnimals = () => {
   const [animals, setAnimals] = useState<Animal[]>([]);
@@ -87,7 +67,7 @@ export const useAnimals = () => {
     return updateDoc(doc(db, 'animals', id), updates);
   };
 
-  const addTreatment = async (animalId: string, treatment: any) => {
+  const addTreatment = async (animalId: string, treatment: Treatment) => {
     const animal = animals.find(a => a.id === animalId);
     if (!animal) return;
     
@@ -97,7 +77,7 @@ export const useAnimals = () => {
     });
   };
 
-  const updateTreatment = async (animalId: string, treatmentId: string, updates: any) => {
+  const updateTreatment = async (animalId: string, treatmentId: string, updates: Partial<Treatment>) => {
     const animal = animals.find(a => a.id === animalId);
     if (!animal) return;
     
