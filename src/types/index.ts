@@ -1,3 +1,4 @@
+// TIPI PRINCIPALI
 export type Species = 'Maiali' | 'Cavalli' | 'Mucche' | 'Galline' | 'Oche';
 export type UserRole = 'farmer' | 'consumer';
 export type TreatmentType = 'Vaccino' | 'Vermifugo' | 'Visita' | 'Cura' | 'Medicazione' | 'Altro';
@@ -10,15 +11,12 @@ export interface Treatment {
   dataScadenza?: string;
   note: string;
   completed?: boolean;
-  notified?: boolean;
-  notificationDates?: string[];
 }
 
 export interface Animal { 
   id: string; 
- microchip: string;        // Codice identificativo (obbligatorio)
-  nome?: string;         // Nome affettuoso (opzionale)
-  name?: string;         // Per retrocompatibilità (opzionale)
+  microchip: string;
+  nome?: string;
   species: Species; 
   notes: string; 
   sire?: string; 
@@ -77,22 +75,6 @@ export interface MarketItem {
   ownerId: string; 
 }
 
-export interface Prediction {
-  className: string;
-  probability: number;
-}
-
-export interface WeatherData {
-  icon: string;
-  temp: number;
-  desc: string;
-  advice: string;
-  location: string;
-  loading: boolean;
-  error: string | null;
-  forecast?: { date: string; max: number; min: number; icon: string }[];
-}
-
 export interface ExpiringTreatment {
   animalId: string;
   animalName: string;
@@ -100,12 +82,4 @@ export interface ExpiringTreatment {
   treatment: Treatment;
   daysLeft: number;
   isExpired: boolean;
-}
-
-export interface DiagnosisResult {
-  title: string;
-  possibleCauses: string[];
-  action: string;
-  severity: 'high' | 'medium' | 'low';
-  visualFindings?: string[];
 }
