@@ -35,26 +35,20 @@ import {
 import { SimpleTutorial } from './components/onboarding/SimpleTutorial';
 
 export default function App() {
-  const { user, userRole, userName, loading, logout } = useAuth();
-   const { weather, refreshWeather } = useWeather();
-  const { 
-    notificationsEnabled, 
-    setNotificationsEnabled 
-  } = useNotifications();
+  const { user, userRole, userName, loading } = useAuth();
+  const { weather, refreshWeather } = useWeather();
+  const { notificationsEnabled, setNotificationsEnabled } = useNotifications();
   const { animals } = useAnimals();
   
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showAssistant, setShowAssistant] = useState(false);
-  const [showTutorial, setShowTutorial] = useState(false); // ← NUOVO
+  const [showTutorial, setShowTutorial] = useState(false);
 
   // 🔥 LOGICA TUTORIAL - MOSTRA SOLO AI NUOVI UTENTI
   useEffect(() => {
-    // Controlla se il tutorial è già stato visto
     const tutorialVisto = localStorage.getItem('tutorialCompletato');
     
-    // Se è un utente loggato E non ha mai visto il tutorial
     if (user && !tutorialVisto) {
-      // Aspetta un attimo che l'app sia caricata (evita sovrapposizioni)
       const timer = setTimeout(() => {
         setShowTutorial(true);
       }, 800);
@@ -63,7 +57,6 @@ export default function App() {
     }
   }, [user]);
 
-  // Funzione per completare il tutorial
   const handleTutorialComplete = () => {
     setShowTutorial(false);
     localStorage.setItem('tutorialCompletato', 'true');
@@ -79,7 +72,6 @@ export default function App() {
   }, 0);
 
   if (loading) return <LoadingSpinner />;
-
   if (!user) return <LoginForm />;
 
   const menuItems = userRole === 'farmer' 
@@ -123,9 +115,8 @@ export default function App() {
             {menuItems.find(i => i.id === activeTab)?.label}
           </h2>
           
-          <div className="flex items-center gap-2"
-             <NotificationBell />
-           )}
+          <div className="flex items-center gap-2">
+            <NotificationBell />
             
             {userRole === 'farmer' && (
               <button 
@@ -138,87 +129,85 @@ export default function App() {
           </div>
         </div>
 
-        {/* Assistente AI con animazione */}
+        {/* Assistente AI */}
         {showAssistant && (
-          <div className="animate-slide-down">
+          <div className="animate-slide-down mb-6">
             <AIAssistant onClose={() => setShowAssistant(false)} />
           </div>
         )}
 
-        {/* Weather widget con animazione */}
-        <div className="animate-fade-in">
+        {/* Weather widget */}
+        <div className="animate-fade-in mb-6">
           <WeatherWidget 
             weather={weather} 
             onRefresh={refreshWeather} 
-            showPrompt={showNotificationPrompt && weather.error ? true : false}
-            onDismissPrompt={() => setShowNotificationPrompt(false)}
           />
         </div>
 
-        {/* Dashboard con animazione */}
+        {/* Dashboard */}
         {activeTab === 'dashboard' && userRole === 'farmer' && (
           <div className="animate-fade-in">
             <Dashboard onTabChange={setActiveTab} />
           </div>
         )}
 
-        {/* Inventory con animazione */}
+        {/* Inventory */}
         {activeTab === 'inventory' && userRole === 'farmer' && (
           <div className="animate-fade-in">
             <AnimalList />
           </div>
         )}
 
-        {/* Health con animazione */}
+        {/* Health */}
         {activeTab === 'health' && userRole === 'farmer' && (
           <div className="animate-fade-in">
             <HealthBook />
           </div>
         )}
 
-        {/* Births con animazione */}
+        {/* Births */}
         {activeTab === 'births' && userRole === 'farmer' && (
           <div className="animate-fade-in">
             <BirthRegistration />
           </div>
         )}
 
-        {/* Finance con animazione */}
+        {/* Finance */}
         {activeTab === 'finance' && userRole === 'farmer' && (
           <div className="animate-fade-in">
             <Finance />
           </div>
         )}
 
-        {/* Products con animazione */}
+        {/* Products */}
         {activeTab === 'products' && userRole === 'farmer' && (
           <div className="animate-fade-in">
             <ProductList />
           </div>
         )}
 
-        {/* Tasks con animazione */}
+        {/* Tasks */}
         {activeTab === 'tasks' && userRole === 'farmer' && (
           <div className="animate-fade-in">
             <TaskList />
           </div>
         )}
 
-        {/* Dinastia con animazione */}
+        {/* Dinastia */}
         {activeTab === 'dinastia' && userRole === 'farmer' && (
           <div className="animate-fade-in">
             <DynastyTree />
           </div>
         )}
 
-        {/* Vet con animazione */}
+        {/* Vet */}
         {activeTab === 'vet' && userRole === 'farmer' && (
           <div className="animate-fade-in">
             <VetAIAnalysis />
           </div>
         )}
 
-        {/* Market con animazione */}
+        {/* Market */}
         {activeTab === 'market' && (
           <div className="animate-fade-in">
             <MarketPlace userRole={userRole} />
@@ -227,7 +216,7 @@ export default function App() {
         
       </main>
 
-      {/* 🔥 TUTORIAL - appare solo se showTutorial è true */}
+      {/* Tutorial */}
       {showTutorial && (
         <SimpleTutorial 
           onComplete={handleTutorialComplete} 
