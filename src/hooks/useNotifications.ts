@@ -1,7 +1,38 @@
 import { useState, useCallback } from 'react';
-import { Animal, ExpiringTreatment } from '../types';
 import { emailService } from '../services/emailService';
 import { useAuth } from './useAuth';
+
+// TIPI DEFINITI DIRETTAMENTE QUI
+export interface Treatment {
+  id: string;
+  tipo: string;
+  dataSomministrazione: string;
+  dataScadenza?: string;
+  note: string;
+  completed?: boolean;
+}
+
+export interface Animal { 
+  id: string; 
+  microchip: string;
+  nome?: string;
+  species: string; 
+  notes: string; 
+  sire?: string; 
+  dam?: string; 
+  birthDate?: string; 
+  ownerId: string;
+  treatments?: Treatment[];
+}
+
+export interface ExpiringTreatment {
+  animalId: string;
+  animalName: string;
+  species: string;
+  treatment: Treatment;
+  daysLeft: number;
+  isExpired: boolean;
+}
 
 export const useNotifications = () => {
   const { user, userName } = useAuth();
@@ -38,13 +69,12 @@ export const useNotifications = () => {
             });
           }
           
-          // 📧 INVIA EMAIL per trattamenti in scadenza (non ancora notificati)
+          // 📧 INVIA EMAIL per trattamenti in scadenza
           if (notificationsEnabled && !isExpired && diffDays <= 7 && diffDays >= 0 && user?.email) {
             const notificationKey = `${animal.id}_${treatment.id}_${diffDays}`;
             const sentNotifications = JSON.parse(localStorage.getItem('sentEmailNotifications') || '[]');
             
             if (!sentNotifications.includes(notificationKey)) {
-              // Invia email in background
               emailService.sendTreatmentReminder(
                 user.email,
                 userName || 'Utente',
