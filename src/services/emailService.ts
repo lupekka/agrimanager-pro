@@ -1,30 +1,46 @@
 import emailjs from '@emailjs/browser';
 
-// TIPI DEFINITI DIRETTAMENTE QUI
-export type Species = 'Maiali' | 'Cavalli' | 'Mucche' | 'Galline' | 'Oche';
-export type TreatmentType = 'Vaccino' | 'Vermifugo' | 'Visita' | 'Cura' | 'Medicazione' | 'Altro';
+// Configurazione EmailJS
+const EMAILJS_SERVICE_ID = 'service_5v9gl8d';
+const EMAILJS_TEMPLATE_ID = 'template_b9g21wr';
+const EMAILJS_PUBLIC_KEY = 'NqT_cVjxLyGhwS2XF';
 
-export interface Treatment {
-  id: string;
-  tipo: TreatmentType;
-  dataSomministrazione: string;
-  dataScadenza?: string;
-  note: string;
-  completed?: boolean;
-}
+emailjs.init(EMAILJS_PUBLIC_KEY);
 
-export interface Animal { 
-  id: string; 
-  microchip: string;
-  nome?: string;
-  species: Species; 
-  notes: string; 
-  sire?: string; 
-  dam?: string; 
-  birthDate?: string; 
-  ownerId: string;
-  treatments?: Treatment[];
-}
+export const emailService = {
+  sendTreatmentReminder: async (
+    userEmail: string,
+    userName: string,
+    animalMicrochip: string,
+    animalName: string | undefined,
+    treatmentType: string,
+    expirationDate: string | undefined,
+    daysLeft: number
+  ) => {
+    try {
+      const templateParams = {
+        to_email: userEmail,
+        user_name: userName,
+        animal_code: animalMicrochip,
+        animal_name: animalName || '',
+        treatment_type: treatmentType,
+        expiration_date: expirationDate || 'N/D',
+        days_left: daysLeft,
+        app_url: 'https://agrimanagerpro.it/health'
+      };
+
+      await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        templateParams
+      );
+      
+      return { success: true };
+    } catch (error) {
+      return { success: false, error };
+    }
+  }
+};import emailjs from '@emailjs/browser';
 
 // Configurazione EmailJS
 const EMAILJS_SERVICE_ID = 'service_5v9gl8d';
@@ -34,72 +50,539 @@ const EMAILJS_PUBLIC_KEY = 'NqT_cVjxLyGhwS2XF';
 emailjs.init(EMAILJS_PUBLIC_KEY);
 
 export const emailService = {
-  /**
-   * Invia una notifica per trattamento in scadenza
-   */
   sendTreatmentReminder: async (
     userEmail: string,
     userName: string,
-    animal: Animal,
-    treatment: Treatment,
+    animalMicrochip: string,
+    animalName: string | undefined,
+    treatmentType: string,
+    expirationDate: string | undefined,
     daysLeft: number
   ) => {
     try {
       const templateParams = {
         to_email: userEmail,
         user_name: userName,
-        animal_code: animal.microchip,
-        animal_name: animal.nome || '',
-        treatment_type: treatment.tipo,
-        expiration_date: treatment.dataScadenza 
-          ? new Date(treatment.dataScadenza).toLocaleDateString('it-IT')
-          : 'N/D',
+        animal_code: animalMicrochip,
+        animal_name: animalName || '',
+        treatment_type: treatmentType,
+        expiration_date: expirationDate || 'N/D',
         days_left: daysLeft,
         app_url: 'https://agrimanagerpro.it/health'
       };
 
-      console.log('📧 Invio email con parametri:', templateParams);
-
-      const response = await emailjs.send(
+      await emailjs.send(
         EMAILJS_SERVICE_ID,
         EMAILJS_TEMPLATE_ID,
         templateParams
       );
       
-      console.log('✅ Email inviata con successo:', response);
       return { success: true };
     } catch (error) {
-      console.error('❌ Errore invio email:', error);
       return { success: false, error };
     }
-  },
+  }
+};import emailjs from '@emailjs/browser';
 
-  /**
-   * Invia email di test (utile per verificare configurazione)
-   */
-  sendTestEmail: async (toEmail: string) => {
+// Configurazione EmailJS
+const EMAILJS_SERVICE_ID = 'service_5v9gl8d';
+const EMAILJS_TEMPLATE_ID = 'template_b9g21wr';
+const EMAILJS_PUBLIC_KEY = 'NqT_cVjxLyGhwS2XF';
+
+emailjs.init(EMAILJS_PUBLIC_KEY);
+
+export const emailService = {
+  sendTreatmentReminder: async (
+    userEmail: string,
+    userName: string,
+    animalMicrochip: string,
+    animalName: string | undefined,
+    treatmentType: string,
+    expirationDate: string | undefined,
+    daysLeft: number
+  ) => {
     try {
       const templateParams = {
-        to_email: toEmail,
-        user_name: 'Utente di test',
-        animal_code: 'TEST-001',
-        animal_name: 'Test',
-        treatment_type: 'Vaccino di prova',
-        expiration_date: new Date().toLocaleDateString('it-IT'),
-        days_left: 3,
-        app_url: 'https://agrimanagerpro.it'
+        to_email: userEmail,
+        user_name: userName,
+        animal_code: animalMicrochip,
+        animal_name: animalName || '',
+        treatment_type: treatmentType,
+        expiration_date: expirationDate || 'N/D',
+        days_left: daysLeft,
+        app_url: 'https://agrimanagerpro.it/health'
       };
 
-      const response = await emailjs.send(
+      await emailjs.send(
         EMAILJS_SERVICE_ID,
         EMAILJS_TEMPLATE_ID,
         templateParams
       );
       
-      console.log('✅ Email di test inviata:', response);
       return { success: true };
     } catch (error) {
-      console.error('❌ Errore email di test:', error);
+      return { success: false, error };
+    }
+  }
+};import emailjs from '@emailjs/browser';
+
+// Configurazione EmailJS
+const EMAILJS_SERVICE_ID = 'service_5v9gl8d';
+const EMAILJS_TEMPLATE_ID = 'template_b9g21wr';
+const EMAILJS_PUBLIC_KEY = 'NqT_cVjxLyGhwS2XF';
+
+emailjs.init(EMAILJS_PUBLIC_KEY);
+
+export const emailService = {
+  sendTreatmentReminder: async (
+    userEmail: string,
+    userName: string,
+    animalMicrochip: string,
+    animalName: string | undefined,
+    treatmentType: string,
+    expirationDate: string | undefined,
+    daysLeft: number
+  ) => {
+    try {
+      const templateParams = {
+        to_email: userEmail,
+        user_name: userName,
+        animal_code: animalMicrochip,
+        animal_name: animalName || '',
+        treatment_type: treatmentType,
+        expiration_date: expirationDate || 'N/D',
+        days_left: daysLeft,
+        app_url: 'https://agrimanagerpro.it/health'
+      };
+
+      await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        templateParams
+      );
+      
+      return { success: true };
+    } catch (error) {
+      return { success: false, error };
+    }
+  }
+};import emailjs from '@emailjs/browser';
+
+// Configurazione EmailJS
+const EMAILJS_SERVICE_ID = 'service_5v9gl8d';
+const EMAILJS_TEMPLATE_ID = 'template_b9g21wr';
+const EMAILJS_PUBLIC_KEY = 'NqT_cVjxLyGhwS2XF';
+
+emailjs.init(EMAILJS_PUBLIC_KEY);
+
+export const emailService = {
+  sendTreatmentReminder: async (
+    userEmail: string,
+    userName: string,
+    animalMicrochip: string,
+    animalName: string | undefined,
+    treatmentType: string,
+    expirationDate: string | undefined,
+    daysLeft: number
+  ) => {
+    try {
+      const templateParams = {
+        to_email: userEmail,
+        user_name: userName,
+        animal_code: animalMicrochip,
+        animal_name: animalName || '',
+        treatment_type: treatmentType,
+        expiration_date: expirationDate || 'N/D',
+        days_left: daysLeft,
+        app_url: 'https://agrimanagerpro.it/health'
+      };
+
+      await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        templateParams
+      );
+      
+      return { success: true };
+    } catch (error) {
+      return { success: false, error };
+    }
+  }
+};import emailjs from '@emailjs/browser';
+
+// Configurazione EmailJS
+const EMAILJS_SERVICE_ID = 'service_5v9gl8d';
+const EMAILJS_TEMPLATE_ID = 'template_b9g21wr';
+const EMAILJS_PUBLIC_KEY = 'NqT_cVjxLyGhwS2XF';
+
+emailjs.init(EMAILJS_PUBLIC_KEY);
+
+export const emailService = {
+  sendTreatmentReminder: async (
+    userEmail: string,
+    userName: string,
+    animalMicrochip: string,
+    animalName: string | undefined,
+    treatmentType: string,
+    expirationDate: string | undefined,
+    daysLeft: number
+  ) => {
+    try {
+      const templateParams = {
+        to_email: userEmail,
+        user_name: userName,
+        animal_code: animalMicrochip,
+        animal_name: animalName || '',
+        treatment_type: treatmentType,
+        expiration_date: expirationDate || 'N/D',
+        days_left: daysLeft,
+        app_url: 'https://agrimanagerpro.it/health'
+      };
+
+      await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        templateParams
+      );
+      
+      return { success: true };
+    } catch (error) {
+      return { success: false, error };
+    }
+  }
+};import emailjs from '@emailjs/browser';
+
+// Configurazione EmailJS
+const EMAILJS_SERVICE_ID = 'service_5v9gl8d';
+const EMAILJS_TEMPLATE_ID = 'template_b9g21wr';
+const EMAILJS_PUBLIC_KEY = 'NqT_cVjxLyGhwS2XF';
+
+emailjs.init(EMAILJS_PUBLIC_KEY);
+
+export const emailService = {
+  sendTreatmentReminder: async (
+    userEmail: string,
+    userName: string,
+    animalMicrochip: string,
+    animalName: string | undefined,
+    treatmentType: string,
+    expirationDate: string | undefined,
+    daysLeft: number
+  ) => {
+    try {
+      const templateParams = {
+        to_email: userEmail,
+        user_name: userName,
+        animal_code: animalMicrochip,
+        animal_name: animalName || '',
+        treatment_type: treatmentType,
+        expiration_date: expirationDate || 'N/D',
+        days_left: daysLeft,
+        app_url: 'https://agrimanagerpro.it/health'
+      };
+
+      await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        templateParams
+      );
+      
+      return { success: true };
+    } catch (error) {
+      return { success: false, error };
+    }
+  }
+};import emailjs from '@emailjs/browser';
+
+// Configurazione EmailJS
+const EMAILJS_SERVICE_ID = 'service_5v9gl8d';
+const EMAILJS_TEMPLATE_ID = 'template_b9g21wr';
+const EMAILJS_PUBLIC_KEY = 'NqT_cVjxLyGhwS2XF';
+
+emailjs.init(EMAILJS_PUBLIC_KEY);
+
+export const emailService = {
+  sendTreatmentReminder: async (
+    userEmail: string,
+    userName: string,
+    animalMicrochip: string,
+    animalName: string | undefined,
+    treatmentType: string,
+    expirationDate: string | undefined,
+    daysLeft: number
+  ) => {
+    try {
+      const templateParams = {
+        to_email: userEmail,
+        user_name: userName,
+        animal_code: animalMicrochip,
+        animal_name: animalName || '',
+        treatment_type: treatmentType,
+        expiration_date: expirationDate || 'N/D',
+        days_left: daysLeft,
+        app_url: 'https://agrimanagerpro.it/health'
+      };
+
+      await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        templateParams
+      );
+      
+      return { success: true };
+    } catch (error) {
+      return { success: false, error };
+    }
+  }
+};import emailjs from '@emailjs/browser';
+
+// Configurazione EmailJS
+const EMAILJS_SERVICE_ID = 'service_5v9gl8d';
+const EMAILJS_TEMPLATE_ID = 'template_b9g21wr';
+const EMAILJS_PUBLIC_KEY = 'NqT_cVjxLyGhwS2XF';
+
+emailjs.init(EMAILJS_PUBLIC_KEY);
+
+export const emailService = {
+  sendTreatmentReminder: async (
+    userEmail: string,
+    userName: string,
+    animalMicrochip: string,
+    animalName: string | undefined,
+    treatmentType: string,
+    expirationDate: string | undefined,
+    daysLeft: number
+  ) => {
+    try {
+      const templateParams = {
+        to_email: userEmail,
+        user_name: userName,
+        animal_code: animalMicrochip,
+        animal_name: animalName || '',
+        treatment_type: treatmentType,
+        expiration_date: expirationDate || 'N/D',
+        days_left: daysLeft,
+        app_url: 'https://agrimanagerpro.it/health'
+      };
+
+      await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        templateParams
+      );
+      
+      return { success: true };
+    } catch (error) {
+      return { success: false, error };
+    }
+  }
+};import emailjs from '@emailjs/browser';
+
+// Configurazione EmailJS
+const EMAILJS_SERVICE_ID = 'service_5v9gl8d';
+const EMAILJS_TEMPLATE_ID = 'template_b9g21wr';
+const EMAILJS_PUBLIC_KEY = 'NqT_cVjxLyGhwS2XF';
+
+emailjs.init(EMAILJS_PUBLIC_KEY);
+
+export const emailService = {
+  sendTreatmentReminder: async (
+    userEmail: string,
+    userName: string,
+    animalMicrochip: string,
+    animalName: string | undefined,
+    treatmentType: string,
+    expirationDate: string | undefined,
+    daysLeft: number
+  ) => {
+    try {
+      const templateParams = {
+        to_email: userEmail,
+        user_name: userName,
+        animal_code: animalMicrochip,
+        animal_name: animalName || '',
+        treatment_type: treatmentType,
+        expiration_date: expirationDate || 'N/D',
+        days_left: daysLeft,
+        app_url: 'https://agrimanagerpro.it/health'
+      };
+
+      await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        templateParams
+      );
+      
+      return { success: true };
+    } catch (error) {
+      return { success: false, error };
+    }
+  }
+};import emailjs from '@emailjs/browser';
+
+// Configurazione EmailJS
+const EMAILJS_SERVICE_ID = 'service_5v9gl8d';
+const EMAILJS_TEMPLATE_ID = 'template_b9g21wr';
+const EMAILJS_PUBLIC_KEY = 'NqT_cVjxLyGhwS2XF';
+
+emailjs.init(EMAILJS_PUBLIC_KEY);
+
+export const emailService = {
+  sendTreatmentReminder: async (
+    userEmail: string,
+    userName: string,
+    animalMicrochip: string,
+    animalName: string | undefined,
+    treatmentType: string,
+    expirationDate: string | undefined,
+    daysLeft: number
+  ) => {
+    try {
+      const templateParams = {
+        to_email: userEmail,
+        user_name: userName,
+        animal_code: animalMicrochip,
+        animal_name: animalName || '',
+        treatment_type: treatmentType,
+        expiration_date: expirationDate || 'N/D',
+        days_left: daysLeft,
+        app_url: 'https://agrimanagerpro.it/health'
+      };
+
+      await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        templateParams
+      );
+      
+      return { success: true };
+    } catch (error) {
+      return { success: false, error };
+    }
+  }
+};import emailjs from '@emailjs/browser';
+
+// Configurazione EmailJS
+const EMAILJS_SERVICE_ID = 'service_5v9gl8d';
+const EMAILJS_TEMPLATE_ID = 'template_b9g21wr';
+const EMAILJS_PUBLIC_KEY = 'NqT_cVjxLyGhwS2XF';
+
+emailjs.init(EMAILJS_PUBLIC_KEY);
+
+export const emailService = {
+  sendTreatmentReminder: async (
+    userEmail: string,
+    userName: string,
+    animalMicrochip: string,
+    animalName: string | undefined,
+    treatmentType: string,
+    expirationDate: string | undefined,
+    daysLeft: number
+  ) => {
+    try {
+      const templateParams = {
+        to_email: userEmail,
+        user_name: userName,
+        animal_code: animalMicrochip,
+        animal_name: animalName || '',
+        treatment_type: treatmentType,
+        expiration_date: expirationDate || 'N/D',
+        days_left: daysLeft,
+        app_url: 'https://agrimanagerpro.it/health'
+      };
+
+      await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        templateParams
+      );
+      
+      return { success: true };
+    } catch (error) {
+      return { success: false, error };
+    }
+  }
+};import emailjs from '@emailjs/browser';
+
+// Configurazione EmailJS
+const EMAILJS_SERVICE_ID = 'service_5v9gl8d';
+const EMAILJS_TEMPLATE_ID = 'template_b9g21wr';
+const EMAILJS_PUBLIC_KEY = 'NqT_cVjxLyGhwS2XF';
+
+emailjs.init(EMAILJS_PUBLIC_KEY);
+
+export const emailService = {
+  sendTreatmentReminder: async (
+    userEmail: string,
+    userName: string,
+    animalMicrochip: string,
+    animalName: string | undefined,
+    treatmentType: string,
+    expirationDate: string | undefined,
+    daysLeft: number
+  ) => {
+    try {
+      const templateParams = {
+        to_email: userEmail,
+        user_name: userName,
+        animal_code: animalMicrochip,
+        animal_name: animalName || '',
+        treatment_type: treatmentType,
+        expiration_date: expirationDate || 'N/D',
+        days_left: daysLeft,
+        app_url: 'https://agrimanagerpro.it/health'
+      };
+
+      await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        templateParams
+      );
+      
+      return { success: true };
+    } catch (error) {
+      return { success: false, error };
+    }
+  }
+};import emailjs from '@emailjs/browser';
+
+// Configurazione EmailJS
+const EMAILJS_SERVICE_ID = 'service_5v9gl8d';
+const EMAILJS_TEMPLATE_ID = 'template_b9g21wr';
+const EMAILJS_PUBLIC_KEY = 'NqT_cVjxLyGhwS2XF';
+
+emailjs.init(EMAILJS_PUBLIC_KEY);
+
+export const emailService = {
+  sendTreatmentReminder: async (
+    userEmail: string,
+    userName: string,
+    animalMicrochip: string,
+    animalName: string | undefined,
+    treatmentType: string,
+    expirationDate: string | undefined,
+    daysLeft: number
+  ) => {
+    try {
+      const templateParams = {
+        to_email: userEmail,
+        user_name: userName,
+        animal_code: animalMicrochip,
+        animal_name: animalName || '',
+        treatment_type: treatmentType,
+        expiration_date: expirationDate || 'N/D',
+        days_left: daysLeft,
+        app_url: 'https://agrimanagerpro.it/health'
+      };
+
+      await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        templateParams
+      );
+      
+      return { success: true };
+    } catch (error) {
       return { success: false, error };
     }
   }
