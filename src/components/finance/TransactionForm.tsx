@@ -20,7 +20,15 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ onSave }) => {
       return;
     }
     
-    onSave(newTrans);
+    // AGGIUNGIAMO LA DATA AUTOMATICAMENTE
+    const transactionWithDate = {
+      ...newTrans,
+      date: new Date().toLocaleDateString('it-IT')  // Formato "16/03/2026"
+    };
+    
+    console.log("💰 TransactionForm - dati inviati:", transactionWithDate);
+    
+    onSave(transactionWithDate);
     
     setNewTrans({
       desc: '',
