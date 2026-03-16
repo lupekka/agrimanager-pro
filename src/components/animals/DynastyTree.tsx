@@ -1,22 +1,21 @@
 import React, { useState } from 'react';
-import { Network, ChevronDown, ChevronRight, Search, Users, GitBranch } from 'lucide-react';
+import { Network, ChevronDown, ChevronRight, Search, Users, GitBranch, ChevronsDown, ChevronsRight } from 'lucide-react';
 import { useAnimals } from '../../hooks/useAnimals';
 import { Animal } from '../../types';
 import { speciesList } from '../../utils/constants';
 
-// Componente per un nodo dell'albero (ricorsivo)
+// Componente per un nodo dell'albero (ricorsivo) - VERSIONE MOBILE
 const FamilyNode: React.FC<{
   animal: Animal;
   allAnimals: Animal[];
   level: number;
   expandedNodes: Set<string>;
   onToggle: (id: string) => void;
-  visited?: Set<string>; // Per evitare loop
+  visited?: Set<string>;
 }> = ({ animal, allAnimals, level, expandedNodes, onToggle, visited = new Set() }) => {
   
   const isExpanded = expandedNodes.has(animal.id);
   
-  // Evita loop infiniti
   if (visited.has(animal.id)) return null;
   const newVisited = new Set(visited);
   newVisited.add(animal.id);
@@ -25,7 +24,7 @@ const FamilyNode: React.FC<{
   const father = allAnimals.find(a => a.microchip === animal.sire);
   const mother = allAnimals.find(a => a.microchip === animal.dam);
   
-  // Trova fratelli (stessi genitori)
+  // Trova fratelli
   const siblings = allAnimals.filter(a => 
     a.id !== animal.id && (
       (a.sire && a.sire === animal.sire) || 
@@ -38,40 +37,25 @@ const FamilyNode: React.FC<{
     a.sire === animal.microchip || a.dam === animal.microchip
   );
   
-  // Trova nipoti (figli dei figli)
-  const grandchildren = children.flatMap(child => 
-    allAnimals.filter(a => 
-      a.sire === child.microchip || a.dam === child.microchip
-    )
-  );
-  
-  const hasFamily = father || mother || siblings.length > 0 || children.length > 0 || grandchildren.length > 0;
+  const hasFamily = father || mother || siblings.length > 0 || children.length > 0;
   
   // Calcola il colore in base al livello
   const getLevelColor = () => {
-    if (level === 0) return 'bg-emerald-500 text-white border-emerald-600';
-    if (level % 2 === 0) return 'bg-amber-50 border-amber-200';
-    return 'bg-blue-50 border-blue-200';
+    if (level === 0) return 'bg-emerald-100 border-emerald-500 border-l-8';
+    if (level % 2 === 0) return 'bg-amber-50 border-amber-200 border-l-4';
+    return 'bg-blue-50 border-blue-200 border-l-4';
   };
   
   const getLevelBg = getLevelColor();
   
-  // Margine sinistro in base al livello
-  const marginLeft = level * 30;
-  
   return (
-    <div className="relative" style={{ marginLeft: `${marginLeft}px` }}>
-      {/* Linea di connessione verticale per livelli > 0 */}
-      {level > 0 && (
-        <div className="absolute -left-[15px] top-6 w-[15px] h-0.5 bg-stone-300"></div>
-      )}
-      
-      {/* Nodo principale */}
-      <div className={`relative p-3 rounded-xl border-2 shadow-sm mb-2 transition-all ${getLevelBg}`}>
+    <div className="relative mb-3">
+      {/* Nodo principale - senza marginLeft, usa bordi colorati per indentazione visiva */}
+      <div className={`relative p-4 rounded-xl border-2 shadow-sm transition-all ${getLevelBg}`}>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 flex-1">
-            {/* Icona specie */}
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            {/* Icona specie grande */}
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0 ${
               animal.species === 'Maiali' ? 'bg-pink-200 text-pink-800' :
               animal.species === 'Mucche' ? 'bg-amber-200 text-amber-800' :
               animal.species === 'Cavalli' ? 'bg-purple-200 text-purple-800' :
@@ -82,73 +66,73 @@ const FamilyNode: React.FC<{
                animal.species === 'Cavalli' ? '🐴' : '🐔'}
             </div>
             
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-black text-stone-800 text-sm">
+                <span className="font-black text-stone-800 text-base">
                   {animal.microchip}
                 </span>
                 {animal.nome && (
-                  <span className="text-xs text-emerald-600 italic">
+                  <span className="text-sm text-emerald-600 italic truncate">
                     "{animal.nome}"
                   </span>
                 )}
                 {level === 0 && (
-                  <span className="text-[8px] bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded-full font-black">
-                    SELEZIONATO
+                  <span className="text-[10px] bg-emerald-600 text-white px-2 py-1 rounded-full font-black">
+                    RADICE
                   </span>
                 )}
               </div>
               {animal.birthDate && (
-                <p className="text-[9px] text-stone-500">
+                <p className="text-xs text-stone-500 mt-1">
                   🎂 {new Date(animal.birthDate).toLocaleDateString('it-IT')}
                 </p>
               )}
             </div>
             
-            {/* Pulsante espansione */}
+            {/* FRECCIA GRANDE per mobile */}
             {hasFamily && (
               <button
                 onClick={() => onToggle(animal.id)}
-                className="p-1.5 hover:bg-white/50 rounded-lg transition-colors"
-                title={isExpanded ? "Nascondi famiglia" : "Mostra tutta la famiglia"}
+                className="p-3 hover:bg-white/50 rounded-xl transition-colors ml-2 flex-shrink-0"
+                style={{ minWidth: '48px', minHeight: '48px' }}
+                title={isExpanded ? "Nascondi famiglia" : "Mostra famiglia"}
               >
                 {isExpanded ? (
-                  <ChevronDown size={18} className="text-emerald-600" />
+                  <ChevronsDown size={28} className="text-emerald-600" />
                 ) : (
-                  <ChevronRight size={18} className="text-stone-400" />
+                  <ChevronsRight size={28} className="text-stone-600" />
                 )}
               </button>
             )}
           </div>
         </div>
         
-        {/* Riepilogo famiglia (sempre visibile) */}
-        <div className="mt-2 pt-2 border-t border-stone-200 text-[8px] text-stone-500 flex flex-wrap gap-2">
-          {father && <span className="bg-blue-50 px-2 py-0.5 rounded">👨 Padre: {father.microchip}</span>}
-          {mother && <span className="bg-pink-50 px-2 py-0.5 rounded">👩 Madre: {mother.microchip}</span>}
-          {siblings.length > 0 && (
-            <span className="bg-amber-50 px-2 py-0.5 rounded">👥 {siblings.length} fratelli</span>
-          )}
-          {children.length > 0 && (
-            <span className="bg-emerald-50 px-2 py-0.5 rounded">👶 {children.length} figli</span>
-          )}
-          {grandchildren.length > 0 && (
-            <span className="bg-purple-50 px-2 py-0.5 rounded">👶👶 {grandchildren.length} nipoti</span>
-          )}
-        </div>
+        {/* Riepilogo famiglia - più leggibile */}
+        {(father || mother || siblings.length > 0 || children.length > 0) && (
+          <div className="mt-3 pt-3 border-t-2 border-stone-200 text-xs text-stone-600 flex flex-wrap gap-2">
+            {father && <span className="bg-blue-100 px-3 py-1.5 rounded-full">👨 Padre</span>}
+            {mother && <span className="bg-pink-100 px-3 py-1.5 rounded-full">👩 Madre</span>}
+            {siblings.length > 0 && (
+              <span className="bg-amber-100 px-3 py-1.5 rounded-full">👥 {siblings.length} fratelli</span>
+            )}
+            {children.length > 0 && (
+              <span className="bg-emerald-100 px-3 py-1.5 rounded-full">👶 {children.length} figli</span>
+            )}
+          </div>
+        )}
       </div>
       
-      {/* Espansione famiglia */}
+      {/* Espansione famiglia - VERTICALE, senza scroll */}
       {isExpanded && (
-        <div className="relative mt-2 ml-4 pl-4 border-l-2 border-emerald-200">
+        <div className="relative mt-3 ml-6 pl-4 border-l-4 border-emerald-300">
           
           {/* Genitori */}
           {(father || mother) && (
-            <div className="mb-3">
-              <p className="text-[9px] font-black text-stone-500 mb-1 uppercase tracking-wider">
-                ⬆️ GENITORI
+            <div className="mb-4">
+              <p className="text-xs font-black text-stone-600 mb-2 uppercase tracking-wider flex items-center gap-1 bg-stone-100 p-2 rounded-lg">
+                <span>⬆️ GENITORI</span>
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <div className="space-y-3">
                 {father && (
                   <FamilyNode
                     animal={father}
@@ -175,11 +159,11 @@ const FamilyNode: React.FC<{
           
           {/* Fratelli */}
           {siblings.length > 0 && (
-            <div className="mb-3">
-              <p className="text-[9px] font-black text-stone-500 mb-1 uppercase tracking-wider">
-                👥 FRATELLI
+            <div className="mb-4">
+              <p className="text-xs font-black text-stone-600 mb-2 uppercase tracking-wider flex items-center gap-1 bg-stone-100 p-2 rounded-lg">
+                <span>👥 FRATELLI</span>
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+              <div className="space-y-3">
                 {siblings.slice(0, 3).map(sibling => (
                   <FamilyNode
                     key={sibling.id}
@@ -192,7 +176,7 @@ const FamilyNode: React.FC<{
                   />
                 ))}
                 {siblings.length > 3 && (
-                  <div className="text-xs text-stone-400 italic p-2">
+                  <div className="text-sm text-stone-500 italic p-3 bg-stone-50 rounded-lg border border-dashed">
                     ... e altri {siblings.length - 3} fratelli
                   </div>
                 )}
@@ -203,10 +187,10 @@ const FamilyNode: React.FC<{
           {/* Figli */}
           {children.length > 0 && (
             <div className="mb-3">
-              <p className="text-[9px] font-black text-stone-500 mb-1 uppercase tracking-wider">
-                ⬇️ FIGLI
+              <p className="text-xs font-black text-stone-600 mb-2 uppercase tracking-wider flex items-center gap-1 bg-stone-100 p-2 rounded-lg">
+                <span>⬇️ FIGLI</span>
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+              <div className="space-y-3">
                 {children.slice(0, 4).map(child => (
                   <FamilyNode
                     key={child.id}
@@ -219,7 +203,7 @@ const FamilyNode: React.FC<{
                   />
                 ))}
                 {children.length > 4 && (
-                  <div className="text-xs text-stone-400 italic p-2">
+                  <div className="text-sm text-stone-500 italic p-3 bg-stone-50 rounded-lg border border-dashed">
                     ... e altri {children.length - 4} figli
                   </div>
                 )}
@@ -280,30 +264,30 @@ export const DynastyTree: React.FC = () => {
   }
   
   return (
-    <div className="bg-white p-6 rounded-3xl border shadow-sm">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6 border-b pb-4">
+    <div className="bg-white p-4 md:p-6 rounded-3xl border shadow-sm">
+      {/* Header mobile-friendly */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 border-b pb-4">
         <div className="flex items-center gap-2">
-          <GitBranch className="text-emerald-600" size={24} />
-          <h3 className="text-xl font-black italic uppercase text-emerald-900">
-            Albero Genealogico Completo
+          <GitBranch className="text-emerald-600" size={28} />
+          <h3 className="text-2xl font-black italic uppercase text-emerald-900">
+            Albero Genealogico
           </h3>
         </div>
         
-        {/* Controlli espansione */}
+        {/* Controlli espansione - mobile friendly */}
         {rootAnimal && (
-          <div className="flex gap-2">
+          <div className="flex gap-3 self-end md:self-auto">
             <button
               onClick={expandAll}
-              className="text-xs bg-stone-100 px-3 py-1 rounded-full hover:bg-stone-200"
-              title="Espandi tutto"
+              className="text-sm bg-stone-100 px-4 py-3 rounded-full hover:bg-stone-200 transition-colors font-bold"
+              style={{ minHeight: '48px', minWidth: '48px' }}
             >
-              🌳 Espandi tutto
+              🌳 Espandi
             </button>
             <button
               onClick={collapseAll}
-              className="text-xs bg-stone-100 px-3 py-1 rounded-full hover:bg-stone-200"
-              title="Comprimi tutto"
+              className="text-sm bg-stone-100 px-4 py-3 rounded-full hover:bg-stone-200 transition-colors font-bold"
+              style={{ minHeight: '48px', minWidth: '48px' }}
             >
               📦 Comprimi
             </button>
@@ -311,13 +295,14 @@ export const DynastyTree: React.FC = () => {
         )}
       </div>
       
-      {/* Filtri e ricerca */}
-      <div className="mb-6 space-y-3">
+      {/* Filtri e ricerca - mobile ottimizzati */}
+      <div className="mb-6 space-y-4">
         <div className="flex flex-col md:flex-row gap-3">
           <select
-            className="flex-1 p-2 bg-stone-50 rounded-lg text-sm font-bold border-none shadow-inner"
+            className="flex-1 p-4 bg-stone-50 rounded-xl text-base font-bold border-none shadow-inner"
             value={selectedSpecies}
             onChange={(e) => setSelectedSpecies(e.target.value)}
+            style={{ minHeight: '52px' }}
           >
             <option value="">Tutte le specie</option>
             {speciesList.map(s => (
@@ -326,25 +311,27 @@ export const DynastyTree: React.FC = () => {
           </select>
           
           <div className="flex-1 relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+            <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" />
             <input
               type="text"
               placeholder="Cerca per microchip o nome..."
-              className="w-full p-2 pl-9 bg-stone-50 rounded-lg text-sm font-bold border-none shadow-inner"
+              className="w-full p-4 pl-12 bg-stone-50 rounded-xl text-base font-bold border-none shadow-inner"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ minHeight: '52px' }}
             />
           </div>
         </div>
         
         {filteredAnimals.length > 0 && (
           <select
-            className="w-full p-3 bg-emerald-50 rounded-xl text-sm font-black border-2 border-emerald-200"
+            className="w-full p-4 bg-emerald-50 rounded-xl text-base font-black border-2 border-emerald-200"
             value={selectedAnimal}
             onChange={(e) => {
               setSelectedAnimal(e.target.value);
               setExpandedNodes(new Set());
             }}
+            style={{ minHeight: '56px' }}
           >
             <option value="">-- Seleziona un animale come radice --</option>
             {filteredAnimals.map(a => (
@@ -356,27 +343,25 @@ export const DynastyTree: React.FC = () => {
         )}
       </div>
       
-      {/* Albero genealogico */}
+      {/* Albero genealogico - MOBILE FIRST, senza scroll */}
       {rootAnimal ? (
-        <div className="overflow-x-auto py-4">
-          <div className="min-w-[800px]">
-            <FamilyNode
-              animal={rootAnimal}
-              allAnimals={animals}
-              level={0}
-              expandedNodes={expandedNodes}
-              onToggle={toggleNode}
-            />
-          </div>
+        <div className="py-2">
+          <FamilyNode
+            animal={rootAnimal}
+            allAnimals={animals}
+            level={0}
+            expandedNodes={expandedNodes}
+            onToggle={toggleNode}
+          />
         </div>
       ) : (
         <div className="text-center py-12 bg-stone-50 rounded-2xl border-2 border-dashed">
           <GitBranch size={48} className="text-stone-300 mx-auto mb-3" />
-          <p className="text-stone-500 font-bold">
-            Seleziona un animale per vedere il suo albero genealogico completo
+          <p className="text-stone-500 font-bold text-lg">
+            Seleziona un animale
           </p>
-          <p className="text-xs text-stone-400 mt-2">
-            Vedrai: genitori, nonni, fratelli, figli, nipoti e tutte le relazioni di sangue
+          <p className="text-sm text-stone-400 mt-2">
+            per vedere il suo albero genealogico completo
           </p>
         </div>
       )}
