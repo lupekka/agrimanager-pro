@@ -224,7 +224,7 @@ async fetchWeather(lat?: number, lon?: number): Promise<Partial<WeatherData>> {
       error: "Errore meteo"
     };
   }
-}
+},
   getCachedWeather(): WeatherData | null {
     const cached = localStorage.getItem('agriWeather');
     if (cached) {
