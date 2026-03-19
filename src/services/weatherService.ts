@@ -1,9 +1,18 @@
 import { WeatherData } from '../types';
 import { weatherAdviceMap } from '../utils/constants';
 
+// Cache in memoria per evitare richieste duplicate
+let locationCache: { lat: number; lon: number; city: string; timestamp: number } | null = null;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minuti
+
 export const weatherService = {
-  // 🔵 FUNZIONI GPS (NUOVE)
+  // 🔵 FUNZIONI GPS (OTTIMIZZATE)
   async getUserLocationByGPS(): Promise<{ lat: number; lon: number; city: string } | null> {
+    // Controlla cache in memoria
+    if (locationCache && Date.now() - locationCache.timestamp < CACHE_DURATION) {
+      return { lat: locationCache.lat, lon: locationCache.lon, city: locationCache.city };
+    }
+
     return new Promise((resolve) => {
       if (!navigator.geolocation) {
         console.log("GPS non supportato");
@@ -14,23 +23,47 @@ export const weatherService = {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const { latitude, longitude } = position.coords;
-          const city = await this.reverseGeocode(latitude, longitude);
-          resolve({ lat: latitude, lon: longitude, city });
+          
+          // Reverse geocoding con timeout e cache
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 3000);
+          
+          try {
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&accept-language=it`,
+              { signal: controller.signal }
+            );
+            clearTimeout(timeoutId);
+            
+            const data = await response.json();
+            const city = data.address?.city || data.address?.town || data.address?.village || "Posizione attuale";
+            
+            // Aggiorna cache
+            locationCache = { lat: latitude, lon: longitude, city, timestamp: Date.now() };
+            
+            resolve({ lat: latitude, lon: longitude, city });
+          } catch {
+            clearTimeout(timeoutId);
+            resolve({ lat: latitude, lon: longitude, city: "Posizione attuale" });
+          }
         },
-        (error) => {
-          console.log("GPS negato o errore:", error);
-          resolve(null);
-        },
-        { timeout: 10000, enableHighAccuracy: true }
+        () => resolve(null),
+        { timeout: 8000, enableHighAccuracy: true }
       );
     });
   },
 
   async reverseGeocode(lat: number, lon: number): Promise<string> {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=it`
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=it`,
+        { signal: controller.signal }
       );
+      clearTimeout(timeoutId);
+      
       const data = await response.json();
       return data.address?.city || data.address?.town || data.address?.village || "Posizione attuale";
     } catch {
@@ -39,10 +72,18 @@ export const weatherService = {
   },
 
   async searchLocation(query: string): Promise<Array<{ name: string; lat: number; lon: number; country: string }>> {
+    if (!query.trim()) return [];
+    
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
       const response = await fetch(
-        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=it`
+        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=it`,
+        { signal: controller.signal }
       );
+      clearTimeout(timeoutId);
+      
       const data = await response.json();
       return data.results?.map((r: any) => ({
         name: r.name,
@@ -56,7 +97,10 @@ export const weatherService = {
   },
 
   saveUserLocation(lat: number, lon: number, city: string) {
-    localStorage.setItem('userPreferredLocation', JSON.stringify({ lat, lon, city, timestamp: Date.now() }));
+    const data = { lat, lon, city, timestamp: Date.now() };
+    localStorage.setItem('userPreferredLocation', JSON.stringify(data));
+    // Aggiorna anche cache in memoria
+    locationCache = data;
   },
 
   getUserPreferredLocation(): { lat: number; lon: number; city: string } | null {
@@ -64,10 +108,14 @@ export const weatherService = {
     return saved ? JSON.parse(saved) : null;
   },
 
-  // 🔵 FUNZIONI ESISTENTI (LE MANTIENI)
   async getUserLocationByIP() {
     try {
-      const ipResponse = await fetch('https://ipapi.co/json/');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const ipResponse = await fetch('https://ipapi.co/json/', { signal: controller.signal });
+      clearTimeout(timeoutId);
+      
       const ipData = await ipResponse.json();
       return {
         lat: ipData.latitude,
@@ -80,86 +128,82 @@ export const weatherService = {
     }
   },
 
-  // 🔵 NUOVA VERSIONE DI fetchWeather CON SUPPORTO GPS
- async fetchWeather(useGPS: boolean = true): Promise<Partial<WeatherData>> {
-  try {
-    let location;
+  async fetchWeather(useGPS: boolean = true): Promise<Partial<WeatherData>> {
+    try {
+      let location;
 
-    // 1. Prova con la località preferita salvata
-    const preferred = this.getUserPreferredLocation();
-    if (preferred) {
-      location = preferred;
-      console.log('📍 [PREFERITA]', location); // 🔍 LOG
+      // 1. Prova con la località preferita salvata
+      const preferred = this.getUserPreferredLocation();
+      if (preferred) {
+        location = preferred;
+      }
+      // 2. Altrimenti GPS (se richiesto)
+      else if (useGPS) {
+        const gpsLocation = await this.getUserLocationByGPS();
+        location = gpsLocation || await this.getUserLocationByIP();
+      }
+      // 3. Fallback su IP
+      else {
+        location = await this.getUserLocationByIP();
+      }
+
+      // Chiamata API meteo con timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      
+      const response = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${location.lat}&longitude=${location.lon}&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto`,
+        { signal: controller.signal }
+      );
+      clearTimeout(timeoutId);
+      
+      const data = await response.json();
+      
+      const weatherCode = data.current_weather.weathercode;
+      const weatherInfo = weatherAdviceMap[weatherCode] || { 
+        icon: "☀️", 
+        description: "Variabile", 
+        advice: "VERIFICARE CONDIZIONI LOCALI" 
+      };
+      
+      const temperature = Math.round(data.current_weather.temperature);
+      
+      const dailyForecast = data.daily.time.slice(0, 3).map((date: string, index: number) => ({
+        date: new Date(date).toLocaleDateString('it-IT', { weekday: 'short' }),
+        max: Math.round(data.daily.temperature_2m_max[index]),
+        min: Math.round(data.daily.temperature_2m_min[index]),
+        icon: weatherAdviceMap[data.daily.weathercode[index]]?.icon || "☀️"
+      }));
+      
+      const weatherData = {
+        icon: weatherInfo.icon,
+        temp: temperature,
+        desc: weatherInfo.description,
+        advice: weatherInfo.advice,
+        location: location.city,
+        forecast: dailyForecast,
+        loading: false,
+        error: null
+      };
+      
+      // Salva in cache
+      this.cacheWeather(weatherData);
+      return weatherData;
+      
+    } catch (error) {
+      console.error("Errore meteo:", error);
+      return {
+        icon: "☀️",
+        temp: 18,
+        desc: "Dati non disponibili",
+        advice: "VERIFICARE CONNESSIONE",
+        location: "Non rilevata",
+        loading: false,
+        error: "Errore meteo"
+      };
     }
-    // 2. Altrimenti GPS (se richiesto)
-    else if (useGPS) {
-      const gpsLocation = await this.getUserLocationByGPS();
-      location = gpsLocation || await this.getUserLocationByIP();
-      console.log('📍 [GPS/IP]', location); // 🔍 LOG
-    }
-    // 3. Fallback su IP
-    else {
-      location = await this.getUserLocationByIP();
-      console.log('📍 [IP]', location); // 🔍 LOG
-    }
+  },
 
-    console.log('📍 [FINALE]', location); // 🔍 LOG
-
-    const response = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${location.lat}&longitude=${location.lon}&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto`
-    );
-    
-    console.log('📡 [URL]', response.url); // 🔍 LOG
-    
-    const data = await response.json();
-    console.log('📊 [TEMP RICEVUTA]', data.current_weather.temperature); // 🔍 LOG
-    
-    const weatherCode = data.current_weather.weathercode;
-    const weatherInfo = weatherAdviceMap[weatherCode] || { 
-      icon: "☀️", 
-      description: "Variabile", 
-      advice: "VERIFICARE CONDIZIONI LOCALI" 
-    };
-    
-    const temperature = Math.round(data.current_weather.temperature);
-    
-    const dailyForecast = data.daily.time.slice(0, 3).map((date: string, index: number) => ({
-      date: new Date(date).toLocaleDateString('it-IT', { weekday: 'short' }),
-      max: Math.round(data.daily.temperature_2m_max[index]),
-      min: Math.round(data.daily.temperature_2m_min[index]),
-      icon: weatherAdviceMap[data.daily.weathercode[index]]?.icon || "☀️"
-    }));
-    
-    const weatherData = {
-      icon: weatherInfo.icon,
-      temp: temperature,
-      desc: weatherInfo.description,
-      advice: weatherInfo.advice,
-      location: location.city,
-      forecast: dailyForecast,
-      loading: false,
-      error: null
-    };
-    
-    // Salva in cache
-    this.cacheWeather(weatherData);
-    return weatherData;
-    
-  } catch (error) {
-    console.error("Errore meteo:", error);
-    return {
-      icon: "☀️",
-      temp: 18,
-      desc: "Dati non disponibili",
-      advice: "VERIFICARE CONNESSIONE",
-      location: "Non rilevata",
-      loading: false,
-      error: "Errore meteo"
-    };
-  }
-},
-
-  // 🔵 FUNZIONI ESISTENTI (IDENTICHE)
   getCachedWeather(): WeatherData | null {
     const cached = localStorage.getItem('agriWeather');
     if (cached) {
