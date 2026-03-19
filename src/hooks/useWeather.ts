@@ -63,7 +63,16 @@ export const useWeather = () => {
   const setLocation = useCallback(async (lat: number, lon: number, cityName: string) => {
     setWeather(prev => ({ ...prev, loading: true, error: null }));
    const data = await weatherService.fetchWeather();  // Senza parametri!
-    setWeather({ ...data, location: cityName });
+   setWeather({
+  icon: data.icon || '☀️',
+  temp: data.temp ?? 18,
+  desc: data.desc || 'Sereno',
+  advice: data.advice || 'LAVORI ALL'APERTO',
+  location: cityName,
+  forecast: data.forecast || [],
+  loading: false,
+  error: data.error || null
+});
   }, []);
 
   // Carica il meteo della località dell'utente al primo avvio
