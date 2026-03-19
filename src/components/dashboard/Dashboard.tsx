@@ -16,7 +16,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onTabChange }) => {
   const { transactions } = useTransactions();
   const { tasks } = useTasks();
   const { checkExpiringTreatments } = useNotifications();
-  const { userName } = useAuth();  // ← AGGIUNTO
+ const { userData } = useAuth();
+const userName = userData?.username || 'Utente';
 
   const totalIncome = transactions.filter(t => t.type === 'Entrata').reduce((acc, t) => acc + t.amount, 0);
   const totalExpense = transactions.filter(t => t.type === 'Uscita').reduce((acc, t) => acc + t.amount, 0);
