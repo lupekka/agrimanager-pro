@@ -35,7 +35,8 @@ export interface ExpiringTreatment {
 }
 
 export const useNotifications = () => {
-  const { user, userName } = useAuth();
+ const { user, userData } = useAuth();
+const userName = userData?.username || 'Utente';
   const [notificationsEnabled, setNotificationsEnabled] = useState(
     localStorage.getItem("emailNotifications") !== "false"
   );
