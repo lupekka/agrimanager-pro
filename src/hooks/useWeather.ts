@@ -67,7 +67,7 @@ export const useWeather = () => {
   icon: data.icon || '☀️',
   temp: data.temp ?? 18,
   desc: data.desc || 'Sereno',
-  advice: data.advice || 'LAVORI ALL'APERTO',
+ advice: data.advice || "LAVORI ALL'APERTO",
   location: cityName,
   forecast: data.forecast || [],
   loading: false,
