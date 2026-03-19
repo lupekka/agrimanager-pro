@@ -36,7 +36,7 @@ import { SimpleTutorial } from './components/onboarding/SimpleTutorial';
 
 export default function App() {
   const { user, userData, loading } = useAuth(); // ← MODIFICATO
-  const { weather, refreshWeather } = useWeather();
+  const { weather } = useWeather();
   const { notificationsEnabled, setNotificationsEnabled } = useNotifications();
   const { animals } = useAnimals();
   
