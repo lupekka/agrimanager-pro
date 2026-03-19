@@ -8,7 +8,8 @@ export const useProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [stockLogs, setStockLogs] = useState<StockLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user, userName } = useAuth();
+ const { user, userData } = useAuth();
+const userName = userData?.username || user?.email || 'Azienda Agricola';
 
   useEffect(() => {
     if (!user) {
