@@ -1,22 +1,17 @@
 import React, { useState } from 'react';
-import { Activity, MapPin, X, Settings, Search } from 'lucide-react';
-import { WeatherData } from '../../types';
+import { Activity, MapPin, Search, X } from 'lucide-react';
 import { useWeather } from '../../hooks/useWeather';
+import { useAuth } from '../../hooks/useAuth';
 
-interface WeatherWidgetProps {
-  weather: WeatherData;
-  onRefresh: (useGPS?: boolean, customLocation?: any) => void;
-}
-
-// Componente per la ricerca manuale della località
+// Componente modale per la ricerca città
 const LocationSearchModal: React.FC<{
   onClose: () => void;
   onSelect: (lat: number, lon: number, city: string) => void;
-  searchLocation: (query: string) => Promise<any[]>;
-}> = ({ onClose, onSelect, searchLocation }) => {
+}> = ({ onClose, onSelect }) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const { searchLocation } = useWeather();
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -41,7 +36,7 @@ const LocationSearchModal: React.FC<{
           </button>
         </div>
 
-        {/* Ricerca manuale */}
+        {/* Ricerca */}
         <div className="space-y-3">
           <div className="flex gap-2">
             <input
@@ -67,11 +62,14 @@ const LocationSearchModal: React.FC<{
               {results.map((loc, idx) => (
                 <button
                   key={idx}
-                  onClick={() => onSelect(loc.lat, loc.lon, loc.name)}
+                  onClick={() => {
+                    onSelect(loc.lat, loc.lon, loc.name);
+                    onClose();
+                  }}
                   className="w-full text-left p-3 bg-stone-50 rounded-xl hover:bg-emerald-50 transition-colors"
                 >
                   <p className="font-bold text-stone-800">{loc.name}</p>
-                  <p className="text-xs text-stone-500">{loc.country}</p>
+                  <p className="text-xs text-stone-500">{loc.admin1 ? `${loc.admin1}, ` : ''}{loc.country}</p>
                 </button>
               ))}
             </div>
@@ -82,26 +80,10 @@ const LocationSearchModal: React.FC<{
   );
 };
 
-export const WeatherWidget: React.FC<WeatherWidgetProps> = ({ 
-  weather, 
-  onRefresh 
-}) => {
+export const WeatherWidget: React.FC = () => {
+  const { weather, setLocation, searchLocation } = useWeather();
+  const { userData } = useAuth();
   const [showLocationSelector, setShowLocationSelector] = useState(false);
-  const [useGPS, setUseGPS] = useState(true);
-  const { searchLocation, toggleGPS } = useWeather();
-
-  const handleGPSRequest = async () => {
-    setUseGPS(true);
-    toggleGPS(true);
-    await onRefresh(true);
-  };
-
-  const handleLocationSelected = async (lat: number, lon: number, city: string) => {
-    setShowLocationSelector(false);
-    setUseGPS(false);
-    toggleGPS(false);
-    await onRefresh(false, { lat, lon, city });
-  };
 
   // Caricamento
   if (weather.loading) {
@@ -113,10 +95,25 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({
     );
   }
 
+  // Errore
+  if (weather.error) {
+    return (
+      <div className="glass-effect px-5 py-3 rounded-2xl flex items-center gap-3 min-w-[200px] mb-4 border-red-200">
+        <span className="text-xs text-red-500">⚠️ {weather.error}</span>
+        <button 
+          onClick={() => setShowLocationSelector(true)}
+          className="ml-auto text-xs bg-stone-200 px-3 py-1 rounded-full hover:bg-stone-300"
+        >
+          Cambia città
+        </button>
+      </div>
+    );
+  }
+
   // Widget normale
   return (
     <>
-      <div className="glass-effect px-5 py-3 rounded-2xl flex items-center gap-3 min-w-[200px] mb-4 relative">
+      <div className="glass-effect px-5 py-3 rounded-2xl flex items-center gap-3 min-w-[200px] mb-4">
         <div className="text-3xl">{weather.icon}</div>
         <div className="flex-1">
           <p className="text-xs font-black text-stone-800">
@@ -126,7 +123,6 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({
             <MapPin size={10} className="text-stone-400" />
             <p className="text-[8px] text-stone-600 uppercase tracking-widest">
               {weather.location}
-              {!useGPS && <span className="text-emerald-500 ml-1">(manuale)</span>}
             </p>
           </div>
           <p className="text-[7px] text-emerald-700 font-bold uppercase mt-0.5">
@@ -134,42 +130,19 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({
           </p>
         </div>
         
-        {/* Pulsanti di controllo */}
-        <div className="flex gap-1">
-          <button
-            onClick={handleGPSRequest}
-            className={`p-2 rounded-full transition-colors ${
-              useGPS 
-                ? 'bg-emerald-100 text-emerald-600' 
-                : 'hover:bg-stone-100 text-stone-500'
-            }`}
-            title="Usa GPS"
-          >
-            <MapPin size={16} />
-          </button>
-          <button
-            onClick={() => setShowLocationSelector(true)}
-            className="p-2 hover:bg-stone-100 rounded-full text-stone-500"
-            title="Cerca località"
-          >
-            <Settings size={16} />
-          </button>
-          <button
-            onClick={() => onRefresh(useGPS)}
-            className="p-2 hover:bg-stone-100 rounded-full text-stone-500"
-            title="Aggiorna"
-          >
-            <Activity size={16} />
-          </button>
-        </div>
+        <button
+          onClick={() => setShowLocationSelector(true)}
+          className="p-2 hover:bg-stone-100 rounded-full text-stone-500"
+          title="Cambia località"
+        >
+          <Search size={16} />
+        </button>
       </div>
 
-      {/* Modal di ricerca */}
       {showLocationSelector && (
         <LocationSearchModal
           onClose={() => setShowLocationSelector(false)}
-          onSelect={handleLocationSelected}
-          searchLocation={searchLocation}
+          onSelect={setLocation}
         />
       )}
     </>
