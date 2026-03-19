@@ -13,6 +13,16 @@ export interface Treatment {
   completed?: boolean;
 }
 
+export interface User {
+  uid: string;
+  email: string;
+  username: string;
+  farmName: string;
+  location: string;
+  role: UserRole;
+  createdAt?: string;
+}
+
 export interface Animal { 
   id: string; 
   microchip: string;
