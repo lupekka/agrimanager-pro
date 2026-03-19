@@ -35,8 +35,8 @@ import {
 import { SimpleTutorial } from './components/onboarding/SimpleTutorial';
 
 export default function App() {
-  const { user, userRole, userName, loading } = useAuth();
-  const { weather, refreshWeather } = useWeather(); // ← Non serve più, ma lo lasciamo per compatibilità
+  const { user, userData, loading } = useAuth(); // ← MODIFICATO
+  const { weather, refreshWeather } = useWeather();
   const { notificationsEnabled, setNotificationsEnabled } = useNotifications();
   const { animals } = useAnimals();
   
@@ -73,6 +73,10 @@ export default function App() {
 
   if (loading) return <LoadingSpinner />;
   if (!user) return <LoginForm />;
+
+  // Estrai i dati da userData
+  const userRole = userData?.role || 'farmer';
+  const userName = userData?.username || 'Utente';
 
   const menuItems = userRole === 'farmer' 
     ? [
@@ -136,7 +140,7 @@ export default function App() {
           </div>
         )}
 
-        {/* Weather widget - MODIFICATO: non servono più props */}
+        {/* Weather widget */}
         <div className="animate-fade-in mb-6">
           <WeatherWidget />
         </div>
