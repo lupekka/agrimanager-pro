@@ -5,7 +5,11 @@ export const LoginForm: React.FC = () => {
   const [isRegistering, setIsRegistering] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [regName, setRegName] = useState('');
+  
+  // NUOVI CAMPI
+  const [username, setUsername] = useState('');
+  const [farmName, setFarmName] = useState('');
+  const [location, setLocation] = useState('');
   const [regRole, setRegRole] = useState<'farmer' | 'consumer'>('farmer');
   
   const { login, register } = useAuth();
@@ -14,7 +18,7 @@ export const LoginForm: React.FC = () => {
     e.preventDefault();
     try {
       if (isRegistering) {
-        await register(email, password, regRole, regName);
+        await register(email, password, regRole, username, farmName, location);
         alert("Registrazione completata! Ora puoi accedere.");
       } else {
         await login(email, password);
@@ -26,7 +30,7 @@ export const LoginForm: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-stone-100 flex items-center justify-center p-4">
-      <div className="bg-white p-6 rounded-3xl shadow-xl w-full max-w-sm border">
+      <div className="bg-white p-6 rounded-3xl shadow-xl w-full max-w-md border">
         <h1 className="text-2xl font-black text-center mb-6 text-emerald-900 italic uppercase">
           AgriManager Pro
         </h1>
@@ -34,38 +38,78 @@ export const LoginForm: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           
           {isRegistering && (
-            <div className="space-y-3 bg-stone-50 p-4 rounded-2xl border">
-              <input 
-                placeholder="Tuo Nome o Azienda" 
-                className="w-full p-3 rounded-xl border text-sm text-stone-800" 
-                value={regName} 
-                onChange={e => setRegName(e.target.value)} 
-                required 
-              />
+            <div className="space-y-4 bg-stone-50 p-4 rounded-2xl border">
+              {/* Username (obbligatorio) */}
+              <div>
+                <label className="text-xs font-bold text-stone-600 mb-1 block">
+                  Username *
+                </label>
+                <input 
+                  placeholder="es. Marco123" 
+                  className="w-full p-3 rounded-xl border text-sm text-stone-800" 
+                  value={username} 
+                  onChange={e => setUsername(e.target.value)} 
+                  required 
+                />
+              </div>
               
-              <div className="flex gap-2">
-                <button 
-                  type="button" 
-                  onClick={() => setRegRole('farmer')} 
-                  className={`flex-1 p-2 rounded-xl text-[10px] font-bold border transition-all ${
-                    regRole === 'farmer' 
-                      ? 'bg-emerald-600 text-white shadow-md' 
-                      : 'bg-white text-stone-800'
-                  }`}
-                >
-                  AZIENDA
-                </button>
-                <button 
-                  type="button" 
-                  onClick={() => setRegRole('consumer')} 
-                  className={`flex-1 p-2 rounded-xl text-[10px] font-bold border transition-all ${
-                    regRole === 'consumer' 
-                      ? 'bg-amber-500 text-white shadow-md' 
-                      : 'bg-white text-stone-800'
-                  }`}
-                >
-                  CLIENTE
-                </button>
+              {/* Nome Azienda (obbligatorio) */}
+              <div>
+                <label className="text-xs font-bold text-stone-600 mb-1 block">
+                  Nome Azienda *
+                </label>
+                <input 
+                  placeholder="es. Fattoria Rossi" 
+                  className="w-full p-3 rounded-xl border text-sm text-stone-800" 
+                  value={farmName} 
+                  onChange={e => setFarmName(e.target.value)} 
+                  required 
+                />
+              </div>
+              
+              {/* Località (obbligatoria) */}
+              <div>
+                <label className="text-xs font-bold text-stone-600 mb-1 block">
+                  Località (per il meteo) *
+                </label>
+                <input 
+                  placeholder="es. Milano" 
+                  className="w-full p-3 rounded-xl border text-sm text-stone-800" 
+                  value={location} 
+                  onChange={e => setLocation(e.target.value)} 
+                  required 
+                />
+              </div>
+              
+              {/* Ruolo */}
+              <div>
+                <label className="text-xs font-bold text-stone-600 mb-1 block">
+                  Tipo account *
+                </label>
+                <div className="flex gap-2">
+                  <button 
+                    type="button" 
+                    onClick={() => setRegRole('farmer')} 
+                    className={`flex-1 p-3 rounded-xl text-xs font-bold border transition-all ${
+                      regRole === 'farmer' 
+                        ? 'bg-emerald-600 text-white shadow-md' 
+                        : 'bg-white text-stone-800'
+                    }`}
+                  >
+                    AZIENDA
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => setRegRole('consumer')} 
+                    className={`flex-1 p-3 rounded-xl text-xs font-bold border transition-all ${
+                      regRole === 'consumer' 
+                        ? 'bg-amber-500 text-white shadow-md' 
+                        : 'bg-white text-stone-800'
+                    }`}
+                  >
+                    CLIENTE
+                  </button>
+                </div>
               </div>
             </div>
           )}
