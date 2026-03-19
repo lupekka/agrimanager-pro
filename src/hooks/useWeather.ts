@@ -62,7 +62,7 @@ export const useWeather = () => {
   // Funzione per impostare una località e ottenere il meteo
   const setLocation = useCallback(async (lat: number, lon: number, cityName: string) => {
     setWeather(prev => ({ ...prev, loading: true, error: null }));
-    const data = await weatherService.fetchWeather(lat, lon);
+   const data = await weatherService.fetchWeather();  // Senza parametri!
     setWeather({ ...data, location: cityName });
   }, []);
 
