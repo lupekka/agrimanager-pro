@@ -1,132 +1,102 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { WeatherData } from '../types';
 import { weatherService } from '../services/weatherService';
+import { useAuth } from './useAuth';
+
+// Interfaccia per i risultati della ricerca
+interface LocationResult {
+  name: string;
+  lat: number;
+  lon: number;
+  country: string;
+  admin1?: string;
+}
 
 export const useWeather = () => {
+  const { userData } = useAuth(); // Prendiamo i dati dell'utente loggato
   const [weather, setWeather] = useState<WeatherData>({
     icon: "☀️",
     temp: 18,
     desc: "Caricamento...",
     advice: "PREVISIONE IN AGGIORNAMENTO",
-    location: "Rilevamento posizione...",
-    loading: true,
+    location: userData?.location || "Seleziona una località",
+    loading: false,
     error: null
   });
 
-  const [useGPS, setUseGPS] = useState<boolean>(true);
-  const [customLocation, setCustomLocation] = useState<{ lat: number; lon: number; city: string } | null>(null);
-
-  // Carica preferenze all'avvio
-  useEffect(() => {
-    const savedGPS = localStorage.getItem('useGPS');
-    if (savedGPS !== null) {
-      setUseGPS(savedGPS === 'true');
-    }
-    
-    const savedLocation = weatherService.getUserPreferredLocation();
-    if (savedLocation) {
-      setCustomLocation(savedLocation);
+  // Funzione per cercare località
+  const searchLocation = useCallback(async (query: string): Promise<LocationResult[]> => {
+    if (!query.trim()) return [];
+    try {
+      const response = await fetch(
+        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=it`
+      );
+      const data = await response.json();
+      return data.results?.map((r: any) => ({
+        name: r.name,
+        lat: r.latitude,
+        lon: r.longitude,
+        country: r.country,
+        admin1: r.admin1
+      })) || [];
+    } catch (error) {
+      console.error('Errore ricerca località:', error);
+      return [];
     }
   }, []);
 
-  const fetchWeather = useCallback(async (forceGPS?: boolean, manualLocation?: { lat: number; lon: number; city: string }) => {
-    setWeather(prev => ({ ...prev, loading: true, error: null }));
-    
-    try {
-      // 1. Se è stata passata una località manuale
-      if (manualLocation) {
-        const data = await weatherService.fetchWeather(true); // true = usa GPS? non importa, usiamo manualLocation dopo
-        const newWeather = {
-          ...weather,
-          ...data,
-          location: manualLocation.city,
-          loading: false
-        } as WeatherData;
-        
-        setWeather(newWeather);
-        weatherService.cacheWeather(newWeather);
-        setCustomLocation(manualLocation);
-        setUseGPS(false);
-        return;
-      }
+  // Funzione per ottenere le coordinate di una località dal nome
+  const getCoordinatesFromLocation = useCallback(async (locationName: string): Promise<{ lat: number; lon: number; name: string } | null> => {
+    const results = await searchLocation(locationName);
+    if (results.length > 0) {
+      const first = results[0];
+      return {
+        lat: first.lat,
+        lon: first.lon,
+        name: first.name
+      };
+    }
+    return null;
+  }, [searchLocation]);
 
-      // 2. Prova con cache (solo se non abbiamo customLocation)
-      if (!customLocation) {
-        const cached = weatherService.getCachedWeather();
-        if (cached) {
-          setWeather({ ...cached, loading: false });
-          return;
+  // Funzione per impostare una località e ottenere il meteo
+  const setLocation = useCallback(async (lat: number, lon: number, cityName: string) => {
+    setWeather(prev => ({ ...prev, loading: true, error: null }));
+    const data = await weatherService.fetchWeather(lat, lon);
+    setWeather({ ...data, location: cityName });
+  }, []);
+
+  // Carica il meteo della località dell'utente al primo avvio
+  useEffect(() => {
+    const loadUserLocationWeather = async () => {
+      // Se l'utente ha una località salvata
+      if (userData?.location) {
+        const coords = await getCoordinatesFromLocation(userData.location);
+        if (coords) {
+          await setLocation(coords.lat, coords.lon, coords.name);
+        } else {
+          // Se non trova la località, mette un messaggio di errore
+          setWeather(prev => ({
+            ...prev,
+            error: `Località "${userData.location}" non trovata`,
+            loading: false
+          }));
+        }
+      } else {
+        // Se non c'è località, carica comunque con un fallback (Roma)
+        const defaultCoords = await getCoordinatesFromLocation('Roma');
+        if (defaultCoords) {
+          await setLocation(defaultCoords.lat, defaultCoords.lon, defaultCoords.name);
         }
       }
-      
-      // 3. Determina se usare GPS
-      const shouldUseGPS = forceGPS !== undefined ? forceGPS : useGPS;
-      
-      // 4. Se abbiamo una località salvata e non vogliamo GPS, usala
-      if (!shouldUseGPS && customLocation) {
-        const data = await weatherService.fetchWeather(true);
-        const newWeather = {
-          ...weather,
-          ...data,
-          location: customLocation.city,
-          loading: false
-        } as WeatherData;
-        setWeather(newWeather);
-        weatherService.cacheWeather(newWeather);
-        return;
-      }
-      
-      // 5. Chiamata API normale (con o senza GPS)
-      const data = await weatherService.fetchWeather(shouldUseGPS);
-      const newWeather = {
-        ...weather,
-        ...data,
-        loading: false
-      } as WeatherData;
-      
-      setWeather(newWeather);
-      weatherService.cacheWeather(newWeather);
-      
-    } catch (error) {
-      setWeather(prev => ({
-        ...prev,
-        loading: false,
-        error: "Errore meteo"
-      }));
-    }
-  }, [weather, useGPS, customLocation]);
+    };
 
-  const toggleGPS = (enabled: boolean) => {
-    setUseGPS(enabled);
-    localStorage.setItem('useGPS', String(enabled));
-    if (enabled) {
-      setCustomLocation(null);
-    }
-    fetchWeather(enabled);
-  };
+    loadUserLocationWeather();
+  }, [userData?.location]); // Ricarica se cambia la località dell'utente
 
-  const searchLocation = async (query: string) => {
-    return await weatherService.searchLocation(query);
-  };
-
-  const setManualLocation = (lat: number, lon: number, city: string) => {
-    fetchWeather(false, { lat, lon, city });
-  };
-
-  // Effetto iniziale
-  useEffect(() => {
-    fetchWeather();
-    const interval = setInterval(() => fetchWeather(useGPS), 30 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []); // fetchWeather non nelle dipendenze per evitare loop
-
-  return { 
-    weather, 
-    refreshWeather: fetchWeather,
-    toggleGPS,
+  return {
+    weather,
     searchLocation,
-    setManualLocation,
-    useGPS,
-    customLocation
+    setLocation,
   };
 };
