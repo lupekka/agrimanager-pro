@@ -144,9 +144,8 @@ async fetchWeather(lat?: number, lon?: number): Promise<Partial<WeatherData>> {
       if (preferred) {
         location = { lat: preferred.lat, lon: preferred.lon };
         cityName = preferred.city;
-      }
-      // Altrimenti GPS (se richiesto)
-      else if (useGPS) {
+      } else {
+        // Altrimenti GPS
         const gpsLocation = await this.getUserLocationByGPS();
         if (gpsLocation) {
           location = { lat: gpsLocation.lat, lon: gpsLocation.lon };
@@ -157,12 +156,6 @@ async fetchWeather(lat?: number, lon?: number): Promise<Partial<WeatherData>> {
           location = { lat: ipLocation.lat, lon: ipLocation.lon };
           cityName = ipLocation.city;
         }
-      }
-      // Fallback IP
-      else {
-        const ipLocation = await this.getUserLocationByIP();
-        location = { lat: ipLocation.lat, lon: ipLocation.lon };
-        cityName = ipLocation.city;
       }
     }
 
