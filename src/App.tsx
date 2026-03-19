@@ -36,7 +36,7 @@ import { SimpleTutorial } from './components/onboarding/SimpleTutorial';
 
 export default function App() {
   const { user, userRole, userName, loading } = useAuth();
-  const { weather, refreshWeather } = useWeather();
+  const { weather, refreshWeather } = useWeather(); // ← Non serve più, ma lo lasciamo per compatibilità
   const { notificationsEnabled, setNotificationsEnabled } = useNotifications();
   const { animals } = useAnimals();
   
@@ -136,12 +136,9 @@ export default function App() {
           </div>
         )}
 
-        {/* Weather widget */}
+        {/* Weather widget - MODIFICATO: non servono più props */}
         <div className="animate-fade-in mb-6">
-          <WeatherWidget 
-            weather={weather} 
-            onRefresh={refreshWeather} 
-          />
+          <WeatherWidget />
         </div>
 
         {/* Dashboard */}
