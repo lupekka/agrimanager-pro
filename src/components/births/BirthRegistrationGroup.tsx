@@ -43,14 +43,15 @@ export const BirthRegistrationGroup: React.FC = () => {
       `${mother.species.substring(0, 3)}-${new Date(newBirth.birthDate).toLocaleDateString('it-IT').replace(/\//g, '-')}`;
     
     await addGroup({
-      species: newBirth.species,
-      name: groupName,
-      motherMicrochip: mother.microchip,
-      fatherMicrochip: father?.microchip || '',
-      birthDate: newBirth.birthDate,
-      quantity: newBirth.quantity,
-      notes: `Nato da madre ${mother.microchip}${father ? ` e padre ${father.microchip}` : ''}`
-    });
+  species: newBirth.species,
+  name: groupName,
+  motherMicrochip: mother.microchip,
+  fatherMicrochip: father?.microchip || '',
+  birthDate: newBirth.birthDate,
+  quantity: newBirth.quantity,
+  currentQuantity: newBirth.quantity,  // ← AGGIUNGI QUESTA RIGA
+  notes: `Nato da madre ${mother.microchip}${father ? ` e padre ${father.microchip}` : ''}`
+});
     
     setNewBirth({ 
       motherMicrochip: '', 
