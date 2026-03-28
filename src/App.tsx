@@ -28,14 +28,15 @@ import {
   DynastyTree,
   VetAIAnalysis,
   MarketPlace,
-  AIAssistant
+  AIAssistant,
+  AnimalGroupList  // ← NUOVO IMPORT
 } from './components';
 
 // Importa il tutorial
 import { SimpleTutorial } from './components/onboarding/SimpleTutorial';
 
 export default function App() {
-  const { user, userData, loading } = useAuth(); // ← MODIFICATO
+  const { user, userData, loading } = useAuth();
   const { weather } = useWeather();
   const { notificationsEnabled, setNotificationsEnabled } = useNotifications();
   const { animals } = useAnimals();
@@ -82,6 +83,7 @@ export default function App() {
     ? [
         { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { id: 'inventory', label: 'Capi', icon: PawPrint },
+        { id: 'groups', label: 'Gruppi', icon: Package },  // ← NUOVO
         { id: 'health', label: 'Libretto Sanitario', icon: Syringe },
         { id: 'births', label: 'Parti', icon: Baby },
         { id: 'finance', label: 'Bilancio', icon: Wallet },
@@ -156,6 +158,13 @@ export default function App() {
         {activeTab === 'inventory' && userRole === 'farmer' && (
           <div className="animate-fade-in">
             <AnimalList />
+          </div>
+        )}
+
+        {/* Gruppi - NUOVO */}
+        {activeTab === 'groups' && userRole === 'farmer' && (
+          <div className="animate-fade-in">
+            <AnimalGroupList />
           </div>
         )}
 
