@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Package, MinusCircle, PlusCircle, Trash2, Edit2 } from 'lucide-react';
 import { useAnimalGroups } from '../../hooks/useAnimalGroups';
 import { useTransactions } from '../../hooks/useTransactions';
-import { format } from 'date-fns';
 
 export const AnimalGroupList: React.FC = () => {
   const { groups, loading, reduceQuantity, deleteGroup, updateGroupNotes } = useAnimalGroups();
@@ -24,7 +23,6 @@ export const AnimalGroupList: React.FC = () => {
       return;
     }
     
-    // Registra la transazione
     await addTransaction({
       desc: `Vendita di ${sellAmount.amount} ${groupName}`,
       amount: sellAmount.price,
@@ -33,7 +31,6 @@ export const AnimalGroupList: React.FC = () => {
       date: new Date().toLocaleDateString('it-IT')
     });
     
-    // Riduci la quantità del gruppo
     await reduceQuantity(groupId, sellAmount.amount);
     
     setSellAmount(null);
