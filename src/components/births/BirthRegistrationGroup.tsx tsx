@@ -1,0 +1,136 @@
+import React, { useState } from 'react';
+import { Baby, PlusCircle, MinusCircle } from 'lucide-react';
+import { useAnimals } from '../../hooks/useAnimals';
+import { useAnimalGroups } from '../../hooks/useAnimalGroups';
+import { Species } from '../../types';
+import { speciesList } from '../../utils/constants';
+
+export const BirthRegistrationGroup: React.FC = () => {
+  const { animals } = useAnimals();
+  const { addGroup } = useAnimalGroups();
+  
+  const [newBirth, setNewBirth] = useState({
+    motherMicrochip: '',
+    fatherMicrochip: '',
+    species: 'Maiali' as Species,
+    quantity: 1,
+    birthDate: '',
+    groupName: ''
+  });
+
+  const handleSaveBirth = async () => {
+    if (!newBirth.motherMicrochip.trim()) return alert("Inserisci il microchip della madre.");
+    if (newBirth.quantity <= 0 || newBirth.quantity > 50) return alert("Inserisci un numero valido di nati (1-50).");
+    if (!newBirth.birthDate) return alert("Inserisci la data di nascita.");
+    
+    // Cerca la madre
+    const mother = animals.find(a => a.microchip === newBirth.motherMicrochip);
+    if (!mother) return alert(`Madre con microchip "${newBirth.motherMicrochip}" non trovata.`);
+    
+    // Cerca il padre (se inserito)
+    let father = null;
+    if (newBirth.fatherMicrochip.trim()) {
+      father = animals.find(a => a.microchip === newBirth.fatherMicrochip);
+      if (!father) {
+        if (!confirm(`Padre con microchip "${newBirth.fatherMicrochip}" non trovato. Continuare senza padre?`)) {
+          return;
+        }
+      }
+    }
+    
+    // Nome gruppo automatico se non specificato
+    const groupName = newBirth.groupName.trim() || 
+      `${mother.species.substring(0, 3)}-${new Date(newBirth.birthDate).toLocaleDateString('it-IT').replace(/\//g, '-')}`;
+    
+    await addGroup({
+      species: newBirth.species,
+      name: groupName,
+      motherMicrochip: mother.microchip,
+      fatherMicrochip: father?.microchip || '',
+      birthDate: newBirth.birthDate,
+      quantity: newBirth.quantity,
+      currentQuantity: newBirth.quantity,
+      notes: `Nato da madre ${mother.microchip}${father ? ` e padre ${father.microchip}` : ''}`
+    });
+    
+    setNewBirth({ 
+      motherMicrochip: '', 
+      fatherMicrochip: '',
+      species: 'Maiali', 
+      quantity: 1, 
+      birthDate: '',
+      groupName: ''
+    });
+    
+    alert(`${newBirth.quantity} nuovi capi registrati come gruppo!`);
+  };
+
+  return (
+    <div className="bg-white p-6 rounded-3xl border shadow-xl max-w-lg mx-auto">
+      <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 text-amber-700 mb-6 flex items-center gap-3 shadow-lg">
+        <Baby size={40} strokeWidth={1.5} className="animate-pulse" />
+        <div>
+          <p className="text-sm font-black italic uppercase text-amber-900">Registrazione Parto (Gruppi)</p>
+          <p className="text-[8px] text-amber-600">Registra l'intera cucciolata come unico gruppo</p>
+        </div>
+      </div>
+      
+      <div className="space-y-4">
+        {/* Madre */}
+        <div>
+          <label className="text-xs font-bold text-stone-700 mb-1 block">
+            👩 Microchip Madre <span className="text-red-500">*</span>
+          </label>
+          <input 
+            className="w-full p-3 bg-stone-50 rounded-xl font-black text-sm shadow-inner border-none text-stone-800 uppercase" 
+            placeholder="Es. MAIALE-001" 
+            value={newBirth.motherMicrochip} 
+            onChange={(e) => setNewBirth({...newBirth, motherMicrochip: e.target.value})} 
+          />
+        </div>
+        
+        {/* Padre */}
+        <div>
+          <label className="text-xs font-bold text-stone-700 mb-1 block">
+            👨 Microchip Padre <span className="text-stone-500 font-normal">(opzionale)</span>
+          </label>
+          <input 
+            className="w-full p-3 bg-stone-50 rounded-xl font-black text-sm shadow-inner border-none text-stone-800 uppercase" 
+            placeholder="Es. MAIALE-002" 
+            value={newBirth.fatherMicrochip} 
+            onChange={(e) => setNewBirth({...newBirth, fatherMicrochip: e.target.value})} 
+          />
+        </div>
+        
+        {/* Nome Gruppo */}
+        <div>
+          <label className="text-xs font-bold text-stone-700 mb-1 block">
+            🏷️ Nome Gruppo <span className="text-stone-500 font-normal">(opzionale)</span>
+          </label>
+          <input 
+            className="w-full p-3 bg-stone-50 rounded-xl font-black text-sm shadow-inner border-none text-stone-800" 
+            placeholder="Es. Lotto Primavera 2026" 
+            value={newBirth.groupName} 
+            onChange={(e) => setNewBirth({...newBirth, groupName: e.target.value})} 
+          />
+        </div>
+        
+        {/* Quantità e Specie */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs font-bold text-stone-700 mb-1 block">Numero nati</label>
+            <input 
+              type="number" 
+              min="1" 
+              max="50" 
+              className="w-full p-3 bg-stone-50 rounded-xl font-black text-sm shadow-inner border-none text-stone-800" 
+              value={newBirth.quantity} 
+              onChange={(e) => setNewBirth({...newBirth, quantity: Number(e.target.value)})} 
+            />
+          </div>
+          
+          <div>
+            <label className="text-xs font-bold text-stone-700 mb-1 block">Specie</label>
+            <select 
+              className="w-full p-3 bg-stone-50 rounded-xl font-bold text-sm border-none shadow-inner text-stone-800 uppercase" 
+              value={newBirth.species} 
