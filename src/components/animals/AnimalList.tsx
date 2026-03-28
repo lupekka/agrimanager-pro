@@ -117,7 +117,7 @@ export const AnimalList: React.FC = () => {
                         key={animal.id} 
                         animal={animal}
                         onDelete={deleteAnimal}
-                        onUpdate={handleUpdateNotes}
+                        onUpdate={handleUpdateAnimal}
                       />
                     ))}
                     
