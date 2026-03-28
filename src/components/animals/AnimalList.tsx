@@ -5,7 +5,7 @@ import { useAnimalGroups } from '../../hooks/useAnimalGroups';
 import { AnimalCard } from './AnimalCard';
 import { AnimalForm } from './AnimalForm';
 import { AnimalSearch } from './AnimalSearch';
-import { Species } from '../../types';
+import { Animal, Species } from '../../types';
 import { speciesList } from '../../utils/constants';
 
 export const AnimalList: React.FC = () => {
