@@ -192,7 +192,7 @@ async fetchWeather(lat?: number, lon?: number): Promise<Partial<WeatherData>> {
       temp: temperature,
       desc: weatherInfo.description,
       advice: weatherInfo.advice,
-      location: cityName || location.city || "Posizione sconosciuta",
+      location: cityName || "Posizione sconosciuta",
       forecast: dailyForecast,
       loading: false,
       error: null
