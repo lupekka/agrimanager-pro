@@ -21,7 +21,7 @@ import {
   Dashboard,
   AnimalList,
   HealthBook,
-  BirthRegistration,
+  BirthRegistrationSelector,
   Finance,
   ProductList,
   TaskList,
@@ -178,7 +178,7 @@ export default function App() {
         {/* Births */}
         {activeTab === 'births' && userRole === 'farmer' && (
           <div className="animate-fade-in">
-            <BirthRegistration />
+            <BirthRegistrationSelector />
           </div>
         )}
 
