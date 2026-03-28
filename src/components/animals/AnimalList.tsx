@@ -12,7 +12,7 @@ export const AnimalList: React.FC = () => {
   console.log("🐶 1. AnimalList montato");
   
   const { animals, loading, error, addAnimal, updateAnimal, deleteAnimal } = useAnimals();
-  const { groups, deleteGroup, updateGroupNotes } = useAnimalGroups(); // ← AGGIUNTO
+  const { groups, deleteGroup, updateGroupNotes } = useAnimalGroups();
   
   const [expandedSpecies, setExpandedSpecies] = useState<Species[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -20,21 +20,17 @@ export const AnimalList: React.FC = () => {
   const [editNote, setEditNote] = useState('');
   const [editingType, setEditingType] = useState<'animal' | 'group'>('animal');
 
-  // Combina animali e gruppi per la visualizzazione
-  const allItems = [
-    ...animals.map(animal => ({ ...animal, type: 'animal' as const })),
-    ...groups.map(group => ({ ...group, type: 'group' as const }))
-  ];
+  // Filtra animali per ricerca
+  const filteredAnimals = animals.filter(animal => 
+    animal.microchip.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (animal.nome && animal.nome.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
-  const filteredItems = allItems.filter(item => {
-    if (item.type === 'animal') {
-      return item.microchip.toLowerCase().includes(searchTerm.toLowerCase()) ||
-             (item.nome && item.nome.toLowerCase().includes(searchTerm.toLowerCase()));
-    } else {
-      return item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-             item.motherMicrochip.toLowerCase().includes(searchTerm.toLowerCase());
-    }
-  });
+  // Filtra gruppi per ricerca
+  const filteredGroups = groups.filter(group => 
+    group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    group.motherMicrochip.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const toggleSpecies = (species: Species) => {
     setExpandedSpecies(prev => 
@@ -74,33 +70,19 @@ export const AnimalList: React.FC = () => {
     );
   }
 
-  if (!Array.isArray(animals)) {
-    console.error("🐶 animals NON è un array!", animals);
-    return (
-      <div className="bg-red-50 p-6 rounded-2xl border border-red-200">
-        <h3 className="text-red-600 font-black text-lg">❌ Errore formato dati</h3>
-        <p className="text-sm text-stone-700 mt-2">I dati ricevuti non sono un array</p>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       <AnimalForm onSave={addAnimal} existingMicrochip={animals.map(a => a.microchip)} />
       <AnimalSearch 
         value={searchTerm} 
         onChange={setSearchTerm}
-        resultsCount={searchTerm ? filteredItems.length : undefined}
+        resultsCount={searchTerm ? filteredAnimals.length + filteredGroups.length : undefined}
       />
       
       <div className="space-y-3">
         {speciesList.map(specie => {
-          const animaliDellaSpecie = filteredItems.filter(item => 
-            item.species === specie && item.type === 'animal'
-          );
-          const gruppiDellaSpecie = filteredItems.filter(item => 
-            item.species === specie && item.type === 'group'
-          );
+          const animaliDellaSpecie = filteredAnimals.filter(a => a.species === specie);
+          const gruppiDellaSpecie = filteredGroups.filter(g => g.species === specie);
           
           if (animaliDellaSpecie.length === 0 && gruppiDellaSpecie.length === 0) return null;
           
