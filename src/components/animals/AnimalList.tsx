@@ -38,9 +38,9 @@ export const AnimalList: React.FC = () => {
     );
   };
 
-  const handleUpdateNotes = (id: string, notes: string) => {
-    updateAnimal(id, { notes });
-  };
+ const handleUpdateAnimal = (id: string, updates: Partial<Animal>) => {
+  updateAnimal(id, updates);
+};
 
   const handleUpdateGroupNotes = async (id: string, notes: string) => {
     await updateGroupNotes(id, notes);
