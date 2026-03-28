@@ -36,6 +36,22 @@ export interface Animal {
   treatments?: Treatment[];
 }
 
+// NUOVO: Interfaccia per i gruppi di animali (es. cucciolate di maiali)
+export interface AnimalGroup {
+  id: string;
+  species: Species;           // Specie (es. Maiali)
+  name: string;               // Nome del gruppo (es. "Lotto Marzo 2026")
+  motherMicrochip: string;    // Madre (microchip)
+  fatherMicrochip?: string;   // Padre (opzionale)
+  birthDate: string;          // Data di nascita
+  quantity: number;           // Numero totale di nati
+  currentQuantity: number;    // Numero attuale (dopo vendite/morti)
+  ownerId: string;
+  notes: string;
+  createdAt: string;
+  treatments?: Treatment[];   // Trattamenti comuni a tutto il gruppo
+}
+
 export interface Transaction { 
   id: string; 
   type: TransactionType; 
